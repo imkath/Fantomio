@@ -3,10 +3,20 @@ import Link from 'next/link'
 import { LandingHeader } from '@/components/landing-header'
 import { Footer } from '@/components/footer'
 import { FileText } from 'lucide-react'
+import { LEGAL } from '@/lib/legal'
 
 export const metadata: Metadata = {
   title: 'Términos del Servicio - GhostSwap',
   description: 'Condiciones de uso de GhostSwap para organizar tu Amigo Secreto.',
+}
+
+function Section({ title, children }: { title: string; children: React.ReactNode }) {
+  return (
+    <section className="mb-8">
+      <h2 className="mb-3 text-xl font-semibold text-slate-900">{title}</h2>
+      <div className="space-y-4 text-slate-600">{children}</div>
+    </section>
+  )
 }
 
 export default function TermsPage() {
@@ -23,85 +33,101 @@ export default function TermsPage() {
             <h1 className="text-3xl font-bold text-slate-900">Términos del Servicio</h1>
           </div>
 
-          <p className="mb-8 text-sm text-slate-500">Última actualización: Octubre 2026</p>
+          <p className="mb-8 text-sm text-slate-500">
+            Versión {LEGAL.version}, vigente desde el {LEGAL.fecha}
+          </p>
 
-          <div className="prose prose-slate max-w-none">
-            <section className="mb-8">
-              <h2 className="mb-3 text-xl font-semibold text-slate-900">1. El Servicio</h2>
-              <p className="text-slate-600">
-                GhostSwap es una aplicación web gratuita para organizar sorteos de Amigo Secreto e
-                intercambios de regalos. Al crear una cuenta o usar el servicio aceptas estos
-                términos.
+          <div className="max-w-none">
+            <Section title="1. Qué es GhostSwap">
+              <p>
+                GhostSwap es un servicio gratuito para organizar sorteos de Amigo Secreto e
+                intercambios de regalos. Quién lo ofrece y cómo contactarla está en la{' '}
+                <Link href="/privacy" className="text-indigo-600 hover:underline">
+                  Política de Privacidad
+                </Link>
+                . Al crear una cuenta o usar el servicio aceptas estos términos. Si no estás de
+                acuerdo, no lo uses.
               </p>
-            </section>
+            </Section>
 
-            <section className="mb-8">
-              <h2 className="mb-3 text-xl font-semibold text-slate-900">2. Tu Cuenta</h2>
-              <p className="text-slate-600">
-                Puedes entrar con Google o con email y contraseña. Eres responsable de mantener
-                segura tu cuenta y de que los datos que ingresas sean tuyos o tengas permiso para
-                usarlos.
+            <Section title="2. Quién puede usarlo">
+              <p>
+                Si tienes menos de 14 años, necesitas el consentimiento de tu madre, padre o
+                representante legal para usar GhostSwap.
               </p>
-            </section>
+            </Section>
 
-            <section className="mb-8">
-              <h2 className="mb-3 text-xl font-semibold text-slate-900">3. Uso Aceptable</h2>
-              <p className="mb-4 text-slate-600">Al usar GhostSwap te comprometes a no:</p>
-              <ul className="ml-4 list-inside list-disc space-y-2 text-slate-600">
-                <li>
-                  Usar el servicio para enviar spam o contenido ofensivo a otros participantes
-                </li>
-                <li>Intentar acceder a las asignaciones o datos de otras personas</li>
-                <li>
-                  Interferir con el funcionamiento del servicio o abusar de él de forma automatizada
-                </li>
+            <Section title="3. Tu cuenta">
+              <p>
+                Puedes entrar con Google o con correo y contraseña. Cuida el acceso a tu cuenta: lo
+                que se haga desde ella se entiende hecho por ti.
+              </p>
+            </Section>
+
+            <Section title="4. Qué no está permitido">
+              <ul className="ml-4 list-inside list-disc space-y-2">
+                <li>Usar el servicio para acosar, insultar o enviar spam a otros participantes.</li>
+                <li>Intentar ver asignaciones o datos que no te corresponden.</li>
+                <li>Hacerse pasar por otra persona.</li>
+                <li>Interferir con el funcionamiento del servicio.</li>
               </ul>
-            </section>
+              <p>Podemos suspender o eliminar las cuentas que no respeten estas reglas.</p>
+            </Section>
 
-            <section className="mb-8">
-              <h2 className="mb-3 text-xl font-semibold text-slate-900">4. Tu Contenido</h2>
-              <p className="text-slate-600">
-                Los nombres de grupos, listas de deseos y demás datos que ingresas siguen siendo
-                tuyos. Solo los usamos para hacer funcionar el servicio, como se describe en la{' '}
+            <Section title="5. Lo que escribes">
+              <p>
+                Tu lista de deseos y tus mensajes siguen siendo tuyos, y eres responsable de lo que
+                escribes. Para que el servicio funcione nos autorizas a guardarlos y a mostrarlos a
+                las personas que corresponda dentro de tu grupo, y solo para eso. Podemos borrar
+                contenido que infrinja la ley o estos términos.
+              </p>
+            </Section>
+
+            <Section title="6. Tus datos">
+              <p>
+                Cómo tratamos tus datos personales y cómo ejercer tus derechos está en la{' '}
                 <Link href="/privacy" className="text-indigo-600 hover:underline">
                   Política de Privacidad
                 </Link>
                 .
               </p>
-            </section>
+            </Section>
 
-            <section className="mb-8">
-              <h2 className="mb-3 text-xl font-semibold text-slate-900">5. Disponibilidad</h2>
-              <p className="text-slate-600">
-                GhostSwap se ofrece tal cual, sin garantías de disponibilidad continua. Hacemos lo
-                posible para que funcione bien, pero no nos hacemos responsables por pérdidas
-                derivadas de interrupciones o errores del servicio.
+            <Section title="7. Disponibilidad y responsabilidad">
+              <p>
+                GhostSwap es gratuito y se ofrece tal como está. Hacemos lo posible para que
+                funcione bien, pero no garantizamos que esté siempre disponible ni libre de errores.
+                En la medida en que la ley lo permita, no respondemos por daños derivados de
+                interrupciones del servicio ni por los regalos, compras o acuerdos entre
+                participantes.
               </p>
-            </section>
+            </Section>
 
-            <section className="mb-8">
-              <h2 className="mb-3 text-xl font-semibold text-slate-900">6. Término de la Cuenta</h2>
-              <p className="text-slate-600">
-                Puedes dejar de usar GhostSwap y solicitar la eliminación de tu cuenta en cualquier
-                momento. Podemos suspender cuentas que incumplan estos términos.
+            <Section title="8. Cierre de tu cuenta">
+              <p>
+                Puedes dejar de usar GhostSwap cuando quieras y pedir que eliminemos tu cuenta
+                escribiendo a{' '}
+                <a href={`mailto:${LEGAL.contacto}`} className="text-indigo-600 hover:underline">
+                  {LEGAL.contacto}
+                </a>
+                . Si el servicio deja de funcionar, avisaremos con anticipación razonable.
               </p>
-            </section>
+            </Section>
 
-            <section className="mb-8">
-              <h2 className="mb-3 text-xl font-semibold text-slate-900">7. Cambios</h2>
-              <p className="text-slate-600">
-                Podemos actualizar estos términos ocasionalmente. Publicaremos la nueva versión en
-                esta página con su fecha de actualización.
+            <Section title="9. Cambios">
+              <p>
+                Si cambiamos estos términos, publicaremos aquí la nueva versión con su fecha. Si el
+                cambio es importante, te avisaremos por correo. Seguir usando el servicio después
+                del cambio significa que lo aceptas.
               </p>
-            </section>
+            </Section>
 
-            <section>
-              <h2 className="mb-3 text-xl font-semibold text-slate-900">8. Contacto</h2>
-              <p className="text-slate-600">
-                Si tienes preguntas sobre estos términos, puedes contactarnos a través del
-                repositorio del proyecto.
+            <Section title="10. Ley aplicable">
+              <p>
+                Estos términos se rigen por las leyes de la República de Chile. Cualquier
+                controversia se someterá a los tribunales ordinarios de justicia de Chile.
               </p>
-            </section>
+            </Section>
           </div>
         </div>
       </main>

@@ -1,12 +1,33 @@
 import { Metadata } from 'next'
+import Link from 'next/link'
 import { LandingHeader } from '@/components/landing-header'
 import { Footer } from '@/components/footer'
 import { Shield } from 'lucide-react'
+import { LEGAL } from '@/lib/legal'
 
 export const metadata: Metadata = {
   title: 'Política de Privacidad - GhostSwap',
-  description: 'Conoce cómo GhostSwap protege tu información personal y tus datos.',
+  description: 'Qué datos trata GhostSwap, para qué, quién los ve y cómo ejercer tus derechos.',
 }
+
+function Section({ title, children }: { title: string; children: React.ReactNode }) {
+  return (
+    <section className="mb-8">
+      <h2 className="mb-3 text-xl font-semibold text-slate-900">{title}</h2>
+      <div className="space-y-4 text-slate-600">{children}</div>
+    </section>
+  )
+}
+
+function List({ children }: { children: React.ReactNode }) {
+  return <ul className="ml-4 list-inside list-disc space-y-2">{children}</ul>
+}
+
+const mail = (
+  <a href={`mailto:${LEGAL.contacto}`} className="text-indigo-600 hover:underline">
+    {LEGAL.contacto}
+  </a>
+)
 
 export default function PrivacyPage() {
   return (
@@ -22,140 +43,169 @@ export default function PrivacyPage() {
             <h1 className="text-3xl font-bold text-slate-900">Política de Privacidad</h1>
           </div>
 
-          <p className="mb-8 text-sm text-slate-500">Última actualización: Diciembre 2025</p>
+          <p className="mb-8 text-sm text-slate-500">
+            Versión {LEGAL.version}, vigente desde el {LEGAL.fecha}
+          </p>
 
-          <div className="prose prose-slate max-w-none">
-            <section className="mb-8">
-              <h2 className="mb-3 text-xl font-semibold text-slate-900">
-                1. Información que Recopilamos
-              </h2>
-              <p className="mb-4 text-slate-600">
-                GhostSwap recopila la siguiente información cuando utilizas nuestro servicio:
+          <div className="max-w-none">
+            <Section title="1. Quién es responsable">
+              <p>
+                La responsable del tratamiento de tus datos en GhostSwap es {LEGAL.responsable}.
+                Para cualquier consulta o solicitud sobre tus datos escribe a {mail}.
               </p>
-              <ul className="ml-4 list-inside list-disc space-y-2 text-slate-600">
+            </Section>
+
+            <Section title="2. Qué datos tratamos y de dónde vienen">
+              <List>
                 <li>
-                  <strong>Información de la cuenta:</strong> Nombre, dirección de correo electrónico
-                  y foto de perfil cuando inicias sesión con Google o te registras con email.
+                  <strong>Cuenta:</strong> correo electrónico, nombre y foto de perfil. Los ingresas
+                  tú al registrarte o los entrega Google cuando entras con tu cuenta de Google. De
+                  Google solo recibimos esos tres datos.
                 </li>
                 <li>
-                  <strong>Datos del grupo:</strong> Nombres de grupos, fechas de intercambio,
-                  presupuestos y listas de deseos que creas.
+                  <strong>Grupos:</strong> nombre del grupo, presupuesto, moneda, fecha del
+                  intercambio y código de invitación.
                 </li>
                 <li>
-                  <strong>Información de uso:</strong> Datos básicos sobre cómo interactúas con la
-                  aplicación.
-                </li>
-              </ul>
-            </section>
-
-            <section className="mb-8">
-              <h2 className="mb-3 text-xl font-semibold text-slate-900">
-                2. Cómo Usamos tu Información
-              </h2>
-              <p className="mb-4 text-slate-600">Utilizamos la información recopilada para:</p>
-              <ul className="ml-4 list-inside list-disc space-y-2 text-slate-600">
-                <li>Crear y administrar tu cuenta de usuario</li>
-                <li>Facilitar la creación de grupos y sorteos de Amigo Secreto</li>
-                <li>
-                  Permitir que los miembros del grupo vean información relevante (nombres, listas de
-                  deseos)
-                </li>
-                <li>Mejorar y mantener el servicio</li>
-              </ul>
-            </section>
-
-            <section className="mb-8">
-              <h2 className="mb-3 text-xl font-semibold text-slate-900">
-                3. Compartición de Información
-              </h2>
-              <p className="mb-4 text-slate-600">
-                <strong>No vendemos ni compartimos tu información personal con terceros</strong>{' '}
-                para fines de marketing o publicidad.
-              </p>
-              <p className="mb-4 text-slate-600">Tu información puede ser compartida únicamente:</p>
-              <ul className="ml-4 list-inside list-disc space-y-2 text-slate-600">
-                <li>Con otros miembros del mismo grupo (nombre, email, lista de deseos)</li>
-                <li>
-                  Con proveedores de servicios necesarios para operar la aplicación (Supabase,
-                  Cloudflare, Brevo)
-                </li>
-                <li>Cuando sea requerido por ley</li>
-              </ul>
-            </section>
-
-            <section className="mb-8">
-              <h2 className="mb-3 text-xl font-semibold text-slate-900">
-                4. Seguridad de los Datos
-              </h2>
-              <p className="text-slate-600">
-                Implementamos medidas de seguridad técnicas y organizativas para proteger tu
-                información personal, incluyendo encriptación de datos en tránsito y en reposo, y
-                control de acceso basado en roles.
-              </p>
-            </section>
-
-            <section className="mb-8">
-              <h2 className="mb-3 text-xl font-semibold text-slate-900">5. Retención de Datos</h2>
-              <p className="text-slate-600">
-                Mantenemos tu información mientras tu cuenta esté activa o mientras sea necesario
-                para proporcionarte el servicio. Puedes solicitar la eliminación de tu cuenta y
-                datos asociados en cualquier momento.
-              </p>
-            </section>
-
-            <section className="mb-8">
-              <h2 className="mb-3 text-xl font-semibold text-slate-900">6. Tus Derechos</h2>
-              <p className="mb-4 text-slate-600">Tienes derecho a:</p>
-              <ul className="ml-4 list-inside list-disc space-y-2 text-slate-600">
-                <li>Acceder a tus datos personales</li>
-                <li>Rectificar información incorrecta</li>
-                <li>Solicitar la eliminación de tus datos</li>
-                <li>Exportar tus datos en un formato portable</li>
-              </ul>
-            </section>
-
-            <section className="mb-8">
-              <h2 className="mb-3 text-xl font-semibold text-slate-900">7. Autenticación</h2>
-              <p className="mb-4 text-slate-600">GhostSwap ofrece dos métodos de autenticación:</p>
-              <ul className="ml-4 list-inside list-disc space-y-2 text-slate-600">
-                <li>
-                  <strong>Google OAuth:</strong> Solo accedemos a la información básica de tu perfil
-                  (nombre, email y foto). No accedemos a tus contactos, calendario u otros datos de
-                  Google.
+                  <strong>Participación:</strong> tu lista de deseos, las exclusiones que define el
+                  administrador del grupo, la asignación del sorteo y los mensajes anónimos que
+                  intercambias con tu amigo secreto.
                 </li>
                 <li>
-                  <strong>Email y contraseña:</strong> Tu contraseña se almacena de forma segura
-                  usando encriptación. Nunca almacenamos contraseñas en texto plano.
+                  <strong>Datos técnicos:</strong> dirección IP y registros de inicio de sesión, que
+                  nuestro proveedor de autenticación guarda por seguridad.
                 </li>
-              </ul>
-            </section>
-
-            <section className="mb-8">
-              <h2 className="mb-3 text-xl font-semibold text-slate-900">8. Cookies</h2>
-              <p className="text-slate-600">
-                Utilizamos cookies esenciales para mantener tu sesión iniciada y mejorar tu
-                experiencia. No utilizamos cookies de seguimiento ni publicidad.
+              </List>
+              <p>
+                No pedimos datos sensibles. Te recomendamos no incluirlos en tu lista de deseos ni
+                en los mensajes.
               </p>
-            </section>
+            </Section>
 
-            <section className="mb-8">
-              <h2 className="mb-3 text-xl font-semibold text-slate-900">
-                9. Cambios a esta Política
-              </h2>
-              <p className="text-slate-600">
-                Podemos actualizar esta política ocasionalmente. Te notificaremos sobre cambios
-                significativos publicando la nueva política en esta página con una fecha de
-                actualización.
+            <Section title="3. Para qué los usamos y con qué base legal">
+              <List>
+                <li>
+                  <strong>Prestar el servicio</strong> (crear tu cuenta, armar grupos, hacer el
+                  sorteo, mostrarte a quién le regalas y avisarte por correo cuando el sorteo se
+                  realiza). La base es la ejecución del contrato que aceptas con los{' '}
+                  <Link href="/terms" className="text-indigo-600 hover:underline">
+                    Términos del Servicio
+                  </Link>{' '}
+                  (artículo 13 letra c de la Ley 19.628).
+                </li>
+                <li>
+                  <strong>Proteger las cuentas y el servicio</strong> frente a accesos indebidos o
+                  abuso. La base es nuestro interés legítimo en mantener el servicio seguro
+                  (artículo 13 letra d).
+                </li>
+              </List>
+              <p>
+                No usamos tus datos para publicidad, no hacemos perfiles y no usamos herramientas de
+                analítica ni de seguimiento.
               </p>
-            </section>
+            </Section>
 
-            <section>
-              <h2 className="mb-3 text-xl font-semibold text-slate-900">10. Contacto</h2>
-              <p className="text-slate-600">
-                Si tienes preguntas sobre esta política de privacidad o sobre cómo manejamos tus
-                datos, puedes contactarnos a través del repositorio del proyecto.
+            <Section title="4. Cómo funciona el sorteo">
+              <p>
+                El sorteo es automático y al azar. Solo respeta dos reglas: nadie se saca a sí mismo
+                y se cumplen las exclusiones que haya definido el administrador. No evalúa ningún
+                aspecto de tu persona. Cada participante ve únicamente su propia asignación; el
+                administrador del grupo tampoco puede ver las de los demás.
               </p>
-            </section>
+            </Section>
+
+            <Section title="5. Quién ve tus datos">
+              <List>
+                <li>
+                  <strong>Los miembros de tus grupos</strong> ven tu nombre, correo, foto y lista de
+                  deseos, y las exclusiones del grupo.
+                </li>
+                <li>
+                  <strong>Tu amigo secreto</strong> puede leer los mensajes que le envíes, sin saber
+                  que son tuyos.
+                </li>
+                <li>
+                  <strong>Proveedores que operan el servicio por nuestra cuenta:</strong> Supabase
+                  (base de datos y autenticación), Cloudflare (alojamiento del sitio) y Brevo (envío
+                  de correos). Solo pueden usar los datos para prestarnos ese servicio.
+                </li>
+                <li>
+                  <strong>Google</strong>, si eliges entrar con tu cuenta de Google. En ese caso
+                  Google trata tus datos según su propia política.
+                </li>
+              </List>
+              <p>No vendemos ni cedemos tus datos a nadie.</p>
+            </Section>
+
+            <Section title="6. Transferencia internacional">
+              <p>
+                Tus datos se almacenan en Estados Unidos (Supabase) y pasan por servidores de
+                Cloudflare en distintos países. Los correos se envían a través de Brevo, en la Unión
+                Europea. A la fecha de esta versión, la Agencia de Protección de Datos Personales no
+                ha determinado si esos países ofrecen un nivel adecuado de protección. Las
+                transferencias se amparan en los acuerdos de tratamiento de datos de cada proveedor,
+                que incluyen cláusulas contractuales estándar.
+              </p>
+            </Section>
+
+            <Section title="7. Cuánto tiempo los guardamos">
+              <p>
+                Mientras tu cuenta exista. Los datos de un grupo se mantienen hasta que el
+                administrador lo elimina. Si pides eliminar tu cuenta, borramos tus datos de perfil,
+                tus membresías, tus asignaciones y tus mensajes dentro del plazo de respuesta
+                indicado más abajo. Los registros técnicos se conservan por el período que define
+                cada proveedor.
+              </p>
+            </Section>
+
+            <Section title="8. Seguridad">
+              <List>
+                <li>Todo el tráfico va cifrado con HTTPS.</li>
+                <li>
+                  La base de datos aplica reglas de acceso por fila: cada persona solo puede leer lo
+                  que le corresponde, y la asignación del sorteo solo la ve quien regala.
+                </li>
+                <li>
+                  Las contraseñas no se guardan en texto legible y los datos se cifran en reposo en
+                  la infraestructura de Supabase.
+                </li>
+              </List>
+            </Section>
+
+            <Section title="9. Tus derechos">
+              <p>
+                Puedes pedir acceso, rectificación, supresión, oposición y portabilidad de tus
+                datos. Escribe a {mail} indicando tu nombre, el correo de tu cuenta y qué necesitas.
+                Respondemos dentro de 30 días corridos, plazo que puede extenderse una sola vez por
+                otros 30.
+              </p>
+              <p>
+                Si rechazamos tu solicitud o no respondemos a tiempo, puedes reclamar ante la
+                Agencia de Protección de Datos Personales.
+              </p>
+            </Section>
+
+            <Section title="10. Menores de edad">
+              <p>
+                Si tienes menos de 14 años, necesitas el consentimiento de tu madre, padre o
+                representante legal para usar GhostSwap. Si sabemos que se creó una cuenta sin ese
+                consentimiento, la eliminaremos.
+              </p>
+            </Section>
+
+            <Section title="11. Cookies">
+              <p>
+                Usamos solo las cookies necesarias para mantener tu sesión iniciada. No usamos
+                cookies de publicidad ni de seguimiento.
+              </p>
+            </Section>
+
+            <Section title="12. Cambios a esta política">
+              <p>
+                Si la cambiamos, publicaremos aquí la nueva versión con su fecha. Si el cambio es
+                importante, te avisaremos por correo.
+              </p>
+            </Section>
           </div>
         </div>
       </main>
