@@ -1,9 +1,13 @@
 name: Keep Supabase alive
 
-# El plan gratuito de Supabase pausa un proyecto tras ~7 dias sin actividad.
-# Cuando eso pasa, el sitio queda caido hasta reanudarlo a mano desde el panel.
-# Este workflow hace una consulta trivial cada 3 dias para que el proyecto
-# cuente como activo.
+# El keep-alive PRINCIPAL es el Worker `ghostswap-keepalive` (ver keepalive/),
+# que consulta la base cada 6 horas. Este workflow queda como red de seguridad:
+# corre a diario y, si la base no responde, GitHub avisa por correo al duenio.
+#
+# Por que no basta con Actions: Supabase pide "a few user requests to the
+# database each day over the previous week", y este workflow corria cada 3 dias,
+# asi que la base se pauso igual en agosto de 2026. Ademas Actions deshabilita
+# los workflows programados tras 60 dias sin actividad en el repo.
 #
 # Requiere dos secrets del repositorio (Settings > Secrets and variables > Actions):
 #   SUPABASE_URL       -> https://<ref>.supabase.co
@@ -15,8 +19,8 @@ name: Keep Supabase alive
 
 on:
   schedule:
-    # 09:00 UTC cada 3 dias
-    - cron: '0 9 */3 * *'
+    # 09:00 UTC todos los dias
+    - cron: '0 9 * * *'
   workflow_dispatch:
 
 permissions:
@@ -39,10 +43,11 @@ jobs:
             exit 1
           fi
 
-          # Se consulta 'groups' con limit=0: no devuelve filas ni datos de
-          # nadie, pero obliga a la base a responder. RLS sigue aplicando.
+          # Se consulta 'groups' con limit=1: es una consulta real a Postgres,
+          # que es lo que Supabase cuenta como actividad. RLS sigue aplicando,
+          # asi que no expone datos de nadie.
           status="$(curl -s -o /tmp/body.txt -w '%{http_code}' --max-time 30 \
-            "${SUPABASE_URL}/rest/v1/groups?select=id&limit=0" \
+            "${SUPABASE_URL}/rest/v1/groups?select=id&limit=1" \
             -H "apikey: ${SUPABASE_ANON_KEY}" \
             -H "Authorization: Bearer ${SUPABASE_ANON_KEY}")"
 

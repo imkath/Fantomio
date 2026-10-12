@@ -1,5 +1,3 @@
-import nodemailer from 'nodemailer'
-
 interface DrawNotificationParams {
   to: string
   recipientName: string
@@ -7,27 +5,9 @@ interface DrawNotificationParams {
   groupId: string
 }
 
-// Create Brevo SMTP transporter
-function createTransporter() {
-  const user = process.env.BREVO_SMTP_USER
-  const pass = process.env.BREVO_SMTP_KEY
-
-  if (!user || !pass) {
-    throw new Error(
-      'Brevo SMTP credentials not configured. Set BREVO_SMTP_USER and BREVO_SMTP_KEY in .env'
-    )
-  }
-
-  return nodemailer.createTransport({
-    host: 'smtp-relay.brevo.com',
-    port: 587,
-    secure: false,
-    auth: {
-      user,
-      pass,
-    },
-  })
-}
+// Brevo por su API HTTP: el SMTP no es confiable dentro de Cloudflare Workers.
+// La clave muere tras 90 dias sin envios; el Worker keepalive manda un latido mensual.
+const SENDER = { name: 'GhostSwap', email: 'hello@nvrkth.com' }
 
 export async function sendDrawNotification({
   to,
@@ -39,17 +19,24 @@ export async function sendDrawNotification({
   const groupUrl = `${appUrl}/groups/${groupId}`
 
   try {
-    const transporter = createTransporter()
+    const apiKey = process.env.BREVO_API_KEY
+    if (!apiKey) throw new Error('BREVO_API_KEY no esta configurada')
 
-    const info = await transporter.sendMail({
-      from: process.env.EMAIL_FROM || 'GhostSwap <hello@nvrkth.com>',
-      to,
-      subject: `${groupName} - ¡El sorteo ya se realizó!`,
-      html: getEmailTemplate({ recipientName, groupName, groupUrl }),
+    const res = await fetch('https://api.brevo.com/v3/smtp/email', {
+      method: 'POST',
+      headers: { 'api-key': apiKey, 'content-type': 'application/json' },
+      body: JSON.stringify({
+        sender: SENDER,
+        to: [{ email: to, name: recipientName }],
+        subject: `${groupName} - ¡El sorteo ya se realizó!`,
+        htmlContent: getEmailTemplate({ recipientName, groupName, groupUrl }),
+      }),
     })
+    if (!res.ok) throw new Error(`Brevo respondio ${res.status}: ${await res.text()}`)
 
-    console.log('Email sent:', info.messageId)
-    return { success: true, data: { id: info.messageId } }
+    const { messageId } = (await res.json()) as { messageId: string }
+    console.log('Email sent:', messageId)
+    return { success: true, data: { id: messageId } }
   } catch (error) {
     console.error('Error sending email:', error)
     return { success: false, error }

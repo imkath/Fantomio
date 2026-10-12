@@ -75,7 +75,7 @@
 
 - **Database:** Supabase (PostgreSQL)
 - **Auth:** Supabase Auth (Google OAuth + Email)
-- **Email:** Brevo SMTP (Nodemailer)
+- **Email:** Brevo (API HTTP)
 - **API:** Next.js Server Actions
 - **Validation:** Zod
 
@@ -127,10 +127,8 @@ Edita `.env.local` y agrega:
 NEXT_PUBLIC_SUPABASE_URL=tu-supabase-url
 NEXT_PUBLIC_SUPABASE_ANON_KEY=tu-anon-key
 
-# Email (Brevo SMTP) - Opcional, para notificaciones
-BREVO_SMTP_USER=tu-smtp-user@smtp-brevo.com
-BREVO_SMTP_KEY=tu-smtp-key
-EMAIL_FROM=TuApp <tu-email@dominio.com>
+# Email (Brevo API) - Opcional, para notificaciones
+BREVO_API_KEY=xkeysib-...
 ```
 
 ### 4. Configurar la base de datos
@@ -166,12 +164,40 @@ npm run deploy            # Deploy a producción
 ### Configurar secrets en Cloudflare
 
 ```bash
-npx wrangler secret put BREVO_SMTP_USER
-npx wrangler secret put BREVO_SMTP_KEY
-npx wrangler secret put EMAIL_FROM
+npx wrangler secret put BREVO_API_KEY
 ```
 
 ---
+
+## ⏰ Keep-alive de Supabase
+
+El plan gratuito de Supabase **pausa el proyecto por inactividad**, y cuando eso
+pasa el sitio deja de existir sin aviso. Ya ocurrio en agosto de 2026.
+
+Supabase pide "a few user requests to the database each day over the previous
+week", o sea **solicitudes diarias**, no una cada tanto. Por eso el primer
+intento, un workflow de GitHub Actions cada 3 dias, **no basto y la base se
+pauso igual**.
+
+La solucion quedo en dos capas:
+
+1. **Worker de Cloudflare `ghostswap-keepalive`** (carpeta `keepalive/`), que es
+   el keep-alive principal. Consulta la base **cada 6 horas**
+   (`"crons": ["0 3,9,15,21 * * *"]`).
+2. **Workflow `.github/workflows/keep-alive.yml`** como red de seguridad. Corre
+   a diario y, si la base no responde, GitHub avisa por correo.
+
+Ojo con dos trampas de GitHub Actions: deshabilita los workflows programados
+tras **60 dias sin actividad en el repo**, y por eso no puede ser la unica capa.
+
+GhostSwap es un producto **estacional** (se usa en diciembre), asi que la
+ventana de baja actividad es larga y previsible. Mejor que la falla aparezca en
+agosto y no en temporada.
+
+El mismo Worker manda **un correo el dia 1 de cada mes** a hello@nvrkth.com. Brevo
+desactiva toda clave que pase 90 dias sin un envio exitoso, y en octubre de 2026
+la clave anterior ya habia muerto asi. Si un mes ese correo no llega, revisar la
+clave en app.brevo.com.
 
 ## 🧪 Testing
 
@@ -237,7 +263,7 @@ ghostswap/
 ├── lib/                   # Utilidades
 │   ├── __tests__/        # Tests
 │   ├── derangement.ts    # Algoritmo de sorteo
-│   ├── email.ts          # Envío de emails (Brevo SMTP)
+│   ├── email.ts          # Envío de emails (Brevo API)
 │   ├── validations.ts    # Schemas Zod
 │   └── ...
 ├── hooks/                 # Custom hooks
