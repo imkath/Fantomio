@@ -1,22 +1,32 @@
 import type React from 'react'
 import type { Metadata, Viewport } from 'next'
-import { Zen_Kaku_Gothic_New, Dela_Gothic_One, Atkinson_Hyperlegible_Next } from 'next/font/google'
+import localFont from 'next/font/local'
+import { Atkinson_Hyperlegible_Next } from 'next/font/google'
 import { Toaster } from '@/components/ui/sonner'
 import { ThemeProvider } from '@/components/theme-provider'
 import { AnimatedFavicon } from '@/components/animated-favicon'
 import './globals.css'
 
-const zenKaku = Zen_Kaku_Gothic_New({
-  subsets: ['latin'],
-  weight: ['300', '400', '500', '700'],
+// Zen Kaku Gothic New and Dela Gothic One are self-hosted and subset to Latin (see
+// app/fonts/README.md): from Google they came as Japanese fonts in ~120 slices per weight and
+// next/font preloaded all of them, about 5 MB per page.
+const zenKaku = localFont({
+  src: [
+    { path: './fonts/ZenKakuGothicNew-Light.woff2', weight: '300' },
+    { path: './fonts/ZenKakuGothicNew-Regular.woff2', weight: '400' },
+    { path: './fonts/ZenKakuGothicNew-Medium.woff2', weight: '500' },
+    { path: './fonts/ZenKakuGothicNew-Bold.woff2', weight: '700' },
+  ],
   variable: '--font-sans',
+  display: 'swap',
 })
 
 // Only for the wordmark and a few display moments.
-const delaGothic = Dela_Gothic_One({
-  subsets: ['latin'],
+const delaGothic = localFont({
+  src: './fonts/DelaGothicOne-Regular.woff2',
   weight: '400',
   variable: '--font-display',
+  display: 'swap',
 })
 
 // Small details (labels, metadata, codes). Built for low vision: l, 1, I, 0 and O never mix up.
@@ -27,7 +37,7 @@ const atkinson = Atkinson_Hyperlegible_Next({
   adjustFontFallback: false,
 })
 
-const THEME_SCRIPT = `(function(){try{var t=localStorage.getItem('theme');var d=t==='dark'||((!t||t==='system')&&matchMedia('(prefers-color-scheme: dark)').matches);var e=document.documentElement;e.classList.add(d?'dark':'light');e.style.colorScheme=d?'dark':'light'}catch(_){}})()`
+const THEME_SCRIPT = `window.__name=window.__name||function(f){return f};(function(){try{var t=localStorage.getItem('theme');var d=t==='dark'||((!t||t==='system')&&matchMedia('(prefers-color-scheme: dark)').matches);var e=document.documentElement;e.classList.add(d?'dark':'light');e.style.colorScheme=d?'dark':'light'}catch(_){}})()`
 
 export const viewport: Viewport = {
   width: 'device-width',
@@ -121,6 +131,8 @@ export default function RootLayout({
     <html lang="es" suppressHydrationWarning>
       <head>
         {/* Sets the theme before anything paints: the saved choice, or the system's if none.
+            It also defines __name, a helper the build wraps next-themes' inline script with
+            and that otherwise doesn't exist in the browser (a ReferenceError in the console).
             next-themes' own script sits in <body> and runs after the CSS loads, which let the
             page paint light first and then switch. Fixed text, no user data. */}
         <script dangerouslySetInnerHTML={{ __html: THEME_SCRIPT }} />

@@ -114,10 +114,13 @@
 .group {
   padding: 16px 18px 4px;
 }
-.group h3 {
+/* a <p>, not a heading: the mock sits before its section title */
+.group .groupName {
   margin: 0;
+  font-family: inherit;
   font-weight: 700;
   font-size: 18px;
+  color: var(--ink);
 }
 .group p {
   margin: 2px 0 0;

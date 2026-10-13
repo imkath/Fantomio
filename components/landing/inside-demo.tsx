@@ -74,7 +74,7 @@ export function InsideDemo() {
               <GhostAvatar seed="demo-camila" size={30} />
             </div>
             <div className={styles.group}>
-              <h3>Oficina 2026</h3>
+              <p className={styles.groupName}>Oficina 2026</p>
               <p>intercambio 19 dic · $15.000 · 6 personas</p>
             </div>
 

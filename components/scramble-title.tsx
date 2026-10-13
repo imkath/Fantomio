@@ -43,7 +43,10 @@ function ScrambledWord({ word }: { word: string }) {
 export function ScrambleTitle({ text = 'Amigo Secreto' }: { text?: string }) {
   const words = text.split(' ')
   return (
-    <span className="font-bold" aria-label={text}>
+    // aria-label isn't allowed on a plain span, so screen readers get the real words as
+    // hidden text and the scrambling letters are hidden from them.
+    <span className="font-bold">
+      <span className="sr-only">{text}</span>
       {words.map((w, i) => (
         <span key={i}>
           <ScrambledWord word={w} />
