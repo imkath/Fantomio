@@ -1,6 +1,5 @@
 'use client'
 
-import { AppHeader } from '@/components/app-header'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
@@ -422,8 +421,7 @@ export default function GroupPage() {
 
   if (isLoading) {
     return (
-      <div className="bg-paper min-h-screen">
-        <AppHeader />
+      <div className="bg-paper min-h-[calc(100vh-69px)]">
         <main className="mx-auto max-w-[1040px] px-4 py-10 md:px-8">
           <GroupPageSkeleton />
         </main>
@@ -433,8 +431,7 @@ export default function GroupPage() {
 
   if (error && !group) {
     return (
-      <div className="bg-paper text-ink min-h-screen">
-        <AppHeader />
+      <div className="bg-paper text-ink min-h-[calc(100vh-69px)]">
         <main className="mx-auto max-w-[520px] px-4 py-16">
           <h1 className="mb-2 text-[34px] leading-tight font-light">No pudimos abrir este grupo</h1>
           <p className="text-graphite mb-8">{error}</p>
@@ -451,8 +448,7 @@ export default function GroupPage() {
   const drawn = group.status === 'DRAWN'
 
   return (
-    <div className="bg-paper text-ink min-h-screen pb-16">
-      <AppHeader />
+    <div className="bg-paper text-ink min-h-[calc(100vh-69px)] pb-16">
 
       <main className="mx-auto max-w-[1040px] px-4 pt-8 pb-10 md:px-8">
         <BackLink />
@@ -803,7 +799,7 @@ export default function GroupPage() {
                   aria-label="Moneda"
                   value={editCurrency}
                   onChange={(e) => setEditCurrency(e.target.value)}
-                  className="border-input bg-paper text-ink focus-visible:border-ink h-11 rounded-[2px] border px-3 text-base outline-none"
+                  className="border-input bg-paper text-ink focus-visible:border-ink h-11 rounded-[8px] border px-3 text-base outline-none"
                 >
                   <option value="CLP">CLP ($)</option>
                   <option value="USD">USD ($)</option>

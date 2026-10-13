@@ -63,17 +63,22 @@ export function AppHeader() {
     router.refresh()
   }
 
-  if (!user) return null
-
   return (
     <header className="border-rule bg-paper/90 sticky top-0 z-10 border-b backdrop-blur-sm">
       <div className="mx-auto flex h-[68px] max-w-[1040px] items-center justify-between gap-4 px-4 md:px-8">
         <Logo />
 
         <div className="flex items-center gap-3 md:gap-5">
-          <span className="text-graphite hidden text-[15px] md:block">{user.name}</span>
-          <GhostAvatar seed={user.id} src={user.avatar_url} size={36} />
-          <NotificationBell userId={user.id} />
+          {/* Drawn right away; the user's parts fill in once the session is read. */}
+          {user ? (
+            <>
+              <NotificationBell userId={user.id} />
+              <span className="text-graphite hidden text-[15px] md:block">{user.name}</span>
+              <GhostAvatar seed={user.id} src={user.avatar_url} size={36} />
+            </>
+          ) : (
+            <span className="bg-slip size-9 rounded-full" aria-hidden="true" />
+          )}
           <ThemeToggle />
           <Button type="button" variant="outline" size="sm" onClick={handleSignOut}>
             <LogOut aria-hidden="true" />
