@@ -3,15 +3,15 @@
 import { Button } from '@/components/ui/button'
 import { Loader2 } from 'lucide-react'
 import { AuthShell, Field, Notice, PasswordField } from '@/components/auth-shell'
-import { useState, Suspense } from 'react'
-import { useSearchParams } from 'next/navigation'
+import { useState } from 'react'
+import { useQuery } from '@/lib/use-query'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase'
 import { safeRedirect } from '@/lib/routes'
 import { useSignedInRedirect } from '@/lib/use-signed-in-redirect'
 
 function RegisterForm() {
-  const searchParams = useSearchParams()
+  const searchParams = useQuery()
   const redirectTo = safeRedirect(searchParams.get('redirectTo'))
   useSignedInRedirect(redirectTo)
   const [name, setName] = useState('')
@@ -133,15 +133,5 @@ function RegisterForm() {
 }
 
 export default function RegisterPage() {
-  return (
-    <Suspense
-      fallback={
-        <main className="bg-paper flex min-h-screen items-center justify-center">
-          <Loader2 className="text-faint h-8 w-8 animate-spin" />
-        </main>
-      }
-    >
-      <RegisterForm />
-    </Suspense>
-  )
+  return <RegisterForm />
 }

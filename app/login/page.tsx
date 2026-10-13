@@ -3,8 +3,9 @@
 import { Button } from '@/components/ui/button'
 import { ArrowRight, Loader2 } from 'lucide-react'
 import { AuthShell, Divider, Field, Notice, PasswordField } from '@/components/auth-shell'
-import { useState, Suspense } from 'react'
-import { useRouter, useSearchParams } from 'next/navigation'
+import { useEffect, useState } from 'react'
+import { useRouter } from 'next/navigation'
+import { useQuery } from '@/lib/use-query'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase'
 import { safeRedirect } from '@/lib/routes'
@@ -12,14 +13,17 @@ import { useSignedInRedirect } from '@/lib/use-signed-in-redirect'
 
 function LoginForm() {
   const router = useRouter()
-  const searchParams = useSearchParams()
+  const searchParams = useQuery()
   const redirectTo = safeRedirect(searchParams.get('redirectTo'))
   useSignedInRedirect(redirectTo)
   const verified = searchParams.get('verified') === 'true'
   const urlError = searchParams.get('error')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
-  const [error, setError] = useState(urlError || '')
+  const [error, setError] = useState('')
+  useEffect(() => {
+    if (urlError) setError(urlError)
+  }, [urlError])
   const [isLoading, setIsLoading] = useState(false)
 
   const handleGoogleSignIn = async () => {
@@ -145,15 +149,5 @@ function LoginForm() {
 }
 
 export default function LoginPage() {
-  return (
-    <Suspense
-      fallback={
-        <main className="bg-paper flex min-h-screen items-center justify-center">
-          <Loader2 className="text-faint h-8 w-8 animate-spin" />
-        </main>
-      }
-    >
-      <LoginForm />
-    </Suspense>
-  )
+  return <LoginForm />
 }
