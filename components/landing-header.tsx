@@ -1,6 +1,8 @@
 import Link from 'next/link'
 import { Logo } from '@/components/logo'
 import { ThemeToggle } from '@/components/theme-toggle'
+import { Button } from '@/components/ui/button'
+import { ArrowRight } from 'lucide-react'
 
 export function LandingHeader() {
   return (
@@ -19,10 +21,13 @@ export function LandingHeader() {
         >
           Privacidad
         </Link>
-        <ThemeToggle />
-        <Link href="/login" className="text-ink text-base font-medium underline underline-offset-4">
-          Entrar
-        </Link>
+        <ThemeToggle compact />
+        <Button asChild size="sm">
+          <Link href="/login">
+            Entrar
+            <ArrowRight aria-hidden="true" />
+          </Link>
+        </Button>
       </nav>
     </header>
   )

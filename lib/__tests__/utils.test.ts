@@ -89,3 +89,15 @@ describe('formatLocalDate', () => {
     expect(formatted).not.toContain('23')
   })
 })
+
+describe('formatName', () => {
+  it('capitalizes each word and keeps Spanish particles lowercase', async () => {
+    const { formatName } = await import('../utils')
+    expect(formatName('nancy villena')).toBe('Nancy Villena')
+    expect(formatName('Rodolfo NUÑEZ')).toBe('Rodolfo Nuñez')
+    expect(formatName('  maría  DE la paz ')).toBe('María de la Paz')
+    expect(formatName("ana-maría o'higgins")).toBe("Ana-María O'Higgins")
+    expect(formatName('ana.perez@example.com')).toBe('ana.perez@example.com')
+    expect(formatName(null)).toBe('')
+  })
+})

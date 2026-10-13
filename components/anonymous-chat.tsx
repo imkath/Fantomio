@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { Button } from '@/components/ui/button'
-import { Loader2 } from 'lucide-react'
+import { Loader2, MessageCircle, Send } from 'lucide-react'
 import { sendAnonymousMessage, getGiverMessages, getReceiverMessages } from '@/app/actions/messages'
 import { toast } from 'sonner'
 
@@ -28,7 +28,8 @@ export function AnonymousChat({ matchId, groupId, role, receiverName }: Anonymou
   const [isSending, setIsSending] = useState(false)
   const [isExpanded, setIsExpanded] = useState(false)
   const [resolvedMatchId, setResolvedMatchId] = useState<string | null>(matchId)
-  const messagesEndRef = useRef<HTMLDivElement>(null)
+  const listRef = useRef<HTMLDivElement>(null)
+  const inputRef = useRef<HTMLInputElement>(null)
 
   // Las tres dependencias son las que determinan qué mensajes se piden:
   // quién eres en el intercambio y de qué grupo o emparejamiento.
@@ -57,10 +58,24 @@ export function AnonymousChat({ matchId, groupId, role, receiverName }: Anonymou
   }, [loadMessages])
 
   useEffect(() => {
-    if (isExpanded) {
-      messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
-    }
+    // Scroll only the message box: scrollIntoView would move the whole page past the chat.
+    const list = listRef.current
+    if (isExpanded && list) list.scrollTop = list.scrollHeight
   }, [messages, isExpanded])
+
+  // "Preguntar" always lands on the question field, even when the chat is already open.
+  const [focusRequest, setFocusRequest] = useState(0)
+  useEffect(() => {
+    const input = inputRef.current
+    if (!focusRequest || isLoading || !input) return
+    input.focus({ preventScroll: true })
+    input.scrollIntoView({ behavior: 'smooth', block: 'center' })
+  }, [focusRequest, isLoading, isExpanded])
+
+  const openChat = () => {
+    setIsExpanded(true)
+    setFocusRequest((n) => n + 1)
+  }
 
   const handleSend = async () => {
     if (!newMessage.trim() || !resolvedMatchId) return
@@ -99,25 +114,24 @@ export function AnonymousChat({ matchId, groupId, role, receiverName }: Anonymou
         giver ? 'border-rule border-t pt-5' : 'border-rule rounded-[4px] border p-6 md:p-8'
       }
     >
-      <button
-        type="button"
-        onClick={() => setIsExpanded(!isExpanded)}
-        aria-expanded={isExpanded}
-        aria-controls={panelId}
-        className="flex min-h-11 w-full items-center justify-between gap-4 text-left"
-      >
-        <span className={giver ? 'text-[17px]' : 'text-xl font-bold'}>
+      <div className="flex items-center justify-between gap-4">
+        <h3 className={giver ? 'text-[17px]' : 'text-xl font-bold'}>
           {giver
             ? `Pregúntale algo a ${receiverName || 'tu amigo secreto'} sin que sepa que eres tú`
             : 'Preguntas de quien te regala'}
-        </span>
-        <span className="text-graphite flex shrink-0 items-center gap-3 font-mono text-sm">
-          {messages.length > 0 && <span>{messages.length}</span>}
-          <span className="underline underline-offset-[3px]">
-            {isExpanded ? 'cerrar' : 'abrir'}
-          </span>
-        </span>
-      </button>
+        </h3>
+        <div className="flex shrink-0 items-center gap-3 text-[15px]">
+          {messages.length > 0 && (
+            <span className="text-graphite">
+              {messages.length} {messages.length === 1 ? 'mensaje' : 'mensajes'}
+            </span>
+          )}
+          <Button variant="outline" size="sm" onClick={openChat} aria-controls={panelId}>
+            <MessageCircle aria-hidden="true" />
+            {giver ? 'Preguntar' : 'Responder'}
+          </Button>
+        </div>
+      </div>
 
       {isExpanded && (
         <div id={panelId} className="mt-4">
@@ -133,10 +147,10 @@ export function AnonymousChat({ matchId, groupId, role, receiverName }: Anonymou
                   : 'Alguien del grupo te pregunta cosas para acertar con tu regalo. No sabes quién es, y no hace falta.'}
               </p>
 
-              <div className="mb-4 grid max-h-72 gap-2 overflow-y-auto">
+              <div ref={listRef} className="mb-4 grid max-h-72 gap-2 overflow-y-auto">
                 {messages.length === 0 && (
-                  <p className="text-faint py-3 text-center font-mono text-sm">
-                    {giver ? 'todavía no preguntas nada' : 'todavía no hay preguntas'}
+                  <p className="text-graphite py-3 text-center text-[15px]">
+                    {giver ? 'Todavía no preguntas nada.' : 'Todavía no hay preguntas.'}
                   </p>
                 )}
                 {messages.map((msg) => {
@@ -151,7 +165,7 @@ export function AnonymousChat({ matchId, groupId, role, receiverName }: Anonymou
                       }`}
                     >
                       <p>{msg.content}</p>
-                      <p className="mt-1 font-mono text-[11px] opacity-60">
+                      <p className="mt-1 text-[13px] opacity-60">
                         {new Date(msg.created_at).toLocaleTimeString('es-CL', {
                           hour: '2-digit',
                           minute: '2-digit',
@@ -160,7 +174,6 @@ export function AnonymousChat({ matchId, groupId, role, receiverName }: Anonymou
                     </div>
                   )
                 })}
-                <div ref={messagesEndRef} />
               </div>
 
               <form
@@ -171,6 +184,7 @@ export function AnonymousChat({ matchId, groupId, role, receiverName }: Anonymou
                 }}
               >
                 <input
+                  ref={inputRef}
                   type="text"
                   value={newMessage}
                   onChange={(e) => setNewMessage(e.target.value)}
@@ -181,7 +195,8 @@ export function AnonymousChat({ matchId, groupId, role, receiverName }: Anonymou
                   className="border-input bg-paper text-ink placeholder:text-faint focus-visible:border-ink h-11 min-w-0 flex-1 rounded-[2px] border px-3 text-base outline-none"
                 />
                 <Button type="submit" disabled={!newMessage.trim() || isSending}>
-                  {isSending ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Enviar'}
+                  {isSending ? <Loader2 className="animate-spin" /> : <Send aria-hidden="true" />}
+                  Enviar
                 </Button>
               </form>
             </>

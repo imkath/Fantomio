@@ -25,7 +25,7 @@
   padding-block: clamp(20px, 4svh, 56px);
 }
 .kicker {
-  font-family: var(--font-mono);
+  font-family: var(--font-detail);
   font-size: 15px;
   color: var(--graphite);
   letter-spacing: 0.04em;
@@ -117,10 +117,9 @@
   padding-block: clamp(56px, 9vw, 112px);
 }
 .label {
-  font-family: var(--font-mono);
-  font-size: 14px;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
+  font-family: var(--font-detail);
+  font-size: 16px;
+  font-weight: 600;
   color: var(--graphite);
   margin: 0 0 14px;
 }
@@ -158,7 +157,7 @@
   gap: 12px;
 }
 .n {
-  font-family: var(--font-mono);
+  font-family: var(--font-detail);
   font-size: 13px;
   color: var(--faint);
   padding-top: 2px;
@@ -205,7 +204,6 @@
   position: relative;
   border: 1px solid var(--rule);
   padding: clamp(24px, 4vw, 40px);
-  padding-top: 96px;
   background: var(--slip);
 }
 .sealCard dl {
@@ -216,7 +214,7 @@
   font-size: 17px;
 }
 .sealCard dt {
-  font-family: var(--font-mono);
+  font-family: var(--font-detail);
   font-size: 14px;
   color: var(--graphite);
   padding-top: 3px;
@@ -224,25 +222,6 @@
 .sealCard dd {
   margin: 0;
 }
-.stamp {
-  position: absolute;
-  right: 24px;
-  top: -22px;
-  width: 86px;
-  height: 86px;
-  border-radius: 50%;
-  background: var(--hanko);
-  color: var(--hanko-ink);
-  display: grid;
-  place-items: center;
-  text-align: center;
-  font-weight: 700;
-  font-size: 12px;
-  letter-spacing: 0.08em;
-  line-height: 1.25;
-  transform: rotate(-12deg);
-}
-
 .facts {
   display: flex;
   flex-wrap: wrap;
@@ -318,12 +297,5 @@
   .steps,
   .faq {
     grid-template-columns: 1fr;
-  }
-  .stamp {
-    right: 16px;
-    top: -26px;
-    width: 72px;
-    height: 72px;
-    font-size: 11px;
   }
 }

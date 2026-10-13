@@ -25,12 +25,12 @@ export default function TermsPage() {
 
       <main className="text-ink w-full max-w-[720px] flex-1 py-10 md:py-16">
         <div>
-          <p className="text-graphite mb-2 font-mono text-sm tracking-[0.12em] uppercase">Legal</p>
+          <p className="text-graphite mb-2 text-[15px] font-medium">Legal</p>
           <h1 className="mb-2 text-[34px] leading-tight font-light md:text-[44px]">
             Términos del Servicio
           </h1>
 
-          <p className="text-faint mb-10 font-mono text-sm">
+          <p className="text-graphite mb-10 text-[15px]">
             Versión {LEGAL.version}, vigente desde el {LEGAL.fecha}
           </p>
 

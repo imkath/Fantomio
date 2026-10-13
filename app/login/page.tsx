@@ -1,7 +1,7 @@
 'use client'
 
 import { Button } from '@/components/ui/button'
-import { Loader2 } from 'lucide-react'
+import { ArrowRight, Loader2 } from 'lucide-react'
 import { AuthShell, Divider, Field, Notice, PasswordField } from '@/components/auth-shell'
 import { useState, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
@@ -102,14 +102,21 @@ function LoginForm() {
             required
           />
           <Button type="submit" size="lg" className="w-full" disabled={isLoading}>
-            {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Entrar'}
+            {isLoading ? (
+              <Loader2 className="animate-spin" />
+            ) : (
+              <>
+                Entrar
+                <ArrowRight aria-hidden="true" />
+              </>
+            )}
           </Button>
         </form>
 
-        <div className="flex flex-wrap justify-between gap-3 text-[15px]">
-          <Link href={`/register${keep}`} className="text-ink underline underline-offset-4">
-            Crear cuenta
-          </Link>
+        <div className="flex flex-wrap items-center justify-between gap-3 text-[15px]">
+          <Button asChild variant="outline" size="sm">
+            <Link href={`/register${keep}`}>Crear cuenta</Link>
+          </Button>
           <Link
             href="/forgot-password"
             className="text-graphite hover:text-ink underline underline-offset-4"

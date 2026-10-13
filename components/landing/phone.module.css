@@ -1,5 +1,4 @@
-/* iPhone mockup resting on a folded slip. The slip stays paper-white in both themes:
-   it's a physical object in the scene, like the phone. */
+/* iPhone mockup for the landing. */
 
 .scene {
   position: relative;
@@ -7,59 +6,6 @@
   width: min(100%, 360px);
   padding: 28px 0 36px;
   margin-right: clamp(0px, 6vw, 90px);
-}
-
-.slip {
-  position: absolute;
-  right: -34%;
-  bottom: 5%;
-  z-index: 0;
-  width: 64%;
-  aspect-ratio: 4 / 3;
-  background: #ffffff;
-  border-radius: 2px;
-  transform: rotate(9deg);
-  box-shadow:
-    0 1px 1px rgba(0, 0, 0, 0.06),
-    0 10px 24px -12px rgba(0, 0, 0, 0.25);
-  padding: 16px 18px;
-  font-family: var(--font-mono);
-  font-size: 12px;
-  color: #6b6b65;
-}
-.slip::after {
-  content: '';
-  position: absolute;
-  left: 0;
-  right: 0;
-  top: 50%;
-  border-top: 1px dashed #e2e2dd;
-}
-.slip b {
-  display: block;
-  font-weight: 400;
-  color: #1b1b1a;
-  font-size: 13px;
-}
-.slipSeal {
-  position: absolute;
-  right: 14px;
-  bottom: 14px;
-  width: 46px;
-  height: 46px;
-  border-radius: 50%;
-  border: 2.5px solid #d93b26;
-  color: #d93b26;
-  display: grid;
-  place-items: center;
-  font-family: var(--font-sans);
-  font-weight: 700;
-  font-size: 7.5px;
-  letter-spacing: 0.06em;
-  line-height: 1.15;
-  text-align: center;
-  transform: rotate(14deg);
-  opacity: 0.9;
 }
 
 .device {
@@ -165,17 +111,6 @@
   padding: 8px 18px 12px;
   border-bottom: 1px solid var(--rule);
 }
-.avatar {
-  width: 30px;
-  height: 30px;
-  border-radius: 50%;
-  background: #e9e4dc;
-  display: grid;
-  place-items: center;
-  font-size: 12px;
-  font-weight: 700;
-  color: #5a4e3e;
-}
 .group {
   padding: 16px 18px 4px;
 }
@@ -186,7 +121,7 @@
 }
 .group p {
   margin: 2px 0 0;
-  font-family: var(--font-mono);
+  font-family: var(--font-detail);
   font-size: 11px;
   color: var(--graphite);
 }
@@ -200,10 +135,9 @@
   position: relative;
 }
 .cap {
-  font-family: var(--font-mono);
-  font-size: 11px;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
+  font-family: var(--font-detail);
+  font-size: 13px;
+  font-weight: 600;
   color: var(--graphite);
   margin: 0 0 12px;
   display: flex;
@@ -247,17 +181,6 @@
   display: flex;
   align-items: center;
   gap: 12px;
-  padding-right: 62px;
-}
-.init {
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
-  border: 1.5px solid var(--hanko);
-  color: var(--hanko);
-  display: grid;
-  place-items: center;
-  font-weight: 700;
 }
 .who b {
   display: block;
@@ -269,43 +192,10 @@
   color: var(--graphite);
   font-size: 12px;
 }
-.seal {
-  position: absolute;
-  right: 14px;
-  top: 44px;
-  width: 64px;
-  height: 64px;
-  border-radius: 50%;
-  background: var(--hanko);
-  color: var(--hanko-ink);
-  display: grid;
-  place-items: center;
-  text-align: center;
-  font-weight: 700;
-  font-size: 9.5px;
-  letter-spacing: 0.08em;
-  line-height: 1.2;
-  transform: rotate(-12deg);
-}
-@media (prefers-reduced-motion: no-preference) {
-  .seal {
-    animation: thump 0.55s cubic-bezier(0.2, 1.4, 0.4, 1) both;
-  }
-  @keyframes thump {
-    0% {
-      transform: scale(1.9) rotate(-28deg);
-      opacity: 0;
-    }
-    100% {
-      transform: scale(1) rotate(-12deg);
-      opacity: 1;
-    }
-  }
-}
 .hide {
   border: 0;
   background: none;
-  font-family: var(--font-mono);
+  font-family: var(--font-detail);
   font-size: 13px;
   color: var(--graphite);
   cursor: pointer;
@@ -336,13 +226,13 @@
   border-radius: 3px;
 }
 .wish a {
-  font-family: var(--font-mono);
+  font-family: var(--font-detail);
   font-size: 11px;
   color: var(--hanko);
   white-space: nowrap;
 }
 .chat {
-  border-top: 1px dashed var(--rule);
+  border-top: 1px solid var(--rule);
   margin-top: 16px;
   padding-top: 14px;
   display: grid;
@@ -350,7 +240,7 @@
   gap: 8px;
 }
 .chatCap {
-  font-family: var(--font-mono);
+  font-family: var(--font-detail);
   font-size: 12px;
   color: var(--graphite);
   margin: 0;
@@ -404,9 +294,5 @@
 @media (max-width: 820px) {
   .scene {
     margin-right: 0;
-  }
-  .slip {
-    right: -8%;
-    width: 56%;
   }
 }

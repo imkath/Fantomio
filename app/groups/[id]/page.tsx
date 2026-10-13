@@ -10,11 +10,27 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
-import { Loader2 } from 'lucide-react'
+import {
+  Check,
+  ExternalLink,
+  Eye,
+  EyeOff,
+  History,
+  Link2,
+  Loader2,
+  LogOut,
+  MessageCircle,
+  Pencil,
+  RotateCcw,
+  Shuffle,
+  Trash2,
+  UserMinus,
+} from 'lucide-react'
 import { useParams, useRouter } from 'next/navigation'
 import { useEffect, useState, useCallback } from 'react'
 import Link from 'next/link'
-import { createClient } from '@/lib/supabase'
+import { BackLink } from '@/components/back-link'
+import { createClient, getSessionUser } from '@/lib/supabase'
 import { drawNames, resetDraw } from '@/app/actions/draw'
 import {
   updateGroup,
@@ -24,6 +40,8 @@ import {
   removeMember,
 } from '@/app/actions/group'
 import { GhostMark } from '@/components/ghost-mark'
+import { GhostAvatar } from '@/components/ghost-avatar'
+import { celebrate } from '@/lib/confetti'
 import { Notice } from '@/components/auth-shell'
 import { WishlistEditor } from '@/components/wishlist-editor'
 import { GroupPageSkeleton } from '@/components/skeletons'
@@ -31,6 +49,7 @@ import { GroupInfoCard } from '@/components/group-info-card'
 import { ExclusionsManager } from '@/components/exclusions-manager'
 import { AnonymousChat } from '@/components/anonymous-chat'
 import { Input } from '@/components/ui/input'
+import { formatName } from '@/lib/utils'
 import { toast } from 'sonner'
 
 interface Member {
@@ -121,108 +140,75 @@ export default function GroupPage() {
     const supabase = createClient()
 
     try {
-      // Get current user
-      const {
-        data: { user },
-      } = await supabase.auth.getUser()
+      const user = await getSessionUser()
       if (!user) {
         router.push('/login')
         return
       }
       setCurrentUserId(user.id)
 
-      // Get group
-      const { data: groupData, error: groupError } = await supabase
-        .from('groups')
-        .select('*')
-        .eq('id', groupId)
-        .single()
+      // One round trip: group, members and (if any) my match load in parallel.
+      // The match query simply returns nothing until the group is drawn.
+      const [groupRes, membersRes, matchRes] = await Promise.all([
+        supabase.from('groups').select('*').eq('id', groupId).single(),
+        supabase
+          .from('members')
+          .select(
+            'id, user_id, wishlist, is_admin, profiles:user_id (full_name, email, avatar_url)'
+          )
+          .eq('group_id', groupId),
+        supabase
+          .from('matches')
+          .select('id, receiver_id, receiver:receiver_id (full_name, email, avatar_url)')
+          .eq('group_id', groupId)
+          .eq('giver_id', user.id)
+          .maybeSingle(),
+      ])
 
-      if (groupError || !groupData) {
+      const groupData = groupRes.data
+      if (groupRes.error || !groupData) {
         setError('Grupo no encontrado')
         setIsLoading(false)
         return
       }
-
       setGroup(groupData)
       setIsAdmin(groupData.admin_id === user.id)
 
-      // Get members with profiles
-      const { data: membersData } = await supabase
-        .from('members')
-        .select(
-          `
-          id,
-          user_id,
-          wishlist,
-          is_admin,
-          profiles:user_id (
-            full_name,
-            email,
-            avatar_url
-          )
-        `
-        )
-        .eq('group_id', groupId)
+      const formattedMembers = (membersRes.data ?? []).map((m) => ({
+        id: m.id,
+        user_id: m.user_id,
+        wishlist: m.wishlist || [],
+        is_admin: m.is_admin,
+        profile: (() => {
+          const p = Array.isArray(m.profiles) ? m.profiles[0] : m.profiles
+          return { ...p, full_name: formatName(p?.full_name) || null }
+        })(),
+      }))
+      setMembers(formattedMembers)
+      setCurrentMember(formattedMembers.find((m) => m.user_id === user.id) ?? null)
 
-      if (membersData) {
-        const formattedMembers = membersData.map((m) => ({
-          id: m.id,
-          user_id: m.user_id,
-          wishlist: m.wishlist || [],
-          is_admin: m.is_admin,
-          profile: Array.isArray(m.profiles) ? m.profiles[0] : m.profiles,
-        }))
-        setMembers(formattedMembers)
-
-        // Set current member
-        const myMember = formattedMembers.find((m) => m.user_id === user.id)
-        if (myMember) {
-          setCurrentMember(myMember)
-        }
-      }
-
-      // If group is drawn, get current user's match
-      if (groupData.status === 'DRAWN') {
-        const { data: matchData } = await supabase
-          .from('matches')
-          .select(
-            `
-            id,
-            receiver_id,
-            receiver:receiver_id (
-              full_name,
-              email,
-              avatar_url
-            )
-          `
-          )
-          .eq('group_id', groupId)
-          .eq('giver_id', user.id)
-          .single()
-
-        if (matchData) {
-          // Get receiver's wishlist
-          const { data: receiverMember } = await supabase
-            .from('members')
-            .select('wishlist')
-            .eq('group_id', groupId)
-            .eq('user_id', matchData.receiver_id)
-            .single()
-
-          const receiverData = matchData.receiver as unknown as {
-            full_name: string | null
-            email: string
-            avatar_url: string | null
-          }
-          setMatch({
-            id: matchData.id,
-            receiver_id: matchData.receiver_id,
-            receiver: receiverData,
-            receiver_wishlist:
-              (receiverMember?.wishlist as Array<{ description: string; url?: string }>) || [],
-          })
-        }
+      const matchData = groupData.status === 'DRAWN' ? matchRes.data : null
+      if (matchData) {
+        // The receiver's wishlist already came with the members.
+        const receiverMember = formattedMembers.find((m) => m.user_id === matchData.receiver_id)
+        setMatch({
+          id: matchData.id,
+          receiver_id: matchData.receiver_id,
+          receiver: (() => {
+            const r = matchData.receiver as unknown as {
+              full_name: string | null
+              email: string
+              avatar_url: string | null
+            }
+            return { ...r, full_name: formatName(r.full_name) || null }
+          })(),
+          receiver_wishlist: (receiverMember?.wishlist ?? []) as Array<{
+            description: string
+            url?: string
+          }>,
+        })
+      } else {
+        setMatch(null)
       }
     } catch {
       setError('Error al cargar el grupo')
@@ -410,8 +396,10 @@ export default function GroupPage() {
     setRemovingMemberId(null)
   }
 
-  // The seal animates on mount (see .seal-thump in globals.css), so revealing is just state.
-  const handleRevealMatch = () => setShowMatch(true)
+  const handleRevealMatch = () => {
+    setShowMatch(true)
+    celebrate()
+  }
 
   const handleResetDraw = async () => {
     if (!group) return
@@ -461,16 +449,13 @@ export default function GroupPage() {
   if (!group) return null
 
   const drawn = group.status === 'DRAWN'
-  const linkBtn = 'text-graphite hover:text-ink min-h-11 text-[15px] underline underline-offset-4'
 
   return (
     <div className="bg-paper text-ink min-h-screen pb-16">
       <AppHeader />
 
       <main className="mx-auto max-w-[1040px] px-4 py-10 md:px-8">
-        <Link href="/dashboard" className={linkBtn}>
-          Volver a mis grupos
-        </Link>
+        <BackLink />
 
         {error && (
           <div className="mt-6">
@@ -481,8 +466,8 @@ export default function GroupPage() {
         {/* Header */}
         <div className="mt-8 mb-10 flex flex-col justify-between gap-6 md:flex-row md:items-end">
           <div className="min-w-0">
-            <p className="text-graphite mb-2 font-mono text-sm">
-              {drawn ? 'sorteado' : 'sin sortear'} · {members.length}{' '}
+            <p className="text-graphite mb-2 text-[15px]">
+              {drawn ? 'Sorteado' : 'Sin sortear'} · {members.length}{' '}
               {members.length === 1 ? 'persona' : 'personas'}
             </p>
             <h1 className="text-[34px] leading-tight font-light break-words md:text-[44px]">
@@ -492,6 +477,7 @@ export default function GroupPage() {
 
           <div className="flex flex-wrap items-center gap-3">
             <Button variant="outline" onClick={handleShare}>
+              {copied ? <Check aria-hidden="true" /> : <Link2 aria-hidden="true" />}
               {copied ? 'Link copiado' : 'Copiar link de invitación'}
             </Button>
             {isAdmin && drawn && (
@@ -503,12 +489,17 @@ export default function GroupPage() {
                   window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank')
                 }}
               >
+                <MessageCircle aria-hidden="true" />
                 Avisar por WhatsApp
               </Button>
             )}
             {isAdmin && !drawn && members.length >= 3 && (
               <Button onClick={() => setShowDrawConfirm(true)} disabled={isDrawing}>
-                {isDrawing && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                {isDrawing ? (
+                  <Loader2 className="animate-spin" aria-hidden="true" />
+                ) : (
+                  <Shuffle aria-hidden="true" />
+                )}
                 Hacer el sorteo
               </Button>
             )}
@@ -520,9 +511,7 @@ export default function GroupPage() {
           <div className="min-w-0 space-y-8">
             {!drawn && (
               <section className="border-rule bg-slip rounded-[4px] border p-6 md:p-8">
-                <p className="text-graphite mb-3 font-mono text-sm tracking-[0.12em] uppercase">
-                  Tu amigo secreto
-                </p>
+                <p className="text-graphite mb-3 text-[15px] font-medium">Tu amigo secreto</p>
                 <div className="flex items-start gap-5">
                   <GhostMark className="text-ink h-[46px] w-[40px] shrink-0" />
                   <div>
@@ -542,56 +531,46 @@ export default function GroupPage() {
             {drawn && match && (
               <section className="border-rule bg-raised relative rounded-[4px] border p-6 md:p-8">
                 <div className="mb-3 flex items-center justify-between">
-                  <p className="text-graphite font-mono text-sm tracking-[0.12em] uppercase">
-                    Tu amigo secreto
-                  </p>
+                  <p className="text-graphite text-[15px] font-medium">Tu amigo secreto</p>
                   {showMatch && (
-                    <button
-                      type="button"
-                      onClick={() => setShowMatch(false)}
-                      className="text-graphite hover:text-ink min-h-8 font-mono text-[13px] underline underline-offset-[3px]"
-                    >
-                      ocultar
-                    </button>
+                    <Button variant="outline" size="sm" onClick={() => setShowMatch(false)}>
+                      <EyeOff aria-hidden="true" />
+                      Ocultar
+                    </Button>
                   )}
                 </div>
 
                 {!showMatch ? (
                   <div className="grid justify-items-center gap-4 py-6 text-center">
                     <GhostMark className="text-ink h-[74px] w-[64px]" />
-                    <p className="text-graphite max-w-[30ch]">
-                      El sorteo ya está hecho. ¿Vemos a quién te tocó?
+                    <p className="text-graphite">
+                      El sorteo ya está hecho.
+                      <br />
+                      ¿Vemos a quién te tocó?
                     </p>
                     <Button size="lg" onClick={handleRevealMatch}>
+                      <Eye aria-hidden="true" />
                       Ver a quién me tocó
                     </Button>
                   </div>
                 ) : (
-                  <div className="space-y-6">
-                    <div
-                      className="seal-thump bg-hanko text-hanko-ink absolute top-[78px] right-5 grid h-[76px] w-[76px] rotate-[-12deg] place-items-center rounded-full text-center text-[11px] leading-tight font-bold tracking-[0.08em] md:right-8"
-                      aria-hidden="true"
-                    >
-                      SOLO
-                      <br />
-                      PARA
-                      <br />
-                      TI
-                    </div>
-                    <div className="flex items-center gap-4 pr-24">
-                      <span className="border-hanko text-hanko grid h-12 w-12 shrink-0 place-items-center rounded-full border-[1.5px] text-lg font-bold">
-                        {(match.receiver.full_name || match.receiver.email).charAt(0).toUpperCase()}
-                      </span>
+                  <div className="space-y-7">
+                    <div className="reveal-pop flex items-center gap-5">
+                      <GhostAvatar
+                        seed={match.receiver_id}
+                        src={match.receiver.avatar_url}
+                        size={76}
+                      />
                       <div className="min-w-0">
-                        <p className="text-2xl leading-tight font-bold break-words">
+                        <p className="text-[28px] leading-tight font-bold break-words">
                           {match.receiver.full_name || match.receiver.email}
                         </p>
-                        <p className="text-graphite text-[15px]">le regalas tú</p>
+                        <p className="text-graphite text-[17px]">Le regalas tú</p>
                       </div>
                     </div>
 
                     <div>
-                      <p className="text-graphite mb-3 font-mono text-sm tracking-[0.12em] uppercase">
+                      <p className="text-graphite mb-3 text-[15px] font-medium">
                         Lo que le gustaría
                       </p>
                       {match.receiver_wishlist.length > 0 ? (
@@ -609,10 +588,11 @@ export default function GroupPage() {
                                   }
                                   target="_blank"
                                   rel="noopener noreferrer"
-                                  className="text-hanko shrink-0 font-mono text-[13px] underline underline-offset-[3px]"
+                                  className="text-hanko inline-flex shrink-0 items-center gap-1.5 text-[15px] underline underline-offset-[3px]"
                                   title={item.url}
                                 >
-                                  ver link
+                                  Ver link
+                                  <ExternalLink className="h-4 w-4" aria-hidden="true" />
                                 </a>
                               )}
                             </li>
@@ -663,22 +643,31 @@ export default function GroupPage() {
             <section className="border-rule rounded-[4px] border p-6">
               <div className="mb-1 flex items-baseline justify-between">
                 <h2 className="text-lg font-bold">Participantes</h2>
-                <span className="text-graphite font-mono text-sm">{members.length}</span>
+                <span className="text-graphite text-[15px]">{members.length}</span>
               </div>
-              <p className="text-faint mb-4 text-sm">
-                <span aria-hidden="true">✓</span> ya anotó su lista
+              <p className="text-graphite mb-4 text-[15px]">
+                <span aria-hidden="true">✓</span> Ya anotó su lista
               </p>
               <ul className="divide-rule divide-y">
                 {members.map((member) => {
                   const me = member.user_id === currentUserId
                   const name = me ? 'Tú' : member.profile.full_name || member.profile.email
                   return (
-                    <li key={member.id} className="flex items-center justify-between gap-3 py-2.5">
-                      <span className="flex min-w-0 items-center gap-2">
-                        <span className={`truncate ${me ? 'font-bold' : ''}`}>{name}</span>
-                        {member.is_admin && (
-                          <span className="text-faint shrink-0 font-mono text-xs">organiza</span>
-                        )}
+                    <li key={member.id} className="flex items-center justify-between gap-3 py-3">
+                      <span className="flex min-w-0 items-center gap-3">
+                        <GhostAvatar
+                          seed={member.user_id}
+                          src={member.profile.avatar_url}
+                          size={38}
+                        />
+                        <span className="min-w-0">
+                          <span className={`block truncate ${me ? 'font-bold' : ''}`}>{name}</span>
+                          {member.is_admin && (
+                            <span className="text-graphite block text-[15px] leading-tight">
+                              Organiza
+                            </span>
+                          )}
+                        </span>
                       </span>
                       <span className="flex shrink-0 items-center gap-3">
                         {member.wishlist.length > 0 ? (
@@ -687,11 +676,12 @@ export default function GroupPage() {
                             <span className="sr-only">Ya anotó su lista</span>
                           </span>
                         ) : (
-                          <span className="text-faint font-mono text-xs">sin lista</span>
+                          <span className="text-graphite text-[15px]">Sin lista</span>
                         )}
                         {isAdmin && !drawn && !me && (
-                          <button
-                            type="button"
+                          <Button
+                            variant="danger"
+                            size="icon-sm"
                             onClick={() => {
                               setMemberToRemove({
                                 id: member.id,
@@ -699,11 +689,11 @@ export default function GroupPage() {
                               })
                               setShowRemoveMemberDialog(true)
                             }}
-                            className="text-graphite hover:text-destructive min-h-8 font-mono text-xs underline underline-offset-[3px]"
                             aria-label={`Quitar a ${name} del grupo`}
+                            title={`Quitar a ${name}`}
                           >
-                            quitar
-                          </button>
+                            <UserMinus aria-hidden="true" />
+                          </Button>
                         )}
                       </span>
                     </li>
@@ -712,14 +702,16 @@ export default function GroupPage() {
               </ul>
             </section>
 
-            <div className="flex flex-col items-start gap-1">
-              <button type="button" onClick={handleShowActivity} className={linkBtn}>
+            <div className="grid gap-2">
+              <Button variant="outline" className="justify-start" onClick={handleShowActivity}>
+                <History aria-hidden="true" />
                 Ver lo que ha pasado en el grupo
-              </button>
+              </Button>
               {isAdmin && (
-                <button type="button" onClick={handleOpenEdit} className={linkBtn}>
+                <Button variant="outline" className="justify-start" onClick={handleOpenEdit}>
+                  <Pencil aria-hidden="true" />
                   Editar grupo
-                </button>
+                </Button>
               )}
               {isAdmin && (
                 <ExclusionsManager
@@ -730,22 +722,24 @@ export default function GroupPage() {
                 />
               )}
               {isAdmin && drawn && (
-                <button
-                  type="button"
+                <Button
+                  variant="danger"
+                  className="justify-start"
                   onClick={() => setShowResetDialog(true)}
-                  className="text-destructive min-h-11 text-[15px] underline underline-offset-4"
                 >
+                  <RotateCcw aria-hidden="true" />
                   Reiniciar el sorteo
-                </button>
+                </Button>
               )}
               {!isAdmin && !drawn && (
-                <button
-                  type="button"
+                <Button
+                  variant="danger"
+                  className="justify-start"
                   onClick={() => setShowLeaveDialog(true)}
-                  className="text-graphite hover:text-destructive min-h-11 text-[15px] underline underline-offset-4"
                 >
+                  <LogOut aria-hidden="true" />
                   Salir del grupo
-                </button>
+                </Button>
               )}
             </div>
           </aside>
@@ -772,7 +766,10 @@ export default function GroupPage() {
             <Button variant="outline" onClick={() => setShowDrawConfirm(false)}>
               Todavía no
             </Button>
-            <Button onClick={handleDraw}>Sortear ahora</Button>
+            <Button onClick={handleDraw}>
+              <Shuffle aria-hidden="true" />
+              Sortear ahora
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -839,16 +836,17 @@ export default function GroupPage() {
             </div>
           </div>
           <DialogFooter className="flex-col gap-2 sm:flex-row">
-            <button
-              type="button"
+            <Button
+              variant="danger"
+              className="sm:mr-auto"
               onClick={() => {
                 setShowEditDialog(false)
                 setShowDeleteDialog(true)
               }}
-              className="text-destructive min-h-11 text-[15px] underline underline-offset-4 sm:mr-auto"
             >
+              <Trash2 aria-hidden="true" />
               Eliminar grupo
-            </button>
+            </Button>
             <Button variant="outline" onClick={() => setShowEditDialog(false)}>
               Cancelar
             </Button>
@@ -880,7 +878,7 @@ export default function GroupPage() {
               Cancelar
             </Button>
             <Button variant="destructive" onClick={handleDelete} disabled={isDeleting}>
-              {isDeleting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              {isDeleting ? <Loader2 className="animate-spin" /> : <Trash2 aria-hidden="true" />}
               Eliminar
             </Button>
           </DialogFooter>
@@ -901,7 +899,7 @@ export default function GroupPage() {
               Cancelar
             </Button>
             <Button variant="destructive" onClick={handleLeave} disabled={isLeaving}>
-              {isLeaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              {isLeaving ? <Loader2 className="animate-spin" /> : <LogOut aria-hidden="true" />}
               Salir
             </Button>
           </DialogFooter>
@@ -932,8 +930,10 @@ export default function GroupPage() {
               onClick={handleRemoveMember}
               disabled={removingMemberId === memberToRemove?.id}
             >
-              {removingMemberId === memberToRemove?.id && (
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              {removingMemberId === memberToRemove?.id ? (
+                <Loader2 className="animate-spin" />
+              ) : (
+                <UserMinus aria-hidden="true" />
               )}
               Quitar
             </Button>
@@ -956,7 +956,11 @@ export default function GroupPage() {
               Cancelar
             </Button>
             <Button variant="destructive" onClick={handleResetDraw} disabled={isResetting}>
-              {isResetting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              {isResetting ? (
+                <Loader2 className="animate-spin" />
+              ) : (
+                <RotateCcw aria-hidden="true" />
+              )}
               Reiniciar
             </Button>
           </DialogFooter>
@@ -981,7 +985,7 @@ export default function GroupPage() {
                 {activities.map((activity) => (
                   <li key={activity.id} className="py-3">
                     <p>{activity.message}</p>
-                    <p className="text-faint font-mono text-xs">
+                    <p className="text-graphite text-[15px]">
                       {new Date(activity.created_at).toLocaleDateString('es-CL', {
                         day: 'numeric',
                         month: 'short',

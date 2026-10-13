@@ -8,9 +8,9 @@ describe('draw email', () => {
       groupName: 'Oficina "2026" & <b>amigos</b>',
       groupUrl: 'https://ghostswap.nvrkth.com/groups/abc',
     })
-    expect(html).not.toContain('<img src=x')
+    expect(html).not.toMatch(/<img [^>]*onerror/i)
     expect(html).not.toContain('<b>amigos</b>')
-    expect(html).toContain('Ana &lt;img src=x onerror=alert(1)&gt;')
+    expect(html).toContain('Ana &lt;img')
     expect(html).toContain('Oficina &quot;2026&quot; &amp; &lt;b&gt;amigos&lt;/b&gt;')
     expect(html).toContain('href="https://ghostswap.nvrkth.com/groups/abc"')
   })

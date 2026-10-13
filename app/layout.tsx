@@ -1,6 +1,6 @@
 import type React from 'react'
 import type { Metadata, Viewport } from 'next'
-import { Zen_Kaku_Gothic_New, Dela_Gothic_One, Courier_Prime } from 'next/font/google'
+import { Zen_Kaku_Gothic_New, Dela_Gothic_One, Atkinson_Hyperlegible_Next } from 'next/font/google'
 import { Toaster } from '@/components/ui/sonner'
 import { ThemeProvider } from '@/components/theme-provider'
 import './globals.css'
@@ -18,10 +18,12 @@ const delaGothic = Dela_Gothic_One({
   variable: '--font-display',
 })
 
-const courierPrime = Courier_Prime({
+// Small details (labels, metadata, codes). Built for low vision: l, 1, I, 0 and O never mix up.
+const atkinson = Atkinson_Hyperlegible_Next({
   subsets: ['latin'],
-  weight: ['400', '700'],
-  variable: '--font-mono',
+  variable: '--font-detail',
+  // next/font has no fallback metrics for this family yet.
+  adjustFontFallback: false,
 })
 
 export const viewport: Viewport = {
@@ -120,7 +122,7 @@ export default function RootLayout({
         <link rel="manifest" href="/manifest.json" />
       </head>
       <body
-        className={`${zenKaku.variable} ${delaGothic.variable} ${courierPrime.variable} bg-background text-foreground min-h-screen font-sans antialiased`}
+        className={`${zenKaku.variable} ${delaGothic.variable} ${atkinson.variable} bg-background text-foreground min-h-screen font-sans antialiased`}
       >
         {/* Light by default: most people organizing a family or office exchange expect it. */}
         <ThemeProvider

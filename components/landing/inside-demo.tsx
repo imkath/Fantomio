@@ -2,10 +2,12 @@
 
 import { useState, type FormEvent } from 'react'
 import { GhostMark } from '@/components/ghost-mark'
+import { GhostAvatar } from '@/components/ghost-avatar'
+import { celebrate } from '@/lib/confetti'
 import styles from './phone.module.css'
 
 // What a participant sees in the app once the draw is done, with sample data.
-// The reveal uses the red seal instead of confetti, as the redesigned app does.
+// The reveal throws the same paper confetti as the app.
 const WISHES = [
   { text: 'Una planta que aguante poca luz', link: false },
   { text: 'Libro de cocina vegetariana', link: true },
@@ -27,18 +29,6 @@ export function InsideDemo() {
 
   return (
     <div className={styles.scene}>
-      <div className={styles.slip} aria-hidden="true">
-        <b>Oficina 2026</b>
-        sorteo n.º 0417
-        <span className={styles.slipSeal}>
-          SOLO
-          <br />
-          PARA
-          <br />
-          TI
-        </span>
-      </div>
-
       <div
         className={styles.device}
         role="group"
@@ -81,9 +71,7 @@ export function InsideDemo() {
                 <GhostMark className="h-[21px] w-[18px]" />
                 <span className="font-display text-base leading-none">ghostswap</span>
               </span>
-              <span className={styles.avatar} aria-hidden="true">
-                C
-              </span>
+              <GhostAvatar seed="demo-camila" size={30} />
             </div>
             <div className={styles.group}>
               <h3>Oficina 2026</h3>
@@ -96,8 +84,19 @@ export function InsideDemo() {
                   <p className={styles.cap}>Tu amigo secreto</p>
                   <div className={styles.closed}>
                     <GhostMark />
-                    <p>El sorteo ya está hecho. ¿Vemos a quién te tocó?</p>
-                    <button type="button" className={styles.cardBtn} onClick={() => setOpen(true)}>
+                    <p>
+                      El sorteo ya está hecho.
+                      <br />
+                      ¿Vemos a quién te tocó?
+                    </p>
+                    <button
+                      type="button"
+                      className={styles.cardBtn}
+                      onClick={() => {
+                        setOpen(true)
+                        celebrate()
+                      }}
+                    >
                       Ver a quién me tocó
                     </button>
                   </div>
@@ -107,21 +106,14 @@ export function InsideDemo() {
                   <p className={styles.cap}>
                     Tu amigo secreto
                     <button type="button" className={styles.hide} onClick={() => setOpen(false)}>
-                      ocultar
+                      Ocultar
                     </button>
                   </p>
-                  <div className={styles.seal} aria-hidden="true">
-                    SOLO
-                    <br />
-                    PARA
-                    <br />
-                    TI
-                  </div>
                   <div className={styles.who}>
-                    <span className={styles.init}>J</span>
+                    <GhostAvatar seed="demo-javiera" size={44} />
                     <div>
                       <b>Javiera Soto</b>
-                      <small>le regalas tú</small>
+                      <small>Le regalas tú</small>
                     </div>
                   </div>
                   <p className={`${styles.cap} ${styles.wishCap}`}>Lo que le gustaría</p>
@@ -130,7 +122,7 @@ export function InsideDemo() {
                       <li key={w.text}>
                         <span>{w.text}</span>
                         {w.link && (
-                          <span className="text-hanko font-mono text-[11px]">ver link</span>
+                          <span className="text-hanko font-detail text-[11px]">Ver link</span>
                         )}
                       </li>
                     ))}

@@ -3,11 +3,11 @@
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { AppHeader } from '@/components/app-header'
-import { Loader2 } from 'lucide-react'
+import { Loader2, Plus } from 'lucide-react'
 import { Notice } from '@/components/auth-shell'
 import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
-import Link from 'next/link'
+import { BackLink } from '@/components/back-link'
 import { createClient } from '@/lib/supabase'
 import { getUserFriendlyError } from '@/lib/errors'
 
@@ -130,12 +130,7 @@ export default function NewGroupPage() {
       <AppHeader />
 
       <main className="mx-auto max-w-[560px] px-4 py-10 md:py-16">
-        <Link
-          href="/dashboard"
-          className="text-graphite hover:text-ink text-[15px] underline underline-offset-4"
-        >
-          Volver a mis grupos
-        </Link>
+        <BackLink />
 
         <h1 className="mt-8 mb-2 text-[34px] leading-tight font-light md:text-[40px]">
           Crear grupo
@@ -208,11 +203,14 @@ export default function NewGroupPage() {
           <Button type="submit" size="lg" className="w-full" disabled={isLoading || !name.trim()}>
             {isLoading ? (
               <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                <Loader2 className="animate-spin" />
                 Creando…
               </>
             ) : (
-              'Crear grupo'
+              <>
+                <Plus aria-hidden="true" />
+                Crear grupo
+              </>
             )}
           </Button>
         </form>

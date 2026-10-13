@@ -7,9 +7,7 @@ const INK = '#1b1b1a'
 const GRAPHITE = '#4f4f49'
 const FAINT = '#7d7d76'
 const RULE = '#e7e7e3'
-const HANKO = '#d93b26'
 const SANS = "-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif"
-const MONO = "'Courier New', Courier, monospace"
 
 export function escapeHtml(text: string) {
   return text
@@ -26,25 +24,16 @@ interface LayoutParams {
   paragraphs: string[]
   cta: { text: string; href: string }
   note: string
-  seal?: boolean
 }
 
 // Values passed in must already be safe HTML: escape user input before calling.
-export function emailLayout({ title, label, paragraphs, cta, note, seal = false }: LayoutParams) {
+export function emailLayout({ title, label, paragraphs, cta, note }: LayoutParams) {
   const body = paragraphs
     .map(
       (p) =>
         `<p style="margin: 0 0 14px; font-size: 17px; line-height: 26px; color: ${GRAPHITE};">${p}</p>`
     )
     .join('\n                ')
-
-  const sealCell = seal
-    ? `<td align="right" valign="top" width="76" style="padding-left: 12px;">
-                  <div style="width: 68px; height: 68px; border-radius: 50%; background-color: ${HANKO}; color: #ffffff; font-family: ${SANS}; font-size: 10px; font-weight: 700; letter-spacing: 1px; line-height: 13px; text-align: center; transform: rotate(-12deg);">
-                    <div style="padding-top: 15px;">SOLO<br>PARA<br>TI</div>
-                  </div>
-                </td>`
-    : ''
 
   return `<!DOCTYPE html>
 <html lang="es">
@@ -72,10 +61,9 @@ export function emailLayout({ title, label, paragraphs, cta, note, seal = false 
               <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse: collapse;">
                 <tr>
                   <td valign="top">
-                    <p style="margin: 0 0 12px; font-family: ${MONO}; font-size: 13px; letter-spacing: 2px; text-transform: uppercase; color: ${GRAPHITE};">${label}</p>
+                    <p style="margin: 0 0 10px; font-size: 15px; font-weight: 600; color: ${GRAPHITE};">${label}</p>
                     <h1 style="margin: 0 0 20px; font-size: 26px; line-height: 32px; font-weight: 400; color: ${INK};">${title}</h1>
                   </td>
-                  ${sealCell}
                 </tr>
               </table>
               ${body}
@@ -91,7 +79,7 @@ export function emailLayout({ title, label, paragraphs, cta, note, seal = false 
           <tr>
             <td style="padding: 20px 4px 0;">
               <p style="margin: 0 0 24px; font-size: 14px; line-height: 21px; color: ${FAINT};">${note}</p>
-              <p style="margin: 0; font-family: ${MONO}; font-size: 12px; color: ${FAINT};">
+              <p style="margin: 0; font-size: 14px; color: ${FAINT};">
                 GhostSwap &middot; <a href="${APP_URL}" style="color: ${FAINT};">ghostswap.nvrkth.com</a>
               </p>
             </td>

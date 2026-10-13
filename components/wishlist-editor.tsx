@@ -1,10 +1,20 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Button } from '@/components/ui/button'
+import { Button, buttonVariants } from '@/components/ui/button'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog'
 import { Input } from '@/components/ui/input'
 import { Notice } from '@/components/auth-shell'
-import { Loader2 } from 'lucide-react'
+import { Check, ExternalLink, Loader2, Plus, Trash2 } from 'lucide-react'
 import { createClient } from '@/lib/supabase'
 import { toast } from 'sonner'
 
@@ -44,6 +54,7 @@ export function WishlistEditor({ memberId, initialItems = [], onSave }: Wishlist
   const [isSaving, setIsSaving] = useState(false)
   const [lastSaved, setLastSaved] = useState<Date | null>(null)
   const [error, setError] = useState('')
+  const [toDelete, setToDelete] = useState<LocalWishlistItem | null>(null)
 
   // Initialize items from props or create empty slots
   useEffect(() => {
@@ -195,7 +206,7 @@ export function WishlistEditor({ memberId, initialItems = [], onSave }: Wishlist
             Hasta 10 cosas que te gustaría recibir. Solo la ve quien te regala.
           </p>
         </div>
-        <span className="text-faint shrink-0 pt-1 font-mono text-sm">
+        <span className="text-graphite shrink-0 pt-1 text-[15px]">
           {filledItemsCount}/{MAX_WISHLIST_ITEMS}
         </span>
       </div>
@@ -205,7 +216,7 @@ export function WishlistEditor({ memberId, initialItems = [], onSave }: Wishlist
       <ol className="space-y-4">
         {items.slice(0, visibleCount).map((item, index) => (
           <li key={item.id} className="grid grid-cols-[28px_1fr] gap-x-3 gap-y-2">
-            <span className="text-faint pt-2.5 font-mono text-[13px]" aria-hidden="true">
+            <span className="text-graphite pt-2.5 text-[15px]" aria-hidden="true">
               {String(index + 1).padStart(2, '0')}
             </span>
             <div className="grid gap-2">
@@ -216,16 +227,20 @@ export function WishlistEditor({ memberId, initialItems = [], onSave }: Wishlist
                   value={item.description}
                   onChange={(e) => handleItemChange(item.id, 'description', e.target.value)}
                 />
-                {(item.description || item.url) && (
-                  <button
-                    type="button"
-                    onClick={() => handleClearItem(item.id)}
-                    className="text-graphite hover:text-destructive min-h-11 w-14 shrink-0 text-right font-mono text-[13px] underline underline-offset-[3px]"
-                    aria-label={`Borrar deseo ${index + 1}`}
-                  >
-                    borrar
-                  </button>
-                )}
+                <span className="flex w-20 shrink-0 justify-end">
+                  {(item.description || item.url) && (
+                    <Button
+                      type="button"
+                      variant="danger"
+                      size="icon"
+                      onClick={() => setToDelete(item)}
+                      aria-label={`Borrar deseo ${index + 1}`}
+                      title="Borrar"
+                    >
+                      <Trash2 aria-hidden="true" />
+                    </Button>
+                  )}
+                </span>
               </div>
               {(item.description || item.url) && (
                 <div className="flex items-center gap-2">
@@ -234,20 +249,21 @@ export function WishlistEditor({ memberId, initialItems = [], onSave }: Wishlist
                     placeholder="Link, si tienes uno (opcional)"
                     value={item.url}
                     onChange={(e) => handleItemChange(item.id, 'url', e.target.value)}
-                    className="h-10 font-mono text-sm"
+                    className="h-10 text-[15px]"
                   />
-                  {isValidUrl(item.url) ? (
-                    <a
-                      href={normalizeUrl(item.url)}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-graphite hover:text-ink w-14 shrink-0 text-right font-mono text-[13px] underline underline-offset-[3px]"
-                    >
-                      abrir
-                    </a>
-                  ) : (
-                    <span className="w-14 shrink-0" aria-hidden="true" />
-                  )}
+                  <span className="flex w-20 shrink-0 justify-end">
+                    {isValidUrl(item.url) && (
+                      <a
+                        href={normalizeUrl(item.url)}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-ink hover:text-hanko inline-flex items-center gap-1.5 text-[15px] underline underline-offset-[3px]"
+                      >
+                        Abrir
+                        <ExternalLink className="h-4 w-4" aria-hidden="true" />
+                      </a>
+                    )}
+                  </span>
                 </div>
               )}
             </div>
@@ -257,34 +273,47 @@ export function WishlistEditor({ memberId, initialItems = [], onSave }: Wishlist
 
       <div className="flex flex-wrap items-center justify-between gap-4">
         {visibleCount < MAX_WISHLIST_ITEMS ? (
-          <button
-            type="button"
-            onClick={handleAddMoreItems}
-            className="text-graphite hover:text-ink min-h-11 text-[15px] underline underline-offset-4"
-          >
+          <Button type="button" variant="outline" size="sm" onClick={handleAddMoreItems}>
+            <Plus aria-hidden="true" />
             Agregar otra línea
-          </button>
+          </Button>
         ) : (
           <span />
         )}
         <div className="flex items-center gap-4">
           {lastSaved && !isSaving && (
-            <span className="text-faint font-mono text-sm" role="status">
-              guardada
+            <span className="text-graphite text-[15px]" role="status">
+              Guardada
             </span>
           )}
           <Button onClick={handleSave} disabled={isSaving}>
-            {isSaving ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Guardando…
-              </>
-            ) : (
-              'Guardar lista'
-            )}
+            {isSaving ? <Loader2 className="animate-spin" /> : <Check aria-hidden="true" />}
+            {isSaving ? 'Guardando…' : 'Guardar lista'}
           </Button>
         </div>
       </div>
+
+      <AlertDialog open={toDelete !== null} onOpenChange={(open) => !open && setToDelete(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>¿Borrar este deseo?</AlertDialogTitle>
+            <AlertDialogDescription>
+              {toDelete?.description ? `"${toDelete.description}" se quitará de tu lista. ` : ''}
+              Recuerda apretar "Guardar lista" para que quede así.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              className={buttonVariants({ variant: 'destructive' })}
+              onClick={() => toDelete && handleClearItem(toDelete.id)}
+            >
+              <Trash2 aria-hidden="true" />
+              Borrar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }

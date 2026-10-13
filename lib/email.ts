@@ -1,4 +1,5 @@
 import { emailLayout, escapeHtml } from './email-layout'
+import { formatName } from './utils'
 
 interface DrawNotificationParams {
   to: string
@@ -53,7 +54,7 @@ interface EmailTemplateParams {
 
 // Names come from users, so they are escaped before going into the HTML.
 export function getEmailTemplate({ recipientName, groupName, groupUrl }: EmailTemplateParams) {
-  const name = escapeHtml(recipientName)
+  const name = escapeHtml(formatName(recipientName))
   const group = escapeHtml(groupName)
   return emailLayout({
     label: group,
@@ -64,7 +65,6 @@ export function getEmailTemplate({ recipientName, groupName, groupUrl }: EmailTe
     ],
     cta: { text: 'Ver a quién me tocó', href: escapeHtml(groupUrl) },
     note: 'Solo tú puedes ver a quién te tocó. Si no esperabas este correo, puedes ignorarlo.',
-    seal: true,
   })
 }
 

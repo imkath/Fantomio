@@ -19,6 +19,7 @@ import {
 } from '@/components/ui/select'
 import { addExclusion, removeExclusion, getExclusions } from '@/app/actions/exclusions'
 import { toast } from 'sonner'
+import { Loader2, Plus, Trash2, UserX } from 'lucide-react'
 
 interface Member {
   id: string
@@ -132,14 +133,15 @@ export function ExclusionsManager({ groupId, members, isAdmin, isDrawn }: Exclus
 
   return (
     <>
-      <button
-        type="button"
+      <Button
+        variant="outline"
+        className="justify-start"
         onClick={() => setShowDialog(true)}
         disabled={!isAdmin}
-        className="text-graphite hover:text-ink min-h-11 text-left text-[15px] underline underline-offset-4"
       >
+        <UserX aria-hidden="true" />
         Quién no le puede regalar a quién
-      </button>
+      </Button>
 
       <Dialog open={showDialog} onOpenChange={setShowDialog}>
         <DialogContent className="max-h-[85vh] max-w-xl overflow-y-auto">
@@ -197,17 +199,18 @@ export function ExclusionsManager({ groupId, members, isAdmin, isDrawn }: Exclus
                 disabled={!selectedGiver || !selectedExcluded || isAdding}
                 className="w-full"
               >
-                {isAdding ? 'Guardando…' : 'Agregar'}
+                {isAdding ? <Loader2 className="animate-spin" /> : <Plus aria-hidden="true" />}
+                Agregar
               </Button>
             </div>
           )}
 
           <div>
-            <p className="text-graphite mb-2 font-mono text-sm tracking-[0.12em] uppercase">
-              Anotadas · {exclusions.length}
+            <p className="text-graphite mb-2 text-[15px] font-medium">
+              Anotadas: {exclusions.length}
             </p>
             {isLoading ? (
-              <p className="text-faint py-6 text-center font-mono text-sm">cargando…</p>
+              <p className="text-graphite py-6 text-center text-[15px]">Cargando…</p>
             ) : exclusions.length === 0 ? (
               <p className="text-graphite py-4">
                 Ninguna. Cualquiera le puede regalar a cualquiera.
@@ -226,13 +229,15 @@ export function ExclusionsManager({ groupId, members, isAdmin, isDrawn }: Exclus
                         <b className="font-bold">{nameOf(excluded)}</b>
                       </span>
                       {isAdmin && (
-                        <button
-                          type="button"
+                        <Button
+                          variant="danger"
+                          size="icon-sm"
                           onClick={() => handleRemoveExclusion(exclusion.id)}
-                          className="text-graphite hover:text-destructive min-h-8 shrink-0 font-mono text-[13px] underline underline-offset-[3px]"
+                          aria-label={`Quitar: ${nameOf(giver)} no le regala a ${nameOf(excluded)}`}
+                          title="Quitar"
                         >
-                          quitar
-                        </button>
+                          <Trash2 aria-hidden="true" />
+                        </Button>
                       )}
                     </li>
                   )

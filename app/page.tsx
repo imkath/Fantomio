@@ -3,6 +3,7 @@ import { LandingHeader } from '@/components/landing-header'
 import { Footer } from '@/components/footer'
 import { ScrambleTitle } from '@/components/scramble-title'
 import { InsideDemo } from '@/components/landing/inside-demo'
+import { HeroEyes } from '@/components/landing/hero-eyes'
 import s from '@/components/landing/landing.module.css'
 
 const STEPS = [
@@ -120,8 +121,7 @@ export default function LandingPage() {
                 style={len(900)}
                 d="M70 300c-6-60-14-120-2-168 12-50 52-84 96-82 46 2 80 40 86 92 6 52-4 104-8 158-12-8-22-18-34-10-10 8-18 18-30 10-12-8-20-20-34-12-12 8-20 20-34 14-14-6-26-12-40-2"
               />
-              <circle className={s.dot} cx="128" cy="134" r="5" />
-              <circle className={s.dot} cx="172" cy="134" r="5" />
+              <HeroEyes className={s.dot} />
               <path
                 className={`${s.line} ${s.draw}`}
                 style={len(220)}
@@ -199,13 +199,6 @@ export default function LandingPage() {
                 </p>
               </div>
               <div className={s.sealCard}>
-                <div className={s.stamp} aria-hidden="true">
-                  SOLO
-                  <br />
-                  PARA
-                  <br />
-                  TI
-                </div>
                 <dl>
                   <dt>Tú ves</dt>
                   <dd>

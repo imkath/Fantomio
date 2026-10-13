@@ -1,6 +1,8 @@
 'use client'
 
 import { useState } from 'react'
+import { Check, Copy } from 'lucide-react'
+import { Button } from '@/components/ui/button'
 import { toast } from 'sonner'
 
 interface GroupInfoCardProps {
@@ -90,33 +92,30 @@ export function GroupInfoCard({
       <dl className="grid gap-4">
         {budget != null && (
           <div>
-            <dt className="text-graphite font-mono text-sm">presupuesto</dt>
+            <dt className="text-graphite text-[15px]">Presupuesto</dt>
             <dd className="text-2xl">{formatCurrency(budget, currency)}</dd>
           </div>
         )}
         {exchangeDate && (
           <div>
-            <dt className="text-graphite font-mono text-sm">intercambio</dt>
+            <dt className="text-graphite text-[15px]">Intercambio</dt>
             <dd className="text-xl first-letter:uppercase">{formatDate(exchangeDate)}</dd>
             {days >= 0 && (
               <dd className="text-faint text-sm">
-                {days === 0 ? 'es hoy' : days === 1 ? 'mañana' : `en ${days} días`}
+                {days === 0 ? 'Es hoy' : days === 1 ? 'Mañana' : `Faltan ${days} días`}
               </dd>
             )}
           </div>
         )}
         {inviteCode && (
           <div>
-            <dt className="text-graphite font-mono text-sm">código para unirse</dt>
+            <dt className="text-graphite text-[15px]">Código para unirse</dt>
             <dd className="flex items-center gap-3">
-              <span className="font-mono text-xl tracking-wider">{inviteCode}</span>
-              <button
-                type="button"
-                onClick={handleCopyCode}
-                className="text-graphite hover:text-ink min-h-8 font-mono text-[13px] underline underline-offset-[3px]"
-              >
-                {codeCopied ? 'copiado' : 'copiar'}
-              </button>
+              <span className="font-detail text-xl tracking-wider">{inviteCode}</span>
+              <Button variant="outline" size="sm" onClick={handleCopyCode}>
+                {codeCopied ? <Check aria-hidden="true" /> : <Copy aria-hidden="true" />}
+                {codeCopied ? 'Copiado' : 'Copiar'}
+              </Button>
             </dd>
           </div>
         )}

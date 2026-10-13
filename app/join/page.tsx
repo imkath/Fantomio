@@ -4,10 +4,10 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Notice } from '@/components/auth-shell'
 import { AppHeader } from '@/components/app-header'
-import { Loader2 } from 'lucide-react'
+import { ArrowRight, Loader2 } from 'lucide-react'
 import { useState, useEffect, useCallback, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
-import Link from 'next/link'
+import { BackLink } from '@/components/back-link'
 import { createClient } from '@/lib/supabase'
 import { formatLocalDate } from '@/lib/utils'
 
@@ -268,12 +268,7 @@ function JoinGroupContent() {
       <AppHeader />
 
       <main className="mx-auto max-w-[520px] px-4 py-10 md:py-16">
-        <Link
-          href="/dashboard"
-          className="text-graphite hover:text-ink text-[15px] underline underline-offset-4"
-        >
-          Volver a mis grupos
-        </Link>
+        <BackLink />
 
         {joined ? (
           <div className="mt-8" role="status">
@@ -292,7 +287,7 @@ function JoinGroupContent() {
             {groupPreview && (
               <div className="border-rule bg-slip mb-6 rounded-[4px] border px-5 py-4">
                 <p className="text-lg font-bold">{groupPreview.name}</p>
-                <p className="text-graphite mt-1 font-mono text-sm">
+                <p className="text-graphite mt-1 text-[15px]">
                   {groupPreview.member_count}{' '}
                   {groupPreview.member_count === 1 ? 'persona' : 'personas'}
                   {groupPreview.exchange_date &&
@@ -312,7 +307,7 @@ function JoinGroupContent() {
                   placeholder="a1b2c3d4e5f6"
                   autoComplete="off"
                   spellCheck={false}
-                  className="font-mono tracking-wider"
+                  className="font-detail tracking-wider"
                   value={inviteCode}
                   onChange={(e) => {
                     const value = e.target.value
@@ -330,7 +325,14 @@ function JoinGroupContent() {
                 <p className="text-faint text-sm">Son 12 letras y números.</p>
               </div>
               <Button type="submit" size="lg" className="w-full" disabled={isLoading}>
-                {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Unirme'}
+                {isLoading ? (
+                  <Loader2 className="animate-spin" />
+                ) : (
+                  <>
+                    Unirme
+                    <ArrowRight aria-hidden="true" />
+                  </>
+                )}
               </Button>
             </form>
           </>

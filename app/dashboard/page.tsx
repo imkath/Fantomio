@@ -3,13 +3,14 @@
 import { AppHeader } from '@/components/app-header'
 import { Button } from '@/components/ui/button'
 import { GhostMark } from '@/components/ghost-mark'
+import { ArrowRight, KeyRound, Plus } from 'lucide-react'
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { createClient } from '@/lib/supabase'
+import { createClient, getSessionUser } from '@/lib/supabase'
 import { DashboardSkeleton } from '@/components/skeletons'
 import { getUserFriendlyError } from '@/lib/errors'
-import { formatLocalDate } from '@/lib/utils'
+import { parseLocalDate } from '@/lib/utils'
 
 interface Group {
   id: string
@@ -28,12 +29,8 @@ export default function DashboardPage() {
   const [user, setUser] = useState<{ id: string; email: string } | null>(null)
 
   useEffect(() => {
-    const supabase = createClient()
-
     const checkUser = async () => {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser()
+      const user = await getSessionUser()
       if (!user) {
         router.push('/login')
         return
@@ -62,7 +59,8 @@ export default function DashboardPage() {
             budget,
             exchange_date,
             status,
-            admin_id
+            admin_id,
+            members (count)
           )
         `
         )
@@ -71,19 +69,6 @@ export default function DashboardPage() {
       if (error) throw error
 
       if (memberGroups) {
-        // Get member counts for each group
-        const groupIds = memberGroups.map((mg) => mg.group_id)
-
-        const { data: counts } = await supabase
-          .from('members')
-          .select('group_id')
-          .in('group_id', groupIds)
-
-        const countMap: Record<string, number> = {}
-        counts?.forEach((c) => {
-          countMap[c.group_id] = (countMap[c.group_id] || 0) + 1
-        })
-
         const formattedGroups: Group[] = memberGroups
           .filter((mg) => mg.groups)
           .map((mg) => {
@@ -94,6 +79,7 @@ export default function DashboardPage() {
               exchange_date: string | null
               status: 'PLANNING' | 'DRAWN'
               admin_id: string
+              members: Array<{ count: number }>
             }
             return {
               id: group.id,
@@ -101,7 +87,7 @@ export default function DashboardPage() {
               budget: group.budget,
               exchange_date: group.exchange_date,
               status: group.status,
-              member_count: countMap[mg.group_id] || 0,
+              member_count: group.members[0]?.count ?? 0,
               is_admin: mg.is_admin as boolean,
             }
           })
@@ -137,18 +123,19 @@ export default function DashboardPage() {
 
       <main className="mx-auto max-w-[1040px] px-4 py-10 md:px-8 md:py-14">
         <div className="mb-10 flex flex-col items-start justify-between gap-6 md:flex-row md:items-end">
-          <div>
-            <p className="text-graphite mb-2 font-mono text-sm tracking-[0.12em] uppercase">
-              Tus grupos
-            </p>
-            <h1 className="text-[34px] leading-tight font-light md:text-[44px]">Mis grupos</h1>
-          </div>
+          <h1 className="text-[34px] leading-tight font-light md:text-[44px]">Mis grupos</h1>
           <div className="flex w-full gap-3 md:w-auto">
             <Button asChild variant="outline" className="flex-1 md:flex-initial">
-              <Link href="/join">Unirme con código</Link>
+              <Link href="/join">
+                <KeyRound aria-hidden="true" />
+                Unirme con código
+              </Link>
             </Button>
             <Button asChild className="flex-1 md:flex-initial">
-              <Link href="/groups/new">Crear grupo</Link>
+              <Link href="/groups/new">
+                <Plus aria-hidden="true" />
+                Crear grupo
+              </Link>
             </Button>
           </div>
         </div>
@@ -175,48 +162,45 @@ export default function DashboardPage() {
               <li key={group.id}>
                 <Link
                   href={`/groups/${group.id}`}
-                  className="border-rule bg-raised hover:border-ink group flex h-full flex-col rounded-[4px] border p-6 transition-colors"
+                  className="border-rule bg-raised hover:border-ink group relative flex h-full flex-col rounded-[4px] border p-6 pt-8 transition-colors"
                 >
-                  <div className="mb-5 flex items-start justify-between gap-3">
-                    <h2 className="min-w-0 text-xl leading-snug font-bold break-words">
-                      {group.name}
-                    </h2>
-                    <span
-                      className={`shrink-0 rounded-[2px] border px-2 py-0.5 font-mono text-xs ${
-                        group.status === 'DRAWN'
-                          ? 'border-ink text-ink'
-                          : 'border-rule text-graphite'
-                      }`}
-                    >
-                      {group.status === 'DRAWN' ? 'sorteado' : 'sin sortear'}
-                    </span>
-                  </div>
-                  <dl className="text-graphite grid gap-1.5 font-mono text-sm">
-                    <div className="flex gap-2">
-                      <dt className="sr-only">Personas</dt>
-                      <dd>
-                        {group.member_count} {group.member_count === 1 ? 'persona' : 'personas'}
-                      </dd>
-                    </div>
+                  <h2 className="mb-5 text-xl leading-snug font-bold break-words">{group.name}</h2>
+                  {/* Sits on the card's top edge so the title gets the full width. */}
+                  <span
+                    className={`absolute -top-3.5 left-5 rounded-full px-3 py-1.5 text-[15px] leading-none font-medium ${
+                      group.status === 'DRAWN'
+                        ? 'bg-ink text-paper'
+                        : 'border-rule bg-paper text-graphite border'
+                    }`}
+                  >
+                    {group.status === 'DRAWN' ? 'Sorteado' : 'Sin sortear'}
+                  </span>
+                  <ul className="text-graphite grid gap-1 text-base">
+                    <li>
+                      {group.member_count} {group.member_count === 1 ? 'persona' : 'personas'}
+                    </li>
                     {group.exchange_date && (
-                      <div className="flex gap-2">
-                        <dt>intercambio</dt>
-                        <dd>{formatLocalDate(group.exchange_date)}</dd>
-                      </div>
+                      <li>
+                        Intercambio el{' '}
+                        {parseLocalDate(group.exchange_date).toLocaleDateString('es-CL', {
+                          day: 'numeric',
+                          month: 'long',
+                          year: 'numeric',
+                        })}
+                      </li>
                     )}
                     {group.budget != null && (
-                      <div className="flex gap-2">
-                        <dt>presupuesto</dt>
-                        <dd>${group.budget.toLocaleString('es-CL')}</dd>
-                      </div>
+                      <li>Presupuesto de ${group.budget.toLocaleString('es-CL')}</li>
                     )}
-                  </dl>
+                  </ul>
                   <div className="mt-auto flex items-center justify-between pt-6">
-                    <span className="text-ink text-[15px] underline underline-offset-4">
+                    {/* The whole card is the link; this only looks like a button. */}
+                    <span className="border-ink text-ink group-hover:bg-ink group-hover:text-paper inline-flex h-10 items-center gap-2 rounded-[2px] border-[1.5px] px-3.5 text-[15px] font-medium transition-colors">
                       Abrir grupo
+                      <ArrowRight className="h-4 w-4" aria-hidden="true" />
                     </span>
                     {group.is_admin && (
-                      <span className="text-faint font-mono text-xs">lo administras</span>
+                      <span className="text-graphite text-[15px]">Lo organizas tú</span>
                     )}
                   </div>
                 </Link>
@@ -227,9 +211,7 @@ export default function DashboardPage() {
                 href="/groups/new"
                 className="border-rule text-graphite hover:border-ink hover:text-ink bg-slip flex h-full min-h-[200px] flex-col items-center justify-center gap-2 rounded-[4px] border transition-colors"
               >
-                <span className="text-3xl leading-none font-light" aria-hidden="true">
-                  +
-                </span>
+                <Plus className="h-7 w-7" strokeWidth={1.5} aria-hidden="true" />
                 <span className="text-[17px]">Crear otro grupo</span>
               </Link>
             </li>

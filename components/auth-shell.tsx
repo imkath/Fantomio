@@ -3,6 +3,8 @@
 import Link from 'next/link'
 import { useId, useState, type ComponentProps, type ReactNode } from 'react'
 import { Input } from '@/components/ui/input'
+import { Button } from '@/components/ui/button'
+import { ArrowLeft, Eye, EyeOff } from 'lucide-react'
 import { Logo } from '@/components/logo'
 import { ThemeToggle } from '@/components/theme-toggle'
 
@@ -24,12 +26,12 @@ export function AuthShell({
         <Logo />
         <div className="flex items-center gap-5">
           <ThemeToggle compact />
-          <Link
-            href={back}
-            className="text-graphite hover:text-ink text-base underline underline-offset-4"
-          >
-            Volver
-          </Link>
+          <Button asChild variant="outline" size="sm">
+            <Link href={back}>
+              <ArrowLeft aria-hidden="true" />
+              Volver
+            </Link>
+          </Button>
         </div>
       </header>
       <main className="flex flex-1 justify-center px-4 pt-6 pb-20 md:items-center md:pt-0">
@@ -72,7 +74,7 @@ export function Field({ label, hint, ...props }: FieldProps) {
         {label}
       </label>
       <Input id={id} {...props} />
-      {hint && <p className="text-faint text-sm">{hint}</p>}
+      {hint && <p className="text-graphite text-sm">{hint}</p>}
     </div>
   )
 }
@@ -82,29 +84,29 @@ export function PasswordField({ label, hint, ...props }: FieldProps) {
   const [show, setShow] = useState(false)
   return (
     <div className="grid gap-1.5">
-      <div className="flex items-baseline justify-between">
-        <label htmlFor={id} className="text-[15px] font-medium">
-          {label}
-        </label>
+      <label htmlFor={id} className="text-[15px] font-medium">
+        {label}
+      </label>
+      <div className="relative">
+        <Input id={id} type={show ? 'text' : 'password'} className="pr-12" {...props} />
         <button
           type="button"
           onClick={() => setShow(!show)}
-          className="text-graphite hover:text-ink min-h-8 font-mono text-[13px] underline underline-offset-[3px]"
+          className="text-graphite hover:text-ink absolute inset-y-0 right-0 grid w-11 place-items-center"
           aria-controls={id}
           aria-label={show ? `Ocultar ${label.toLowerCase()}` : `Mostrar ${label.toLowerCase()}`}
         >
-          {show ? 'ocultar' : 'mostrar'}
+          {show ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
         </button>
       </div>
-      <Input id={id} type={show ? 'text' : 'password'} {...props} />
-      {hint && <p className="text-faint text-sm">{hint}</p>}
+      {hint && <p className="text-graphite text-sm">{hint}</p>}
     </div>
   )
 }
 
 export function Divider({ children }: { children: ReactNode }) {
   return (
-    <div className="text-faint flex items-center gap-3 font-mono text-[13px]">
+    <div className="text-graphite flex items-center gap-3 text-[15px]">
       <span className="bg-rule h-px flex-1" />
       {children}
       <span className="bg-rule h-px flex-1" />

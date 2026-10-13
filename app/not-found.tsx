@@ -9,7 +9,7 @@ export default function NotFound() {
       <LandingHeader />
       <main className="flex flex-1 flex-col items-start justify-center gap-5 py-16">
         <GhostMark className="h-[74px] w-[64px]" />
-        <p className="text-graphite font-mono text-sm">error 404</p>
+        <p className="text-graphite text-[15px]">Error 404</p>
         <h1 className="text-[34px] leading-tight font-light md:text-[48px]">
           Esta página no existe.
         </h1>
