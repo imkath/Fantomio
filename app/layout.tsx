@@ -3,6 +3,7 @@ import type { Metadata, Viewport } from 'next'
 import { Zen_Kaku_Gothic_New, Dela_Gothic_One, Atkinson_Hyperlegible_Next } from 'next/font/google'
 import { Toaster } from '@/components/ui/sonner'
 import { ThemeProvider } from '@/components/theme-provider'
+import { AnimatedFavicon } from '@/components/animated-favicon'
 import './globals.css'
 
 const zenKaku = Zen_Kaku_Gothic_New({
@@ -131,6 +132,7 @@ export default function RootLayout({
           enableSystem={false}
           disableTransitionOnChange
         >
+          <AnimatedFavicon />
           {children}
           <Toaster position="top-center" richColors />
         </ThemeProvider>

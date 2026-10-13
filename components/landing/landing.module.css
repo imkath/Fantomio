@@ -57,20 +57,19 @@
   min-height: 52px;
   padding: 14px 28px;
   font-size: 18px;
-  border: 1.5px solid var(--ink);
-  border-radius: 2px;
-  background: var(--ink);
+  border-radius: 10px;
+  /* paper slip, see .btn-paper in globals.css */
+  --face: var(--ink);
+  --edge: var(--ink);
   color: var(--paper);
   text-decoration: none;
   font-weight: 500;
   letter-spacing: 0.03em;
   cursor: pointer;
-  transition:
-    background-color 0.15s,
-    color 0.15s;
+  transition: color 0.15s;
 }
 .btn:hover {
-  background: transparent;
+  --face: var(--paper);
   color: var(--ink);
 }
 .quiet {

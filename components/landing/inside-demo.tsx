@@ -91,7 +91,7 @@ export function InsideDemo() {
                     </p>
                     <button
                       type="button"
-                      className={styles.cardBtn}
+                      className={`${styles.cardBtn} btn-paper`}
                       onClick={() => {
                         setOpen(true)
                         celebrate()

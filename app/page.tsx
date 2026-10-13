@@ -4,6 +4,8 @@ import { Footer } from '@/components/footer'
 import { ScrambleTitle } from '@/components/scramble-title'
 import { InsideDemo } from '@/components/landing/inside-demo'
 import { HeroEyes } from '@/components/landing/hero-eyes'
+import { DrawDemo } from '@/components/landing/draw-demo'
+import { StepsStory } from '@/components/landing/steps-story'
 import s from '@/components/landing/landing.module.css'
 
 const STEPS = [
@@ -102,7 +104,7 @@ export default function LandingPage() {
                 quién le regala, y eso también corre para quien organiza.
               </p>
               <div className={s.actions}>
-                <Link className={s.btn} href="/login">
+                <Link className={`${s.btn} btn-paper`} href="/login">
                   Crear un grupo
                 </Link>
                 <Link className={s.quiet} href="/join">
@@ -170,15 +172,7 @@ export default function LandingPage() {
             <h2 id="t-pasos" className={s.h2}>
               Cómo se arma
             </h2>
-            <ol className={s.steps}>
-              {STEPS.map((step, i) => (
-                <li key={step.title}>
-                  <span className={s.n}>{i + 1}</span>
-                  <h3>{step.title}</h3>
-                  <p>{step.text}</p>
-                </li>
-              ))}
-            </ol>
+            <StepsStory steps={STEPS} />
           </section>
 
           <section
@@ -231,6 +225,17 @@ export default function LandingPage() {
             </li>
           </ul>
 
+          <section className={`${s.section} ${s.fullscreen}`} aria-labelledby="t-prueba">
+            <p className={s.label}>Pruébalo</p>
+            <h2 id="t-prueba" className={s.h2}>
+              Un sorteo de mentira, para que veas cómo queda
+            </h2>
+            <p className={s.sub}>
+              Seis personas, un botón. Cada una le regala a otra y nadie se saca a sí misma.
+            </p>
+            <DrawDemo />
+          </section>
+
           <section className={`${s.section} ${s.fullscreen}`} aria-labelledby="t-faq">
             <p className={s.label}>Preguntas</p>
             <h2 id="t-faq" className={s.h2}>
@@ -250,7 +255,7 @@ export default function LandingPage() {
             <h2 id="t-end" className={s.h2}>
               ¿Armamos el de este año?
             </h2>
-            <Link className={s.btn} href="/login">
+            <Link className={`${s.btn} btn-paper`} href="/login">
               Crear un grupo
             </Link>
           </section>
