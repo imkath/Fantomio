@@ -279,7 +279,7 @@ export default function DashboardPage() {
                   </ul>
                   <div className="mt-auto flex items-center justify-between pt-6">
                     {/* The whole card is the link; this only looks like a button. */}
-                    <span className="btn-paper text-ink group-hover:text-paper inline-flex h-10 items-center gap-2 rounded-[10px] px-3.5 text-[15px] font-medium transition-colors [--edge:var(--ink)] [--face:var(--paper)] [--slip-dir:-1] [--slip-x:-3px] group-hover:[--face:var(--ink)]">
+                    <span className="btn-paper btn-single text-ink group-hover:text-paper inline-flex h-10 items-center gap-2 rounded-[10px] px-3.5 text-[15px] font-medium transition-colors [--edge:var(--ink)] [--face:var(--paper)] group-hover:[--face:var(--ink)]">
                       Abrir grupo
                       <ArrowRight className="h-4 w-4" aria-hidden="true" />
                     </span>

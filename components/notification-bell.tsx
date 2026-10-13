@@ -84,7 +84,6 @@ export function NotificationBell({ userId }: { userId: string }) {
         <Button
           variant="outline"
           size="icon-sm"
-          className="btn-single"
           aria-label={unread ? `Avisos, ${unread} sin leer` : 'Avisos'}
         >
           <Bell aria-hidden="true" />

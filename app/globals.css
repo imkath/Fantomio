@@ -188,6 +188,10 @@
   background: var(--face, var(--paper));
   transition: background-color 0.15s ease;
 }
+/* Hovering straightens the slip behind, as if the paper settled into place. */
+.btn-paper:hover:not(:disabled)::before {
+  transform: translate(0, 4px) rotate(0deg);
+}
 /* Pressing pushes the slip down onto the one behind it. */
 .btn-paper:active:not(:disabled) {
   transform: translateY(2px);
@@ -201,7 +205,7 @@
 .grid > .btn-paper {
   --slip-a: 0.5deg;
 }
-/* Small icon-only controls (the bell) keep a single slip. */
+/* Single slip: every button except the main action (see components/ui/button.tsx). */
 .btn-paper.btn-single::before {
   display: none;
 }
@@ -319,4 +323,23 @@
   .theme-switch {
     transition: none !important;
   }
+}
+
+/* Hero title (components/scramble-title.tsx): the real word stays in the text, transparent
+   while it moves, and the shuffled letters are painted over it as decoration. */
+.scramble-word {
+  position: relative;
+  display: inline-block;
+  white-space: nowrap;
+}
+.scramble-word[data-shown] {
+  color: transparent;
+}
+.scramble-word[data-shown]::after {
+  /* The second value marks it as decorative (no alt text) where supported. */
+  content: attr(data-shown);
+  content: attr(data-shown) / '';
+  position: absolute;
+  inset: 0;
+  color: var(--ink);
 }

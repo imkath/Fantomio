@@ -10,17 +10,18 @@ const buttonVariants = cva(
   {
     variants: {
       variant: {
-        // Paper slips (see .btn-paper in globals.css): the filled ones tilt one way, the
-        // outlined ones the other, so a row of buttons doesn't look stamped out.
+        // Paper slips (see .btn-paper in globals.css). Only the main action (default) sits on
+        // a second, tilted slip; every other button is a single slip, so the double one
+        // always means "this is the step that matters".
         default:
           'btn-paper [--face:var(--ink)] [--edge:var(--ink)] text-paper hover:[--face:var(--paper)] hover:text-ink',
         destructive:
-          'btn-paper [--face:var(--destructive)] [--edge:var(--destructive)] text-destructive-foreground hover:[--face:var(--paper)] hover:text-destructive',
+          'btn-paper btn-single [--face:var(--destructive)] [--edge:var(--destructive)] text-destructive-foreground hover:[--face:var(--paper)] hover:text-destructive',
         // Red outline for actions that remove or leave something.
         danger:
-          'btn-paper [--face:var(--paper)] [--edge:var(--destructive)] [--slip-x:-3px] [--slip-dir:-1] text-destructive hover:[--face:var(--destructive)] hover:text-destructive-foreground',
+          'btn-paper btn-single [--face:var(--paper)] [--edge:var(--destructive)] text-destructive hover:[--face:var(--destructive)] hover:text-destructive-foreground',
         outline:
-          'btn-paper [--face:var(--paper)] [--edge:var(--ink)] [--slip-x:-3px] [--slip-dir:-1] text-ink hover:[--face:var(--ink)] hover:text-paper',
+          'btn-paper btn-single [--face:var(--paper)] [--edge:var(--ink)] text-ink hover:[--face:var(--ink)] hover:text-paper',
         secondary: 'bg-slip text-ink hover:bg-rule',
         ghost: 'text-ink hover:bg-slip',
         link: 'text-ink underline underline-offset-4 hover:text-hanko',
