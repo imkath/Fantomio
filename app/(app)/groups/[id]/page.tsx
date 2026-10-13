@@ -449,7 +449,6 @@ export default function GroupPage() {
 
   return (
     <div className="bg-paper text-ink min-h-[calc(100vh-69px)] pb-16">
-
       <main className="mx-auto max-w-[1040px] px-4 pt-8 pb-10 md:px-8">
         <BackLink />
 

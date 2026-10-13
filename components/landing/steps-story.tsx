@@ -7,7 +7,17 @@ import styles from './steps-story.module.css'
 // draw themselves the first time the section scrolls into view.
 const GHOST = 'M6 42V19a14 14 0 0 1 28 0v23l-4.6-3.6L24.6 42 20 38.4 15.4 42l-4.6-3.6Z'
 
-function Ghost({ x, y, s = 1, flip = false }: { x: number; y: number; s?: number; flip?: boolean }) {
+function Ghost({
+  x,
+  y,
+  s = 1,
+  flip = false,
+}: {
+  x: number
+  y: number
+  s?: number
+  flip?: boolean
+}) {
   return (
     <g transform={`translate(${x} ${y}) scale(${flip ? -s : s} ${s})`}>
       <path d={GHOST} pathLength={1} vectorEffect="non-scaling-stroke" />

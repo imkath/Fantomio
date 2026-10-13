@@ -191,7 +191,6 @@ export default function DashboardPage() {
 
   return (
     <div className="bg-paper text-ink min-h-[calc(100vh-69px)]">
-
       <main className="mx-auto max-w-[1040px] px-4 py-10 md:px-8 md:py-14">
         <div className="mb-10 flex flex-col items-start justify-between gap-6 md:flex-row md:items-end">
           <h1 className="text-[34px] leading-tight font-light md:text-[44px]">Mis grupos</h1>
@@ -329,9 +328,7 @@ export default function DashboardPage() {
             <AlertDialogTitle>
               {modal === 'join' ? '¿Dejar el código sin usar?' : '¿Descartar el grupo?'}
             </AlertDialogTitle>
-            <AlertDialogDescription>
-              Lo que escribiste no se va a guardar.
-            </AlertDialogDescription>
+            <AlertDialogDescription>Lo que escribiste no se va a guardar.</AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Seguir escribiendo</AlertDialogCancel>

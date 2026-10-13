@@ -19,10 +19,7 @@ export default function NotFound() {
           lo reenvíen o usa el código.
         </p>
         <div className="mt-2 flex flex-wrap items-center gap-5">
-          <Link
-            href="/"
-            className={buttonVariants({ size: 'lg' })}
-          >
+          <Link href="/" className={buttonVariants({ size: 'lg' })}>
             Ir al inicio
           </Link>
           <Link href="/join" className="text-graphite hover:text-ink underline underline-offset-4">

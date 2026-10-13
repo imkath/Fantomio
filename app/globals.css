@@ -180,7 +180,8 @@
 }
 .btn-paper::before {
   background: var(--slip);
-  transform: translate(var(--slip-x, 4px), 5px) rotate(calc(var(--slip-dir, 1) * var(--slip-a, 1.8deg)));
+  transform: translate(var(--slip-x, 4px), 5px)
+    rotate(calc(var(--slip-dir, 1) * var(--slip-a, 1.8deg)));
   transition: transform 0.15s ease;
 }
 .btn-paper::after {
