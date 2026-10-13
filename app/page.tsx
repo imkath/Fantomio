@@ -59,39 +59,37 @@ const FAQ = [
   },
 ]
 
-// One graph: the site, who runs it and the app itself. Everything here is visible on the page.
-const jsonLd = {
-  '@context': 'https://schema.org',
-  '@graph': [
-    {
-      '@type': 'WebSite',
-      '@id': 'https://ghostswap.nvrkth.com/#website',
-      name: 'GhostSwap',
-      url: 'https://ghostswap.nvrkth.com',
-      inLanguage: 'es',
-      publisher: { '@id': 'https://ghostswap.nvrkth.com/#organization' },
-    },
-    {
-      '@type': 'Organization',
-      '@id': 'https://ghostswap.nvrkth.com/#organization',
-      name: 'GhostSwap',
-      url: 'https://ghostswap.nvrkth.com',
-      logo: 'https://ghostswap.nvrkth.com/icon-512.png',
-    },
-    {
-      '@type': 'WebApplication',
-      name: 'GhostSwap',
-      description:
-        'Organiza tu Amigo Secreto online gratis, con sorteo automático, listas de deseos y mensajes anónimos con tu amigo secreto.',
-      url: 'https://ghostswap.nvrkth.com',
-      applicationCategory: 'LifestyleApplication',
-      operatingSystem: 'Web',
-      offers: { '@type': 'Offer', price: '0', priceCurrency: 'USD' },
-      inLanguage: 'es',
-      publisher: { '@id': 'https://ghostswap.nvrkth.com/#organization' },
-    },
-  ],
-}
+// The site, who runs it and the app itself, each in its own block (some validators don't
+// read @graph). Everything here is visible on the page.
+const jsonLdBlocks = [
+  {
+    '@type': 'WebSite',
+    '@id': 'https://ghostswap.nvrkth.com/#website',
+    name: 'GhostSwap',
+    url: 'https://ghostswap.nvrkth.com',
+    inLanguage: 'es',
+    publisher: { '@id': 'https://ghostswap.nvrkth.com/#organization' },
+  },
+  {
+    '@type': 'Organization',
+    '@id': 'https://ghostswap.nvrkth.com/#organization',
+    name: 'GhostSwap',
+    url: 'https://ghostswap.nvrkth.com',
+    logo: 'https://ghostswap.nvrkth.com/icon-512.png',
+  },
+  {
+    '@type': 'WebApplication',
+    name: 'GhostSwap',
+    description:
+      'Organiza tu Amigo Secreto online gratis, con sorteo automático, listas de deseos y mensajes anónimos con tu amigo secreto.',
+    url: 'https://ghostswap.nvrkth.com',
+    applicationCategory: 'LifestyleApplication',
+    operatingSystem: 'Web',
+    offers: { '@type': 'Offer', price: '0', priceCurrency: 'USD' },
+    inLanguage: 'es',
+    publisher: { '@id': 'https://ghostswap.nvrkth.com/#organization' },
+  },
+].map((block) => ({ '@context': 'https://schema.org', ...block }))
 
 const faqJsonLd = {
   '@context': 'https://schema.org',
@@ -112,7 +110,13 @@ const len = (n: number) => ({ '--len': n }) as React.CSSProperties
 export default function LandingPage() {
   return (
     <div className={s.page}>
-      <script type="application/ld+json" dangerouslySetInnerHTML={ld(jsonLd)} />
+      {jsonLdBlocks.map((block) => (
+        <script
+          key={block['@type']}
+          type="application/ld+json"
+          dangerouslySetInnerHTML={ld(block)}
+        />
+      ))}
       <script type="application/ld+json" dangerouslySetInnerHTML={ld(faqJsonLd)} />
 
       <div className={s.wrap}>
