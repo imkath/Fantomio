@@ -1,32 +1,36 @@
-import { Ghost } from "lucide-react"
-import Link from "next/link"
+import Link from 'next/link'
+import { GhostMark } from '@/components/ghost-mark'
 
 interface LogoProps {
-  size?: "sm" | "md" | "lg"
+  size?: 'sm' | 'md' | 'lg'
   linkToHome?: boolean
 }
 
-export function Logo({ size = "md", linkToHome = true }: LogoProps) {
-  const sizes = {
-    sm: { icon: "w-5 h-5", text: "text-lg" },
-    md: { icon: "w-6 h-6", text: "text-xl" },
-    lg: { icon: "w-8 h-8", text: "text-2xl" },
-  }
+const sizes = {
+  sm: { mark: 'h-[21px] w-[18px]', text: 'text-base' },
+  md: { mark: 'h-[30px] w-[26px]', text: 'text-[22px]' },
+  lg: { mark: 'h-[42px] w-[36px]', text: 'text-3xl' },
+}
 
+export function Logo({ size = 'md', linkToHome = true }: LogoProps) {
   const content = (
-    <div className={`flex items-center gap-2 font-bold ${sizes[size].text} text-indigo-600`}>
-      <Ghost className={sizes[size].icon} />
-      <span>GhostSwap</span>
-    </div>
+    <span className="text-ink flex items-center gap-2.5">
+      <GhostMark className={sizes[size].mark} />
+      <span className={`font-display leading-none tracking-[-0.01em] ${sizes[size].text}`}>
+        ghostswap
+      </span>
+    </span>
   )
 
-  if (linkToHome) {
-    return (
-      <Link href="/" className="hover:opacity-80 transition-opacity">
-        {content}
-      </Link>
-    )
-  }
+  if (!linkToHome) return content
 
-  return content
+  return (
+    <Link
+      href="/"
+      aria-label="GhostSwap, ir al inicio"
+      className="transition-opacity hover:opacity-80"
+    >
+      {content}
+    </Link>
+  )
 }

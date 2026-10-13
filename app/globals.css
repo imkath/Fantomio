@@ -1,108 +1,88 @@
-@import "tailwindcss";
-@import "tw-animate-css";
+@import 'tailwindcss';
+@import 'tw-animate-css';
 
 @custom-variant dark (&:is(.dark *));
 
 :root {
-  /* Slate-50 Background & Indigo/Rose Theme */
-  --background: oklch(0.984 0.003 247.858); /* slate-50 */
-  --foreground: oklch(0.129 0.042 264.695); /* slate-950 */
+  /* Papelería: pure white paper, ink, one stamp red reserved for what is yours */
+  --paper: #ffffff;
+  --ink: #1b1b1a;
+  --graphite: #4f4f49;
+  --faint: #7d7d76;
+  --rule: #e7e7e3;
+  --slip: #f7f7f6;
+  --raised: #ffffff;
+  --hanko: #d93b26;
+  --hanko-ink: #ffffff;
+  --hanko-soft: #fbe9e6;
 
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.129 0.042 264.695);
+  --background: var(--paper);
+  --foreground: var(--ink);
+  --card: var(--raised);
+  --card-foreground: var(--ink);
+  --popover: var(--raised);
+  --popover-foreground: var(--ink);
+  --primary: var(--ink);
+  --primary-foreground: var(--paper);
+  --secondary: var(--slip);
+  --secondary-foreground: var(--ink);
+  --muted: var(--slip);
+  --muted-foreground: var(--graphite);
+  --accent: var(--slip);
+  --accent-foreground: var(--ink);
+  --destructive: #b42318;
+  --destructive-foreground: #ffffff;
+  --border: var(--rule);
+  --input: var(--rule);
+  --ring: var(--hanko);
 
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.129 0.042 264.695);
-
-  /* Indigo-600 Primary */
-  --primary: oklch(0.512 0.255 282.965);
-  --primary-foreground: oklch(0.985 0 0);
-
-  --secondary: oklch(0.967 0.001 286.375); /* slate-100 */
-  --secondary-foreground: oklch(0.205 0 0);
-
-  --muted: oklch(0.967 0.001 286.375);
-  --muted-foreground: oklch(0.552 0.014 285.938); /* slate-500 */
-
-  /* Coral/Rose Accent */
-  --accent: oklch(0.967 0.001 286.375);
-  --accent-foreground: oklch(0.205 0 0);
-
-  --destructive: oklch(0.577 0.245 27.325);
-  --destructive-foreground: oklch(0.985 0 0);
-
-  --border: oklch(0.92 0.004 286.32); /* slate-200 */
-  --input: oklch(0.92 0.004 286.32);
-  --ring: oklch(0.512 0.255 282.965);
-
-  --chart-1: oklch(0.646 0.222 41.116);
-  --chart-2: oklch(0.6 0.118 184.704);
-  --chart-3: oklch(0.398 0.07 227.392);
-  --chart-4: oklch(0.828 0.189 84.429);
-  --chart-5: oklch(0.769 0.188 70.08);
-  --radius: 0.625rem;
-  --sidebar: oklch(0.985 0 0);
-  --sidebar-foreground: oklch(0.145 0 0);
-  --sidebar-primary: oklch(0.205 0 0);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.97 0 0);
-  --sidebar-accent-foreground: oklch(0.205 0 0);
-  --sidebar-border: oklch(0.922 0 0);
-  --sidebar-ring: oklch(0.708 0 0);
+  --chart-1: #d93b26;
+  --chart-2: #1b1b1a;
+  --chart-3: #7d7d76;
+  --chart-4: #c9c9c3;
+  --chart-5: #4f4f49;
+  --radius: 0.25rem;
+  --sidebar: var(--slip);
+  --sidebar-foreground: var(--ink);
+  --sidebar-primary: var(--ink);
+  --sidebar-primary-foreground: var(--paper);
+  --sidebar-accent: var(--rule);
+  --sidebar-accent-foreground: var(--ink);
+  --sidebar-border: var(--rule);
+  --sidebar-ring: var(--hanko);
 }
 
 .dark {
-  /* Keeping Dark Mode valid but not default */
-  --background: oklch(0.1 0.02 260);
-  --foreground: oklch(0.985 0 0);
-
-  --card: oklch(0.12 0.02 260);
-  --card-foreground: oklch(0.985 0 0);
-
-  --popover: oklch(0.1 0.02 260);
-  --popover-foreground: oklch(0.985 0 0);
-
-  /* Violet-500 equivalent */
-  --primary: oklch(0.6 0.25 290);
-  --primary-foreground: oklch(0.985 0 0);
-
-  --secondary: oklch(0.2 0.03 260);
-  --secondary-foreground: oklch(0.985 0 0);
-
-  --muted: oklch(0.2 0.03 260);
-  --muted-foreground: oklch(0.7 0 0);
-
-  --accent: oklch(0.2 0.03 260);
-  --accent-foreground: oklch(0.985 0 0);
-
-  --destructive: oklch(0.396 0.141 25.723);
-  --destructive-foreground: oklch(0.637 0.237 25.331);
-
-  --border: oklch(0.25 0.02 260);
-  --input: oklch(0.25 0.02 260);
-  --ring: oklch(0.6 0.25 290);
-
-  /* Charts - Adjusted for dark mode visibility */
-  --chart-1: oklch(0.488 0.243 264.376);
-  --chart-2: oklch(0.696 0.17 162.48);
-  --chart-3: oklch(0.769 0.188 70.08);
-  --chart-4: oklch(0.627 0.265 303.9);
-  --chart-5: oklch(0.645 0.246 16.439);
-
-  /* Sidebar - Matching card/background styles */
-  --sidebar: oklch(0.12 0.02 260);
-  --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-primary: oklch(0.6 0.25 290);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.2 0.03 260);
-  --sidebar-accent-foreground: oklch(0.985 0 0);
-  --sidebar-border: oklch(0.25 0.02 260);
-  --sidebar-ring: oklch(0.6 0.25 290);
+  --paper: #131312;
+  --ink: #ecebe6;
+  --graphite: #bdbcb6;
+  --faint: #8a8984;
+  --rule: #2b2b29;
+  --slip: #1b1b1a;
+  --raised: #1f1f1e;
+  --hanko: #ef5a43;
+  --hanko-ink: #131312;
+  --hanko-soft: #3a1d18;
+  --destructive: #f2705f;
+  --destructive-foreground: #131312;
+  --chart-1: #ef5a43;
+  --chart-2: #ecebe6;
 }
 
 @theme inline {
-  --font-sans: var(--font-sans), ui-sans-serif, system-ui, sans-serif;
-  --font-mono: var(--font-mono), ui-monospace, monospace;
+  --font-sans: var(--font-sans), 'Hiragino Sans', 'Helvetica Neue', Arial, sans-serif;
+  --font-display: var(--font-display), 'Arial Black', sans-serif;
+  --font-mono: var(--font-mono), 'Courier New', ui-monospace, monospace;
+  --color-paper: var(--paper);
+  --color-ink: var(--ink);
+  --color-graphite: var(--graphite);
+  --color-faint: var(--faint);
+  --color-rule: var(--rule);
+  --color-slip: var(--slip);
+  --color-raised: var(--raised);
+  --color-hanko: var(--hanko);
+  --color-hanko-ink: var(--hanko-ink);
+  --color-hanko-soft: var(--hanko-soft);
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-card: var(--card);
@@ -145,7 +125,36 @@
   * {
     @apply border-border outline-ring/50;
   }
+  html {
+    color-scheme: light;
+  }
+  html.dark {
+    color-scheme: dark;
+  }
   body {
     @apply bg-background text-foreground;
+    font-size: 18px;
+    line-height: 1.65;
+  }
+  :focus-visible {
+    outline: 2px solid var(--hanko);
+    outline-offset: 3px;
+  }
+}
+
+/* The red seal that replaces confetti when you reveal who you got. */
+@media (prefers-reduced-motion: no-preference) {
+  .seal-thump {
+    animation: seal-thump 0.55s cubic-bezier(0.2, 1.4, 0.4, 1) both;
+  }
+  @keyframes seal-thump {
+    0% {
+      transform: scale(1.9) rotate(-28deg);
+      opacity: 0;
+    }
+    100% {
+      transform: scale(1) rotate(-12deg);
+      opacity: 1;
+    }
   }
 }

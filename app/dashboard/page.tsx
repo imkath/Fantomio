@@ -2,8 +2,7 @@
 
 import { AppHeader } from '@/components/app-header'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
-import { Plus, Users, Calendar, ArrowRight, Wallet, UserPlus, Ghost } from 'lucide-react'
+import { GhostMark } from '@/components/ghost-mark'
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
@@ -121,9 +120,9 @@ export default function DashboardPage() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-slate-50">
+      <div className="bg-paper min-h-screen">
         <AppHeader />
-        <main className="container mx-auto px-4 py-8">
+        <main className="mx-auto max-w-[1040px] px-4 py-10 md:px-8">
           <DashboardSkeleton />
         </main>
       </div>
@@ -133,134 +132,109 @@ export default function DashboardPage() {
   if (!user) return null
 
   return (
-    <div className="min-h-screen bg-slate-50">
+    <div className="bg-paper text-ink min-h-screen">
       <AppHeader />
 
-      <main className="container mx-auto px-4 py-8">
-        <div className="mb-8 flex flex-col items-start justify-between gap-4 md:flex-row md:items-center">
+      <main className="mx-auto max-w-[1040px] px-4 py-10 md:px-8 md:py-14">
+        <div className="mb-10 flex flex-col items-start justify-between gap-6 md:flex-row md:items-end">
           <div>
-            <h1 className="mb-2 text-3xl font-bold text-slate-900">Mis Grupos</h1>
-            <p className="text-slate-500">
-              Gestiona tus intercambios de regalos y listas de deseos.
+            <p className="text-graphite mb-2 font-mono text-sm tracking-[0.12em] uppercase">
+              Tus grupos
             </p>
+            <h1 className="text-[34px] leading-tight font-light md:text-[44px]">Mis grupos</h1>
           </div>
-          <div className="flex w-full gap-2 md:w-auto">
-            <Link href="/join" className="flex-1 md:flex-initial">
-              <Button variant="outline" className="w-full gap-2">
-                <UserPlus className="h-4 w-4" /> Unirse
-              </Button>
-            </Link>
-            <Link href="/groups/new" className="flex-1 md:flex-initial">
-              <Button className="w-full gap-2 bg-indigo-600 hover:bg-indigo-700">
-                <Plus className="h-4 w-4" /> Crear Grupo
-              </Button>
-            </Link>
+          <div className="flex w-full gap-3 md:w-auto">
+            <Button asChild variant="outline" className="flex-1 md:flex-initial">
+              <Link href="/join">Unirme con código</Link>
+            </Button>
+            <Button asChild className="flex-1 md:flex-initial">
+              <Link href="/groups/new">Crear grupo</Link>
+            </Button>
           </div>
         </div>
 
-        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-          {groups.map((group) => (
-            <Link key={group.id} href={`/groups/${group.id}`} className="group block">
-              <Card className="h-full cursor-pointer border-slate-200 bg-white transition-all hover:border-indigo-200 hover:shadow-lg hover:shadow-indigo-100">
-                <CardHeader>
-                  <CardTitle className="flex items-start justify-between gap-2">
-                    <span className="min-w-0 text-xl break-words text-slate-900">{group.name}</span>
+        {groups.length === 0 ? (
+          <div className="border-rule bg-slip grid justify-items-center gap-4 rounded-[4px] border px-6 py-16 text-center">
+            <GhostMark className="text-ink h-[64px] w-[56px]" />
+            <h2 className="text-2xl">Todavía no tienes grupos</h2>
+            <p className="text-graphite max-w-md">
+              Crea uno y comparte el link, o entra a uno con el código que te mandaron.
+            </p>
+            <div className="mt-2 flex flex-col gap-3 sm:flex-row">
+              <Button asChild>
+                <Link href="/groups/new">Crear mi primer grupo</Link>
+              </Button>
+              <Button asChild variant="outline">
+                <Link href="/join">Unirme con código</Link>
+              </Button>
+            </div>
+          </div>
+        ) : (
+          <ul className="grid gap-5 md:grid-cols-2 lg:grid-cols-3">
+            {groups.map((group) => (
+              <li key={group.id}>
+                <Link
+                  href={`/groups/${group.id}`}
+                  className="border-rule bg-raised hover:border-ink group flex h-full flex-col rounded-[4px] border p-6 transition-colors"
+                >
+                  <div className="mb-5 flex items-start justify-between gap-3">
+                    <h2 className="min-w-0 text-xl leading-snug font-bold break-words">
+                      {group.name}
+                    </h2>
                     <span
-                      className={`shrink-0 rounded-full border px-2 py-1 text-xs font-medium ${
+                      className={`shrink-0 rounded-[2px] border px-2 py-0.5 font-mono text-xs ${
                         group.status === 'DRAWN'
-                          ? 'border-emerald-100 bg-emerald-50 text-emerald-600'
-                          : 'border-amber-100 bg-amber-50 text-amber-600'
+                          ? 'border-ink text-ink'
+                          : 'border-rule text-graphite'
                       }`}
                     >
-                      {group.status === 'DRAWN' ? 'Sorteado' : 'Planificando'}
+                      {group.status === 'DRAWN' ? 'sorteado' : 'sin sortear'}
                     </span>
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="grid grid-cols-2 gap-4 text-sm">
-                    <div className="flex items-center gap-2 text-slate-500">
-                      <Users className="h-4 w-4" />
-                      <span>{group.member_count} Miembros</span>
+                  </div>
+                  <dl className="text-graphite grid gap-1.5 font-mono text-sm">
+                    <div className="flex gap-2">
+                      <dt className="sr-only">Personas</dt>
+                      <dd>
+                        {group.member_count} {group.member_count === 1 ? 'persona' : 'personas'}
+                      </dd>
                     </div>
                     {group.exchange_date && (
-                      <div className="flex items-center gap-2 text-slate-500">
-                        <Calendar className="h-4 w-4" />
-                        <span>{formatLocalDate(group.exchange_date)}</span>
+                      <div className="flex gap-2">
+                        <dt>intercambio</dt>
+                        <dd>{formatLocalDate(group.exchange_date)}</dd>
                       </div>
                     )}
-                    {group.budget && (
-                      <div className="flex items-center gap-2 text-slate-500">
-                        <Wallet className="h-4 w-4" />
-                        <span>${group.budget}</span>
+                    {group.budget != null && (
+                      <div className="flex gap-2">
+                        <dt>presupuesto</dt>
+                        <dd>${group.budget.toLocaleString('es-CL')}</dd>
                       </div>
                     )}
+                  </dl>
+                  <div className="mt-auto flex items-center justify-between pt-6">
+                    <span className="text-ink text-[15px] underline underline-offset-4">
+                      Abrir grupo
+                    </span>
                     {group.is_admin && (
-                      <div className="flex items-center gap-2 text-indigo-500">
-                        <Ghost className="h-4 w-4" />
-                        <span>Admin</span>
-                      </div>
+                      <span className="text-faint font-mono text-xs">lo administras</span>
                     )}
                   </div>
-                </CardContent>
-                <CardFooter className="pt-2">
-                  <span className="flex items-center gap-1 text-sm font-medium text-indigo-600 transition-all group-hover:gap-2">
-                    Ver Detalles <ArrowRight className="h-4 w-4" />
-                  </span>
-                </CardFooter>
-              </Card>
-            </Link>
-          ))}
-
-          {groups.length === 0 && !isLoading && (
-            <div className="col-span-full py-16 text-center">
-              <div className="relative mb-6 inline-flex">
-                {/* Background decorative elements */}
-                <div className="absolute inset-0 scale-150">
-                  <div className="absolute top-1/2 left-1/2 h-24 w-24 -translate-x-1/2 -translate-y-1/2 rounded-full bg-indigo-100/50 blur-xl" />
-                  <div className="absolute top-0 right-0 h-8 w-8 rounded-full bg-rose-100 blur-sm" />
-                  <div className="absolute bottom-0 left-0 h-6 w-6 rounded-full bg-violet-100 blur-sm" />
-                </div>
-                {/* Main icon container */}
-                <div className="relative flex h-24 w-24 rotate-3 items-center justify-center rounded-2xl border border-indigo-100/50 bg-gradient-to-br from-indigo-50 to-violet-50 shadow-lg shadow-indigo-100/30">
-                  <Ghost className="h-12 w-12 text-indigo-500" />
-                </div>
-              </div>
-              <h3 className="mb-3 text-xl font-semibold text-slate-900">
-                ¡Bienvenido a GhostSwap!
-              </h3>
-              <p className="mx-auto mb-6 max-w-md text-slate-500">
-                Aún no tienes grupos. Crea tu primer Amigo Secreto y comparte el link con tus
-                amigos, o únete a un grupo existente.
-              </p>
-              <div className="flex flex-col justify-center gap-3 sm:flex-row">
-                <Link href="/groups/new">
-                  <Button className="gap-2 bg-indigo-600 hover:bg-indigo-700">
-                    <Plus className="h-4 w-4" />
-                    Crear mi primer grupo
-                  </Button>
                 </Link>
-                <Link href="/join">
-                  <Button variant="outline" className="gap-2">
-                    <UserPlus className="h-4 w-4" />
-                    Unirme con código
-                  </Button>
-                </Link>
-              </div>
-            </div>
-          )}
-
-          <Link href="/groups/new">
-            <Button
-              variant="outline"
-              className="group flex h-auto min-h-[250px] w-full flex-col gap-4 border-2 border-dashed border-slate-200 bg-transparent text-slate-500 hover:border-indigo-300 hover:bg-slate-50 hover:text-indigo-600"
-            >
-              <div className="flex h-12 w-12 items-center justify-center rounded-full bg-slate-100 transition-colors group-hover:bg-indigo-50">
-                <Plus className="h-6 w-6 text-slate-400 group-hover:text-indigo-600" />
-              </div>
-              <span className="text-lg font-medium">Crear nuevo grupo</span>
-            </Button>
-          </Link>
-        </div>
+              </li>
+            ))}
+            <li>
+              <Link
+                href="/groups/new"
+                className="border-rule text-graphite hover:border-ink hover:text-ink bg-slip flex h-full min-h-[200px] flex-col items-center justify-center gap-2 rounded-[4px] border transition-colors"
+              >
+                <span className="text-3xl leading-none font-light" aria-hidden="true">
+                  +
+                </span>
+                <span className="text-[17px]">Crear otro grupo</span>
+              </Link>
+            </li>
+          </ul>
+        )}
       </main>
     </div>
   )

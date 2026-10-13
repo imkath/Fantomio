@@ -1,5 +1,5 @@
-import { Skeleton } from "@/components/ui/skeleton"
-import { Card, CardContent, CardHeader } from "@/components/ui/card"
+import { Skeleton } from '@/components/ui/skeleton'
+import { Card, CardContent, CardHeader } from '@/components/ui/card'
 
 export function GroupCardSkeleton() {
   return (
@@ -30,7 +30,7 @@ export function GroupCardSkeleton() {
 export function DashboardSkeleton() {
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center">
+      <div className="flex items-center justify-between">
         <Skeleton className="h-8 w-48" />
         <Skeleton className="h-10 w-32" />
       </div>
@@ -47,10 +47,10 @@ export function GroupPageSkeleton() {
   return (
     <div className="space-y-8">
       <div>
-        <Skeleton className="h-4 w-32 mb-6" />
-        <div className="flex justify-between items-start mb-4">
+        <Skeleton className="mb-6 h-4 w-32" />
+        <div className="mb-4 flex items-start justify-between">
           <div>
-            <Skeleton className="h-8 w-64 mb-2" />
+            <Skeleton className="mb-2 h-8 w-64" />
             <div className="flex gap-4">
               <Skeleton className="h-4 w-24" />
               <Skeleton className="h-4 w-20" />
@@ -64,7 +64,7 @@ export function GroupPageSkeleton() {
         </div>
       </div>
 
-      <div className="grid lg:grid-cols-[2fr,1fr] gap-8">
+      <div className="grid gap-8 lg:grid-cols-[1.6fr_1fr]">
         <div className="space-y-6">
           <Card>
             <CardHeader>

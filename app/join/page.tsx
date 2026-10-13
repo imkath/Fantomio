@@ -2,8 +2,9 @@
 
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { Notice } from '@/components/auth-shell'
 import { AppHeader } from '@/components/app-header'
-import { Ghost, Loader2, ArrowLeft, Users, Calendar, CheckCircle } from 'lucide-react'
+import { Loader2 } from 'lucide-react'
 import { useState, useEffect, useCallback, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
@@ -70,7 +71,7 @@ function JoinGroupContent() {
 
         // Check if group is already drawn
         if (group.status === 'DRAWN') {
-          setError('Este grupo ya realizó su sorteo y no acepta nuevos miembros')
+          setError('Este grupo ya hizo el sorteo, así que no se pueden sumar personas nuevas.')
           setIsLoading(false)
           return
         }
@@ -165,7 +166,7 @@ function JoinGroupContent() {
     setError('')
 
     if (!inviteCode) {
-      setError('El código de invitación es requerido')
+      setError('Escribe el código que te mandaron.')
       setIsLoading(false)
       return
     }
@@ -188,7 +189,7 @@ function JoinGroupContent() {
       })
 
       if (!groupData || groupData.length === 0) {
-        setError('Código de invitación inválido')
+        setError('No encontramos un grupo con ese código. Revisa que esté completo.')
         setIsLoading(false)
         return
       }
@@ -211,7 +212,7 @@ function JoinGroupContent() {
 
       // Check if group is already drawn
       if (group.status === 'DRAWN') {
-        setError('Este grupo ya realizó su sorteo y no acepta nuevos miembros')
+        setError('Este grupo ya hizo el sorteo, así que no se pueden sumar personas nuevas.')
         setIsLoading(false)
         return
       }
@@ -249,116 +250,91 @@ function JoinGroupContent() {
         router.push(`/groups/${group.id}`)
       }, 1500)
     } catch {
-      setError('Error de conexión')
+      setError('No pudimos conectar. Revisa tu internet e intenta de nuevo.')
       setIsLoading(false)
     }
   }
 
   if (isCheckingAuth) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-slate-50">
-        <Loader2 className="h-8 w-8 animate-spin text-indigo-600" />
-      </div>
-    )
-  }
-
-  if (joined) {
-    return (
-      <div className="min-h-screen bg-slate-50">
-        <AppHeader />
-        <main className="container mx-auto max-w-md px-4 py-8">
-          <div className="rounded-2xl border border-slate-100 bg-white p-8 text-center shadow-lg">
-            <div className="mb-4 inline-flex rounded-full bg-emerald-50 p-3 text-emerald-600">
-              <CheckCircle className="h-8 w-8" />
-            </div>
-            <h1 className="mb-2 text-2xl font-bold text-slate-900">¡Te uniste!</h1>
-            <p className="text-slate-500">Redirigiendo al grupo...</p>
-          </div>
-        </main>
+      <div className="bg-paper flex min-h-screen items-center justify-center">
+        <Loader2 className="text-faint h-8 w-8 animate-spin" />
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen bg-slate-50">
+    <div className="bg-paper text-ink min-h-screen">
       <AppHeader />
 
-      <main className="container mx-auto max-w-md px-4 py-8">
-        <div className="mb-6">
-          <Link
-            href="/dashboard"
-            className="flex items-center text-slate-500 transition-colors hover:text-indigo-600"
-          >
-            <ArrowLeft className="mr-2 h-4 w-4" />
-            Volver a mis grupos
-          </Link>
-        </div>
+      <main className="mx-auto max-w-[520px] px-4 py-10 md:py-16">
+        <Link
+          href="/dashboard"
+          className="text-graphite hover:text-ink text-[15px] underline underline-offset-4"
+        >
+          Volver a mis grupos
+        </Link>
 
-        <div className="rounded-2xl border border-slate-100 bg-white p-8 shadow-lg">
-          <div className="mb-8 text-center">
-            <div className="mb-4 inline-flex rounded-full bg-indigo-50 p-3 text-indigo-600">
-              <Ghost className="h-8 w-8" />
-            </div>
-            <h1 className="text-2xl font-bold text-slate-900">Unirse a un grupo</h1>
-            <p className="mt-2 text-slate-500">Ingresa el código de invitación</p>
+        {joined ? (
+          <div className="mt-8" role="status">
+            <h1 className="mb-2 text-[34px] leading-tight font-light">Ya estás adentro</h1>
+            <p className="text-graphite">Te llevamos al grupo…</p>
           </div>
+        ) : (
+          <>
+            <h1 className="mt-8 mb-2 text-[34px] leading-tight font-light md:text-[40px]">
+              Unirme a un grupo
+            </h1>
+            <p className="text-graphite mb-8">
+              Pega el código o el link que te mandó quien organiza.
+            </p>
 
-          {/* Group Preview */}
-          {groupPreview && (
-            <div className="mb-6 rounded-lg border border-indigo-100 bg-indigo-50 p-4">
-              <p className="mb-2 font-medium text-indigo-900">{groupPreview.name}</p>
-              <div className="flex gap-4 text-sm text-indigo-600">
-                <span className="flex items-center gap-1">
-                  <Users className="h-3 w-3" />
-                  {groupPreview.member_count} miembros
-                </span>
-                {groupPreview.exchange_date && (
-                  <span className="flex items-center gap-1">
-                    <Calendar className="h-3 w-3" />
-                    {formatLocalDate(groupPreview.exchange_date)}
-                  </span>
-                )}
-              </div>
-            </div>
-          )}
-
-          <form onSubmit={handleJoin} className="space-y-4">
-            {error && (
-              <div className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-600">
-                {error}
+            {groupPreview && (
+              <div className="border-rule bg-slip mb-6 rounded-[4px] border px-5 py-4">
+                <p className="text-lg font-bold">{groupPreview.name}</p>
+                <p className="text-graphite mt-1 font-mono text-sm">
+                  {groupPreview.member_count}{' '}
+                  {groupPreview.member_count === 1 ? 'persona' : 'personas'}
+                  {groupPreview.exchange_date &&
+                    ` · intercambio ${formatLocalDate(groupPreview.exchange_date)}`}
+                </p>
               </div>
             )}
 
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-slate-700">Código de invitación</label>
-              <Input
-                placeholder="Ej: a1b2c3d4e5f6"
-                className="h-11 font-mono"
-                value={inviteCode}
-                onChange={(e) => {
-                  const value = e.target.value
-                  // Extract valid code if user pastes text with extra content
-                  const cleanCode = value.length > 12 ? extractInviteCode(value) : value
-                  setInviteCode(cleanCode)
-                  if (cleanCode.length >= 12) {
-                    fetchGroupPreview(cleanCode)
-                  } else {
-                    setGroupPreview(null)
-                  }
-                }}
-                required
-              />
-            </div>
-
-            <Button
-              type="submit"
-              className="h-11 w-full bg-indigo-600 shadow-lg shadow-indigo-200/50 hover:bg-indigo-700"
-              disabled={isLoading}
-            >
-              {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Unirse al grupo'}
-            </Button>
-          </form>
-        </div>
+            <form onSubmit={handleJoin} className="space-y-5">
+              {error && <Notice>{error}</Notice>}
+              <div className="grid gap-1.5">
+                <label htmlFor="invite-code" className="text-[15px] font-medium">
+                  Código de invitación
+                </label>
+                <Input
+                  id="invite-code"
+                  placeholder="a1b2c3d4e5f6"
+                  autoComplete="off"
+                  spellCheck={false}
+                  className="font-mono tracking-wider"
+                  value={inviteCode}
+                  onChange={(e) => {
+                    const value = e.target.value
+                    // Extract valid code if user pastes text with extra content
+                    const cleanCode = value.length > 12 ? extractInviteCode(value) : value
+                    setInviteCode(cleanCode)
+                    if (cleanCode.length >= 12) {
+                      fetchGroupPreview(cleanCode)
+                    } else {
+                      setGroupPreview(null)
+                    }
+                  }}
+                  required
+                />
+                <p className="text-faint text-sm">Son 12 letras y números.</p>
+              </div>
+              <Button type="submit" size="lg" className="w-full" disabled={isLoading}>
+                {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Unirme'}
+              </Button>
+            </form>
+          </>
+        )}
       </main>
     </div>
   )
@@ -368,8 +344,8 @@ export default function JoinGroupPage() {
   return (
     <Suspense
       fallback={
-        <div className="flex min-h-screen items-center justify-center bg-slate-50">
-          <Loader2 className="h-8 w-8 animate-spin text-indigo-600" />
+        <div className="bg-paper flex min-h-screen items-center justify-center">
+          <Loader2 className="text-faint h-8 w-8 animate-spin" />
         </div>
       }
     >
