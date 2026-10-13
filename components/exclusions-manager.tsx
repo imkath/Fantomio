@@ -17,9 +17,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { Badge } from '@/components/ui/badge'
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
-import { Ban, Trash2, UserX, AlertCircle } from 'lucide-react'
 import { addExclusion, removeExclusion, getExclusions } from '@/app/actions/exclusions'
 import { toast } from 'sonner'
 
@@ -77,12 +74,12 @@ export function ExclusionsManager({ groupId, members, isAdmin, isDrawn }: Exclus
 
   const handleAddExclusion = async () => {
     if (!selectedGiver || !selectedExcluded) {
-      toast.error('Debes seleccionar ambas personas')
+      toast.error('Elige a las dos personas.')
       return
     }
 
     if (selectedGiver === selectedExcluded) {
-      toast.error('No puedes excluir a una persona de sí misma')
+      toast.error('Elige dos personas distintas.')
       return
     }
 
@@ -90,7 +87,7 @@ export function ExclusionsManager({ groupId, members, isAdmin, isDrawn }: Exclus
     const result = await addExclusion(groupId, selectedGiver, selectedExcluded)
 
     if (result.success) {
-      toast.success('Restricción agregada')
+      toast.success('Listo, quedó anotado')
       setSelectedGiver('')
       setSelectedExcluded('')
       await loadExclusions()
@@ -104,7 +101,7 @@ export function ExclusionsManager({ groupId, members, isAdmin, isDrawn }: Exclus
     const result = await removeExclusion(exclusionId)
 
     if (result.success) {
-      toast.success('Restricción eliminada')
+      toast.success('Quitado')
       await loadExclusions()
     } else {
       toast.error(result.error || 'Error al eliminar restricción')
@@ -115,9 +112,7 @@ export function ExclusionsManager({ groupId, members, isAdmin, isDrawn }: Exclus
     return members.find((m) => m.user_id === userId)
   }
 
-  const getInitial = (profile: { full_name: string | null; email: string }) => {
-    return (profile.full_name || profile.email || '?')[0]?.toUpperCase() || '?'
-  }
+  const nameOf = (m: Member) => m.profile.full_name || m.profile.email
 
   const getAvailableReceivers = () => {
     if (!selectedGiver) return members
@@ -132,181 +127,117 @@ export function ExclusionsManager({ groupId, members, isAdmin, isDrawn }: Exclus
     )
   }
 
+  // ponytail: exclusions only matter before the draw, so the entry point hides afterwards.
+  if (isDrawn) return null
+
   return (
     <>
-      <Button
-        variant="outline"
+      <button
+        type="button"
         onClick={() => setShowDialog(true)}
-        disabled={!isAdmin || isDrawn}
-        className="gap-2"
+        disabled={!isAdmin}
+        className="text-graphite hover:text-ink min-h-11 text-left text-[15px] underline underline-offset-4"
       >
-        <Ban className="h-4 w-4" />
-        Restricciones
-        {exclusions.length > 0 && (
-          <Badge variant="secondary" className="ml-1">
-            {exclusions.length}
-          </Badge>
-        )}
-      </Button>
+        Quién no le puede regalar a quién
+      </button>
 
       <Dialog open={showDialog} onOpenChange={setShowDialog}>
-        <DialogContent className="max-h-[80vh] max-w-2xl overflow-y-auto">
+        <DialogContent className="max-h-[85vh] max-w-xl overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Restricciones de Regalos</DialogTitle>
+            <DialogTitle>Quién no le puede regalar a quién</DialogTitle>
             <DialogDescription>
-              Define quién no puede regalarle a quién. Por ejemplo, parejas que no quieren
-              intercambiar regalos entre sí.
+              Por ejemplo, para que una pareja no se toque entre sí. El sorteo lo respeta.
             </DialogDescription>
           </DialogHeader>
 
-          {isDrawn && (
-            <div className="flex items-center gap-2 rounded-lg border border-amber-200 bg-amber-50 p-3 text-amber-900">
-              <AlertCircle className="h-5 w-5 shrink-0" />
-              <p className="text-sm">
-                No se pueden modificar las restricciones después de realizar el sorteo.
-              </p>
-            </div>
-          )}
-
-          {!isDrawn && isAdmin && (
-            <div className="bg-muted/30 space-y-4 rounded-lg border p-4">
-              <h3 className="text-sm font-semibold">Agregar Nueva Restricción</h3>
+          {isAdmin && (
+            <div className="bg-slip border-rule space-y-4 rounded-[4px] border p-5">
               <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">Persona que regala</label>
+                <div className="grid gap-1.5">
+                  <span className="text-[15px] font-medium" id="ex-giver">
+                    Esta persona
+                  </span>
                   <Select value={selectedGiver} onValueChange={setSelectedGiver}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Seleccionar..." />
+                    <SelectTrigger aria-labelledby="ex-giver" className="bg-paper w-full">
+                      <SelectValue placeholder="Elegir…" />
                     </SelectTrigger>
                     <SelectContent>
                       {members.map((member) => (
                         <SelectItem key={member.user_id} value={member.user_id}>
-                          <div className="flex items-center gap-2">
-                            <Avatar className="h-6 w-6">
-                              <AvatarImage src={member.profile.avatar_url || undefined} />
-                              <AvatarFallback className="text-xs">
-                                {getInitial(member.profile)}
-                              </AvatarFallback>
-                            </Avatar>
-                            <span className="text-sm">
-                              {member.profile.full_name || member.profile.email}
-                            </span>
-                          </div>
+                          {nameOf(member)}
                         </SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
                 </div>
-
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">No puede regalarle a</label>
+                <div className="grid gap-1.5">
+                  <span className="text-[15px] font-medium" id="ex-receiver">
+                    no le regala a
+                  </span>
                   <Select
                     value={selectedExcluded}
                     onValueChange={setSelectedExcluded}
                     disabled={!selectedGiver}
                   >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Seleccionar..." />
+                    <SelectTrigger aria-labelledby="ex-receiver" className="bg-paper w-full">
+                      <SelectValue placeholder="Elegir…" />
                     </SelectTrigger>
                     <SelectContent>
                       {getAvailableReceivers().map((member) => (
                         <SelectItem key={member.user_id} value={member.user_id}>
-                          <div className="flex items-center gap-2">
-                            <Avatar className="h-6 w-6">
-                              <AvatarImage src={member.profile.avatar_url || undefined} />
-                              <AvatarFallback className="text-xs">
-                                {getInitial(member.profile)}
-                              </AvatarFallback>
-                            </Avatar>
-                            <span className="text-sm">
-                              {member.profile.full_name || member.profile.email}
-                            </span>
-                          </div>
+                          {nameOf(member)}
                         </SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
                 </div>
               </div>
-
               <Button
                 onClick={handleAddExclusion}
                 disabled={!selectedGiver || !selectedExcluded || isAdding}
                 className="w-full"
               >
-                {isAdding ? 'Agregando...' : 'Agregar Restricción'}
+                {isAdding ? 'Guardando…' : 'Agregar'}
               </Button>
             </div>
           )}
 
-          <div className="space-y-3">
-            <h3 className="text-sm font-semibold">Restricciones Actuales ({exclusions.length})</h3>
-
+          <div>
+            <p className="text-graphite mb-2 font-mono text-sm tracking-[0.12em] uppercase">
+              Anotadas · {exclusions.length}
+            </p>
             {isLoading ? (
-              <div className="text-muted-foreground py-8 text-center">
-                Cargando restricciones...
-              </div>
+              <p className="text-faint py-6 text-center font-mono text-sm">cargando…</p>
             ) : exclusions.length === 0 ? (
-              <div className="text-muted-foreground py-8 text-center">
-                <UserX className="mx-auto mb-2 h-12 w-12 opacity-50" />
-                <p>No hay restricciones configuradas</p>
-                <p className="text-sm">Todos pueden regalarle a todos</p>
-              </div>
+              <p className="text-graphite py-4">
+                Ninguna. Cualquiera le puede regalar a cualquiera.
+              </p>
             ) : (
-              <div className="space-y-2">
+              <ul className="divide-rule divide-y">
                 {exclusions.map((exclusion) => {
                   const giver = getMemberById(exclusion.giver_id)
                   const excluded = getMemberById(exclusion.excluded_receiver_id)
-
                   if (!giver || !excluded) return null
-
                   return (
-                    <div
-                      key={exclusion.id}
-                      className="bg-card flex items-center justify-between rounded-lg border p-3"
-                    >
-                      <div className="flex items-center gap-3">
-                        <div className="flex items-center gap-2">
-                          <Avatar className="h-8 w-8">
-                            <AvatarImage src={giver.profile.avatar_url || undefined} />
-                            <AvatarFallback className="text-xs">
-                              {getInitial(giver.profile)}
-                            </AvatarFallback>
-                          </Avatar>
-                          <span className="text-sm font-medium">
-                            {giver.profile.full_name || giver.profile.email}
-                          </span>
-                        </div>
-
-                        <Ban className="text-muted-foreground h-4 w-4" />
-
-                        <div className="flex items-center gap-2">
-                          <Avatar className="h-8 w-8">
-                            <AvatarImage src={excluded.profile.avatar_url || undefined} />
-                            <AvatarFallback className="text-xs">
-                              {getInitial(excluded.profile)}
-                            </AvatarFallback>
-                          </Avatar>
-                          <span className="text-sm font-medium">
-                            {excluded.profile.full_name || excluded.profile.email}
-                          </span>
-                        </div>
-                      </div>
-
-                      {isAdmin && !isDrawn && (
-                        <Button
-                          variant="ghost"
-                          size="sm"
+                    <li key={exclusion.id} className="flex items-center justify-between gap-3 py-3">
+                      <span className="min-w-0">
+                        <b className="font-bold">{nameOf(giver)}</b>
+                        <span className="text-graphite"> no le regala a </span>
+                        <b className="font-bold">{nameOf(excluded)}</b>
+                      </span>
+                      {isAdmin && (
+                        <button
+                          type="button"
                           onClick={() => handleRemoveExclusion(exclusion.id)}
-                          className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                          className="text-graphite hover:text-destructive min-h-8 shrink-0 font-mono text-[13px] underline underline-offset-[3px]"
                         >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
+                          quitar
+                        </button>
                       )}
-                    </div>
+                    </li>
                   )
                 })}
-              </div>
+              </ul>
             )}
           </div>
 

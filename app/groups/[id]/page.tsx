@@ -1,11 +1,7 @@
 'use client'
 
 import { AppHeader } from '@/components/app-header'
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
-import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { Separator } from '@/components/ui/separator'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import {
   Dialog,
   DialogContent,
@@ -14,32 +10,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
-import {
-  CheckCircle2,
-  Clock,
-  Calendar,
-  Wallet,
-  Users,
-  AlertCircle,
-  Gift,
-  ArrowLeft,
-  Shuffle,
-  Ghost,
-  Eye,
-  EyeOff,
-  Copy,
-  Check,
-  Loader2,
-  Settings,
-  Trash2,
-  LogOut,
-  History,
-  Pencil,
-  UserMinus,
-  RotateCcw,
-  AlertTriangle,
-  ExternalLink,
-} from 'lucide-react'
+import { Loader2 } from 'lucide-react'
 import { useParams, useRouter } from 'next/navigation'
 import { useEffect, useState, useCallback } from 'react'
 import Link from 'next/link'
@@ -52,14 +23,14 @@ import {
   getGroupActivities,
   removeMember,
 } from '@/app/actions/group'
-import confetti from 'canvas-confetti'
+import { GhostMark } from '@/components/ghost-mark'
+import { Notice } from '@/components/auth-shell'
 import { WishlistEditor } from '@/components/wishlist-editor'
 import { GroupPageSkeleton } from '@/components/skeletons'
 import { GroupInfoCard } from '@/components/group-info-card'
 import { ExclusionsManager } from '@/components/exclusions-manager'
 import { AnonymousChat } from '@/components/anonymous-chat'
 import { Input } from '@/components/ui/input'
-import { formatLocalDate } from '@/lib/utils'
 import { toast } from 'sonner'
 
 interface Member {
@@ -311,7 +282,7 @@ export default function GroupPage() {
       setError(result.error || 'Error al realizar el sorteo')
       toast.error('Error al realizar el sorteo')
     } else {
-      toast.success('¡Sorteo realizado con éxito!')
+      toast.success('Sorteo listo. Cada quien ya puede ver a quién le tocó.')
       // Reload data to get match
       await fetchGroupData()
     }
@@ -326,7 +297,7 @@ export default function GroupPage() {
     try {
       await navigator.clipboard.writeText(inviteUrl)
       setCopied(true)
-      toast.success('Link copiado al portapapeles')
+      toast.success('Link copiado')
       setTimeout(() => setCopied(false), 2000)
     } catch {
       // Fallback for older browsers
@@ -339,7 +310,7 @@ export default function GroupPage() {
       document.execCommand('copy')
       document.body.removeChild(textArea)
       setCopied(true)
-      toast.success('Link copiado al portapapeles')
+      toast.success('Link copiado')
       setTimeout(() => setCopied(false), 2000)
     }
   }
@@ -398,7 +369,7 @@ export default function GroupPage() {
     const result = await leaveGroup(group.id)
 
     if (result.success) {
-      toast.success('Has abandonado el grupo')
+      toast.success('Saliste del grupo')
       router.push('/dashboard')
     } else {
       toast.error(result.error || 'Error al abandonar')
@@ -428,7 +399,7 @@ export default function GroupPage() {
     const result = await removeMember(groupId, memberToRemove.id)
 
     if (result.success) {
-      toast.success('Miembro eliminado')
+      toast.success('Persona quitada del grupo')
       setShowRemoveMemberDialog(false)
       setMemberToRemove(null)
       await fetchGroupData()
@@ -439,15 +410,8 @@ export default function GroupPage() {
     setRemovingMemberId(null)
   }
 
-  const handleRevealMatch = () => {
-    setShowMatch(true)
-    // Fire confetti
-    confetti({
-      particleCount: 100,
-      spread: 70,
-      origin: { y: 0.6 },
-    })
-  }
+  // The seal animates on mount (see .seal-thump in globals.css), so revealing is just state.
+  const handleRevealMatch = () => setShowMatch(true)
 
   const handleResetDraw = async () => {
     if (!group) return
@@ -470,9 +434,9 @@ export default function GroupPage() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-slate-50">
+      <div className="bg-paper min-h-screen">
         <AppHeader />
-        <main className="container mx-auto max-w-5xl px-4 py-8">
+        <main className="mx-auto max-w-[1040px] px-4 py-10 md:px-8">
           <GroupPageSkeleton />
         </main>
       </div>
@@ -481,20 +445,14 @@ export default function GroupPage() {
 
   if (error && !group) {
     return (
-      <div className="min-h-screen bg-slate-50">
+      <div className="bg-paper text-ink min-h-screen">
         <AppHeader />
-        <main className="container mx-auto max-w-md px-4 py-8">
-          <div className="rounded-xl border border-slate-200 bg-white p-8 text-center">
-            <AlertCircle className="mx-auto mb-4 h-12 w-12 text-red-500" />
-            <h2 className="mb-2 text-xl font-bold text-slate-900">Error</h2>
-            <p className="mb-4 text-slate-500">{error}</p>
-            <Link href="/dashboard">
-              <Button variant="outline">
-                <ArrowLeft className="mr-2 h-4 w-4" />
-                Volver al dashboard
-              </Button>
-            </Link>
-          </div>
+        <main className="mx-auto max-w-[520px] px-4 py-16">
+          <h1 className="mb-2 text-[34px] leading-tight font-light">No pudimos abrir este grupo</h1>
+          <p className="text-graphite mb-8">{error}</p>
+          <Button asChild variant="outline">
+            <Link href="/dashboard">Volver a mis grupos</Link>
+          </Button>
         </main>
       </div>
     )
@@ -502,333 +460,199 @@ export default function GroupPage() {
 
   if (!group) return null
 
+  const drawn = group.status === 'DRAWN'
+  const linkBtn = 'text-graphite hover:text-ink min-h-11 text-[15px] underline underline-offset-4'
+
   return (
-    <div className="min-h-screen bg-slate-50 pb-12">
+    <div className="bg-paper text-ink min-h-screen pb-16">
       <AppHeader />
 
-      <main className="container mx-auto max-w-5xl px-4 py-8">
-        {/* Back Link */}
-        <div className="mb-6">
-          <Link
-            href="/dashboard"
-            className="flex items-center text-slate-500 transition-colors hover:text-indigo-600"
-          >
-            <ArrowLeft className="mr-2 h-4 w-4" />
-            Volver a mis grupos
-          </Link>
-        </div>
+      <main className="mx-auto max-w-[1040px] px-4 py-10 md:px-8">
+        <Link href="/dashboard" className={linkBtn}>
+          Volver a mis grupos
+        </Link>
 
-        {/* Error Banner */}
         {error && (
-          <div className="mb-6 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-600">
-            {error}
+          <div className="mt-6">
+            <Notice>{error}</Notice>
           </div>
         )}
 
         {/* Header */}
-        <div className="mb-8">
-          <div className="mb-4 flex flex-col justify-between gap-4 md:flex-row md:items-center">
-            <div>
-              <h1 className="mb-2 flex items-center gap-3 text-3xl font-bold text-slate-900">
-                {group.name}
-                <Badge
-                  className={
-                    group.status === 'DRAWN'
-                      ? 'bg-emerald-500 hover:bg-emerald-600'
-                      : 'bg-amber-500 hover:bg-amber-600'
-                  }
-                >
-                  {group.status === 'DRAWN' ? 'Sorteado' : 'Planificando'}
-                </Badge>
-              </h1>
-            </div>
-
-            <div className="flex flex-wrap gap-2">
-              {/* Activity Button */}
-              <Button
-                variant="outline"
-                size="icon"
-                onClick={handleShowActivity}
-                title="Ver actividad"
-              >
-                <History className="h-4 w-4" />
-              </Button>
-
-              {/* Settings/Edit Button - Admin only */}
-              {isAdmin && (
-                <Button variant="outline" size="icon" onClick={handleOpenEdit} title="Editar grupo">
-                  <Settings className="h-4 w-4" />
-                </Button>
-              )}
-
-              {/* Copy Invite Link Button */}
-              <Button variant="outline" onClick={handleShare}>
-                {copied ? (
-                  <>
-                    <Check className="mr-2 h-4 w-4" />
-                    ¡Copiado!
-                  </>
-                ) : (
-                  <>
-                    <Copy className="mr-2 h-4 w-4" />
-                    Invitar
-                  </>
-                )}
-              </Button>
-
-              {/* Exclusions Manager - Admin only */}
-              {isAdmin && (
-                <ExclusionsManager
-                  groupId={groupId}
-                  members={members}
-                  isAdmin={isAdmin}
-                  isDrawn={group.status === 'DRAWN'}
-                />
-              )}
-
-              {/* WhatsApp Share - Admin only after draw */}
-              {isAdmin && group.status === 'DRAWN' && (
-                <Button
-                  variant="outline"
-                  onClick={() => {
-                    const appUrl = window.location.origin
-                    const groupUrl = `${appUrl}/groups/${group.id}`
-                    const text = `🎁 ¡El sorteo de *${group.name}* ya se realizó!\n\nEntra a tu cuenta para descubrir a quién le regalas:\n${groupUrl}\n\n_Enviado desde GhostSwap_`
-                    window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank')
-                  }}
-                  className="border-green-200 text-green-700 hover:bg-green-50 hover:text-green-800"
-                >
-                  <svg className="mr-2 h-4 w-4" viewBox="0 0 24 24" fill="currentColor">
-                    <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z" />
-                  </svg>
-                  Compartir por WhatsApp
-                </Button>
-              )}
-
-              {/* Draw Button - Only for admin in PLANNING */}
-              {isAdmin && group.status === 'PLANNING' && members.length >= 3 && (
-                <Button
-                  onClick={() => setShowDrawConfirm(true)}
-                  disabled={isDrawing}
-                  className="bg-indigo-600 hover:bg-indigo-700"
-                >
-                  {isDrawing ? (
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  ) : (
-                    <Shuffle className="mr-2 h-4 w-4" />
-                  )}
-                  Sortear
-                </Button>
-              )}
-            </div>
+        <div className="mt-8 mb-10 flex flex-col justify-between gap-6 md:flex-row md:items-end">
+          <div className="min-w-0">
+            <p className="text-graphite mb-2 font-mono text-sm">
+              {drawn ? 'sorteado' : 'sin sortear'} · {members.length}{' '}
+              {members.length === 1 ? 'persona' : 'personas'}
+            </p>
+            <h1 className="text-[34px] leading-tight font-light break-words md:text-[44px]">
+              {group.name}
+            </h1>
           </div>
 
-          {/* Group Info */}
-          <div className="flex flex-wrap gap-4 text-sm text-slate-500 md:gap-6">
-            {group.exchange_date && (
-              <div className="flex items-center gap-2">
-                <Calendar className="h-4 w-4" />
-                <span>{formatLocalDate(group.exchange_date)}</span>
-              </div>
+          <div className="flex flex-wrap items-center gap-3">
+            <Button variant="outline" onClick={handleShare}>
+              {copied ? 'Link copiado' : 'Copiar link de invitación'}
+            </Button>
+            {isAdmin && drawn && (
+              <Button
+                variant="outline"
+                onClick={() => {
+                  const groupUrl = `${window.location.origin}/groups/${group.id}`
+                  const text = `Ya hicimos el sorteo de *${group.name}*.\n\nEntra para ver a quién le regalas:\n${groupUrl}`
+                  window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank')
+                }}
+              >
+                Avisar por WhatsApp
+              </Button>
             )}
-            {group.budget && (
-              <div className="flex items-center gap-2">
-                <Wallet className="h-4 w-4" />
-                <span>${group.budget}</span>
-              </div>
+            {isAdmin && !drawn && members.length >= 3 && (
+              <Button onClick={() => setShowDrawConfirm(true)} disabled={isDrawing}>
+                {isDrawing && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                Hacer el sorteo
+              </Button>
             )}
-            <div className="flex items-center gap-2">
-              <Users className="h-4 w-4" />
-              <span>{members.length} participantes</span>
-            </div>
           </div>
         </div>
 
-        <div className="grid gap-8 lg:grid-cols-[2fr,1fr]">
-          {/* Main Content */}
-          <div className="space-y-6">
-            {/* PLANNING State - Waiting for draw */}
-            {group.status === 'PLANNING' && (
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Ghost className="h-5 w-5 text-indigo-600" />
-                    Esperando el sorteo
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="mb-4 text-slate-500">
-                    El grupo está en fase de planificación. Una vez que todos se unan, el
-                    administrador realizará el sorteo.
-                  </p>
-                  {isAdmin && members.length < 3 && (
-                    <div className="rounded-lg border border-amber-200 bg-amber-50 p-4">
-                      <p className="text-sm text-amber-700">
-                        Necesitas al menos 3 participantes para realizar el sorteo. Actualmente
-                        tienes {members.length}.
-                      </p>
-                    </div>
-                  )}
-                  {isAdmin && members.length >= 3 && (
-                    <div className="rounded-lg border border-indigo-200 bg-indigo-50 p-4">
-                      <p className="text-sm text-indigo-700">
-                        ¡Ya puedes realizar el sorteo! Haz clic en el botón "Sortear" arriba.
-                      </p>
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
+        <div className="grid gap-8 lg:grid-cols-[1.6fr_1fr]">
+          {/* Main column */}
+          <div className="min-w-0 space-y-8">
+            {!drawn && (
+              <section className="border-rule bg-slip rounded-[4px] border p-6 md:p-8">
+                <p className="text-graphite mb-3 font-mono text-sm tracking-[0.12em] uppercase">
+                  Tu amigo secreto
+                </p>
+                <div className="flex items-start gap-5">
+                  <GhostMark className="text-ink h-[46px] w-[40px] shrink-0" />
+                  <div>
+                    <h2 className="mb-1 text-xl font-bold">Todavía no hay sorteo</h2>
+                    <p className="text-graphite">
+                      {isAdmin
+                        ? members.length < 3
+                          ? `Hacen falta al menos 3 personas para sortear. Van ${members.length}. Comparte el link para que se sumen.`
+                          : 'Cuando estén todos, aprieta "Hacer el sorteo". A cada quien le aparecerá aquí su persona.'
+                        : 'Cuando estén todos, quien organiza hará el sorteo y aquí verás a quién le regalas.'}
+                    </p>
+                  </div>
+                </div>
+              </section>
             )}
 
-            {/* DRAWN State - Show match reveal card */}
-            {group.status === 'DRAWN' && match && (
-              <Card className="border-indigo-200 bg-gradient-to-br from-white to-indigo-50/50">
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Gift className="h-5 w-5 text-indigo-600" />
-                    Tu Amigo Secreto
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  {!showMatch ? (
-                    <div className="py-8 text-center">
-                      <div className="mb-4 inline-flex rounded-full bg-indigo-100 p-4">
-                        <Ghost className="h-12 w-12 text-indigo-600" />
-                      </div>
-                      <p className="mb-4 text-slate-500">
-                        Tu objetivo ha sido asignado. ¿Listo para descubrirlo?
-                      </p>
-                      <Button
-                        size="lg"
-                        onClick={handleRevealMatch}
-                        className="bg-indigo-600 hover:bg-indigo-700"
-                      >
-                        <Eye className="mr-2 h-4 w-4" />
-                        Ver Amigo Secreto y su Lista
-                      </Button>
-                    </div>
-                  ) : (
-                    <div className="animate-in fade-in zoom-in-95 space-y-4 duration-500">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-4">
-                          <Avatar className="h-14 w-14 border-2 border-indigo-200">
-                            <AvatarImage src={match.receiver.avatar_url || '/placeholder.svg'} />
-                            <AvatarFallback className="bg-indigo-100 text-lg text-indigo-600">
-                              {match.receiver.full_name?.charAt(0) || '?'}
-                            </AvatarFallback>
-                          </Avatar>
-                          <div>
-                            <p className="text-lg font-bold text-slate-900">
-                              {match.receiver.full_name || match.receiver.email}
-                            </p>
-                            <p className="text-sm text-slate-500">{match.receiver.email}</p>
-                          </div>
-                        </div>
-                        <Button variant="ghost" size="sm" onClick={() => setShowMatch(false)}>
-                          <EyeOff className="h-4 w-4" />
-                        </Button>
-                      </div>
-
-                      {match.receiver_wishlist.length > 0 && (
-                        <div className="mt-4 rounded-lg border border-slate-200 bg-white p-4">
-                          <p className="mb-3 text-sm font-medium text-slate-700">
-                            Lista de deseos:
-                          </p>
-                          <ul className="space-y-2">
-                            {match.receiver_wishlist.map((item, index) => (
-                              <li
-                                key={index}
-                                className="flex items-start gap-2 text-sm text-slate-600"
-                              >
-                                <Gift className="mt-0.5 h-4 w-4 shrink-0 text-indigo-400" />
-                                <span className="flex-1">
-                                  {item.description}
-                                  {item.url && (
-                                    <a
-                                      href={
-                                        item.url.startsWith('http')
-                                          ? item.url
-                                          : `https://${item.url}`
-                                      }
-                                      target="_blank"
-                                      rel="noopener noreferrer"
-                                      className="ml-2 inline-flex items-center gap-1 text-xs text-indigo-600 hover:text-indigo-800 hover:underline"
-                                      title={item.url}
-                                      onClick={(e) => e.stopPropagation()}
-                                    >
-                                      <ExternalLink className="h-3 w-3" />
-                                      ver enlace
-                                    </a>
-                                  )}
-                                </span>
-                              </li>
-                            ))}
-                          </ul>
-                        </div>
-                      )}
-
-                      {match.receiver_wishlist.length === 0 && (
-                        <div className="mt-4 rounded-lg border border-dashed border-slate-200 bg-slate-50 p-4 text-center">
-                          <Gift className="mx-auto h-8 w-8 text-slate-300" />
-                          <p className="mt-2 text-sm text-slate-500">
-                            Aún no ha agregado artículos a su lista de deseos
-                          </p>
-                        </div>
-                      )}
-
-                      {/* Anonymous Q&A as giver */}
-                      <div className="mt-4">
-                        <AnonymousChat
-                          matchId={match.id}
-                          groupId={groupId}
-                          role="giver"
-                          receiverName={match.receiver.full_name || undefined}
-                        />
-                      </div>
-                    </div>
+            {drawn && match && (
+              <section className="border-rule bg-raised relative rounded-[4px] border p-6 md:p-8">
+                <div className="mb-3 flex items-center justify-between">
+                  <p className="text-graphite font-mono text-sm tracking-[0.12em] uppercase">
+                    Tu amigo secreto
+                  </p>
+                  {showMatch && (
+                    <button
+                      type="button"
+                      onClick={() => setShowMatch(false)}
+                      className="text-graphite hover:text-ink min-h-8 font-mono text-[13px] underline underline-offset-[3px]"
+                    >
+                      ocultar
+                    </button>
                   )}
-                </CardContent>
-              </Card>
+                </div>
+
+                {!showMatch ? (
+                  <div className="grid justify-items-center gap-4 py-6 text-center">
+                    <GhostMark className="text-ink h-[74px] w-[64px]" />
+                    <p className="text-graphite max-w-[30ch]">
+                      El sorteo ya está hecho. ¿Vemos a quién te tocó?
+                    </p>
+                    <Button size="lg" onClick={handleRevealMatch}>
+                      Ver a quién me tocó
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="space-y-6">
+                    <div
+                      className="seal-thump bg-hanko text-hanko-ink absolute top-[78px] right-5 grid h-[76px] w-[76px] rotate-[-12deg] place-items-center rounded-full text-center text-[11px] leading-tight font-bold tracking-[0.08em] md:right-8"
+                      aria-hidden="true"
+                    >
+                      SOLO
+                      <br />
+                      PARA
+                      <br />
+                      TI
+                    </div>
+                    <div className="flex items-center gap-4 pr-24">
+                      <span className="border-hanko text-hanko grid h-12 w-12 shrink-0 place-items-center rounded-full border-[1.5px] text-lg font-bold">
+                        {(match.receiver.full_name || match.receiver.email).charAt(0).toUpperCase()}
+                      </span>
+                      <div className="min-w-0">
+                        <p className="text-2xl leading-tight font-bold break-words">
+                          {match.receiver.full_name || match.receiver.email}
+                        </p>
+                        <p className="text-graphite text-[15px]">le regalas tú</p>
+                      </div>
+                    </div>
+
+                    <div>
+                      <p className="text-graphite mb-3 font-mono text-sm tracking-[0.12em] uppercase">
+                        Lo que le gustaría
+                      </p>
+                      {match.receiver_wishlist.length > 0 ? (
+                        <ul className="grid gap-2">
+                          {match.receiver_wishlist.map((item, index) => (
+                            <li
+                              key={index}
+                              className="bg-slip flex items-baseline justify-between gap-4 rounded-[3px] px-4 py-3"
+                            >
+                              <span className="min-w-0 break-words">{item.description}</span>
+                              {item.url && (
+                                <a
+                                  href={
+                                    item.url.startsWith('http') ? item.url : `https://${item.url}`
+                                  }
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="text-hanko shrink-0 font-mono text-[13px] underline underline-offset-[3px]"
+                                  title={item.url}
+                                >
+                                  ver link
+                                </a>
+                              )}
+                            </li>
+                          ))}
+                        </ul>
+                      ) : (
+                        <p className="text-graphite bg-slip rounded-[3px] px-4 py-3">
+                          Todavía no anota nada. Puedes preguntarle abajo, sin que sepa que eres tú.
+                        </p>
+                      )}
+                    </div>
+
+                    <AnonymousChat
+                      matchId={match.id}
+                      groupId={groupId}
+                      role="giver"
+                      receiverName={match.receiver.full_name || undefined}
+                    />
+                  </div>
+                )}
+              </section>
             )}
 
             {/* Anonymous messages received (someone is asking YOU) */}
-            {group.status === 'DRAWN' && (
-              <AnonymousChat matchId={null} groupId={groupId} role="receiver" />
-            )}
+            {drawn && <AnonymousChat matchId={null} groupId={groupId} role="receiver" />}
 
-            {/* Reset Draw Button - Admin only when DRAWN */}
-            {isAdmin && group.status === 'DRAWN' && (
-              <div className="flex justify-end">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => setShowResetDialog(true)}
-                  className="text-red-500 hover:bg-red-50 hover:text-red-600"
-                >
-                  <RotateCcw className="mr-2 h-4 w-4" />
-                  Reiniciar Sorteo
-                </Button>
-              </div>
-            )}
-
-            {/* Wishlist Editor */}
             {currentMember && (
-              <Card>
-                <CardContent className="pt-6">
-                  <WishlistEditor
-                    groupId={groupId}
-                    memberId={currentMember.id}
-                    initialItems={currentMember.wishlist}
-                    onSave={fetchGroupData}
-                  />
-                </CardContent>
-              </Card>
+              <section className="border-rule rounded-[4px] border p-6 md:p-8">
+                <WishlistEditor
+                  groupId={groupId}
+                  memberId={currentMember.id}
+                  initialItems={currentMember.wishlist}
+                  onSave={fetchGroupData}
+                />
+              </section>
             )}
           </div>
 
-          {/* Sidebar - Participants */}
-          <div className="space-y-6">
-            {/* Group Info Card */}
+          {/* Sidebar */}
+          <aside className="min-w-0 space-y-8">
             <GroupInfoCard
               budget={group.budget}
               currency={group.currency}
@@ -836,191 +660,150 @@ export default function GroupPage() {
               inviteCode={group.invite_code}
             />
 
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center justify-between">
-                  Participantes
-                  <Badge variant="outline">{members.length}</Badge>
-                </CardTitle>
-                <div className="flex items-center gap-4 text-xs text-slate-500">
-                  <span className="flex items-center gap-1">
-                    <CheckCircle2 className="h-3 w-3 text-emerald-500" /> Ha agregado ítems
-                  </span>
-                  <span className="flex items-center gap-1">
-                    <Clock className="h-3 w-3 text-slate-400" /> Sin ítems aún
-                  </span>
-                </div>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-3">
-                  {members.map((member, index) => (
-                    <div
-                      key={member.id}
-                      className="animate-in fade-in slide-in-from-left-2 flex items-center justify-between duration-300"
-                      style={{ animationDelay: `${index * 50}ms`, animationFillMode: 'both' }}
-                    >
-                      <div className="flex items-center gap-3">
-                        <Avatar className="h-8 w-8 border border-slate-200">
-                          <AvatarImage src={member.profile.avatar_url || '/placeholder.svg'} />
-                          <AvatarFallback className="bg-slate-100 text-xs text-slate-600">
-                            {member.profile.full_name?.charAt(0) || '?'}
-                          </AvatarFallback>
-                        </Avatar>
-                        <span
-                          className={
-                            member.user_id === currentUserId
-                              ? 'text-sm font-medium text-indigo-600'
-                              : 'text-sm text-slate-700'
-                          }
-                        >
-                          {member.user_id === currentUserId
-                            ? 'Tú'
-                            : member.profile.full_name || member.profile.email}
-                        </span>
-                        {member.is_admin && <Ghost className="h-3 w-3 text-indigo-400" />}
-                      </div>
-
-                      <div className="flex items-center gap-1">
-                        {member.wishlist.length > 0 ? (
-                          <div
-                            className="rounded-full bg-emerald-50 p-1.5 text-emerald-500"
-                            title="Ha agregado ítems"
-                          >
-                            <CheckCircle2 className="h-3.5 w-3.5" />
-                          </div>
-                        ) : (
-                          <div
-                            className="rounded-full bg-slate-100 p-1.5 text-slate-400"
-                            title="Sin ítems aún"
-                          >
-                            <Clock className="h-3.5 w-3.5" />
-                          </div>
-                        )}
-
-                        {/* Remove button - admin only, planning state, not self */}
-                        {isAdmin &&
-                          group.status === 'PLANNING' &&
-                          member.user_id !== currentUserId && (
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              onClick={() => {
-                                setMemberToRemove({
-                                  id: member.id,
-                                  name: member.profile.full_name || member.profile.email,
-                                })
-                                setShowRemoveMemberDialog(true)
-                              }}
-                              className="h-6 w-6 text-slate-400 hover:bg-red-50 hover:text-red-500"
-                              title="Eliminar miembro"
-                            >
-                              <UserMinus className="h-3 w-3" />
-                            </Button>
-                          )}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-
-                <Separator className="my-4" />
-
-                <Button variant="outline" onClick={handleShare} className="w-full text-xs">
-                  {copied ? (
-                    <>
-                      <Check className="mr-2 h-3 w-3" />
-                      ¡Copiado!
-                    </>
-                  ) : (
-                    <>
-                      <Copy className="mr-2 h-3 w-3" />
-                      Copiar link de invitación
-                    </>
-                  )}
-                </Button>
-
-                {/* Leave button for non-admin members */}
-                {!isAdmin && group.status === 'PLANNING' && (
-                  <>
-                    <Separator className="my-3" />
-                    <Button
-                      variant="ghost"
-                      onClick={() => setShowLeaveDialog(true)}
-                      className="w-full text-xs text-slate-500 hover:bg-red-50 hover:text-red-600"
-                    >
-                      <LogOut className="mr-2 h-3 w-3" />
-                      Abandonar grupo
-                    </Button>
-                  </>
-                )}
-              </CardContent>
-            </Card>
-
-            <div className="rounded-xl border border-indigo-100 bg-indigo-50 p-4">
-              <h4 className="mb-1 text-sm font-medium text-indigo-700">Consejo</h4>
-              <p className="text-xs text-indigo-600/80">
-                Comparte el link de invitación por WhatsApp o email para que se unan más amigos.
+            <section className="border-rule rounded-[4px] border p-6">
+              <div className="mb-1 flex items-baseline justify-between">
+                <h2 className="text-lg font-bold">Participantes</h2>
+                <span className="text-graphite font-mono text-sm">{members.length}</span>
+              </div>
+              <p className="text-faint mb-4 text-sm">
+                <span aria-hidden="true">✓</span> ya anotó su lista
               </p>
+              <ul className="divide-rule divide-y">
+                {members.map((member) => {
+                  const me = member.user_id === currentUserId
+                  const name = me ? 'Tú' : member.profile.full_name || member.profile.email
+                  return (
+                    <li key={member.id} className="flex items-center justify-between gap-3 py-2.5">
+                      <span className="flex min-w-0 items-center gap-2">
+                        <span className={`truncate ${me ? 'font-bold' : ''}`}>{name}</span>
+                        {member.is_admin && (
+                          <span className="text-faint shrink-0 font-mono text-xs">organiza</span>
+                        )}
+                      </span>
+                      <span className="flex shrink-0 items-center gap-3">
+                        {member.wishlist.length > 0 ? (
+                          <span className="text-ink" title="Ya anotó su lista">
+                            <span aria-hidden="true">✓</span>
+                            <span className="sr-only">Ya anotó su lista</span>
+                          </span>
+                        ) : (
+                          <span className="text-faint font-mono text-xs">sin lista</span>
+                        )}
+                        {isAdmin && !drawn && !me && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setMemberToRemove({
+                                id: member.id,
+                                name: member.profile.full_name || member.profile.email,
+                              })
+                              setShowRemoveMemberDialog(true)
+                            }}
+                            className="text-graphite hover:text-destructive min-h-8 font-mono text-xs underline underline-offset-[3px]"
+                            aria-label={`Quitar a ${name} del grupo`}
+                          >
+                            quitar
+                          </button>
+                        )}
+                      </span>
+                    </li>
+                  )
+                })}
+              </ul>
+            </section>
+
+            <div className="flex flex-col items-start gap-1">
+              <button type="button" onClick={handleShowActivity} className={linkBtn}>
+                Ver lo que ha pasado en el grupo
+              </button>
+              {isAdmin && (
+                <button type="button" onClick={handleOpenEdit} className={linkBtn}>
+                  Editar grupo
+                </button>
+              )}
+              {isAdmin && (
+                <ExclusionsManager
+                  groupId={groupId}
+                  members={members}
+                  isAdmin={isAdmin}
+                  isDrawn={drawn}
+                />
+              )}
+              {isAdmin && drawn && (
+                <button
+                  type="button"
+                  onClick={() => setShowResetDialog(true)}
+                  className="text-destructive min-h-11 text-[15px] underline underline-offset-4"
+                >
+                  Reiniciar el sorteo
+                </button>
+              )}
+              {!isAdmin && !drawn && (
+                <button
+                  type="button"
+                  onClick={() => setShowLeaveDialog(true)}
+                  className="text-graphite hover:text-destructive min-h-11 text-[15px] underline underline-offset-4"
+                >
+                  Salir del grupo
+                </button>
+              )}
             </div>
-          </div>
+          </aside>
         </div>
       </main>
 
-      {/* Draw Confirmation Dialog */}
+      {/* Draw confirmation */}
       <Dialog open={showDrawConfirm} onOpenChange={setShowDrawConfirm}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <Shuffle className="h-5 w-5 text-indigo-600" />
-              Confirmar sorteo
-            </DialogTitle>
-            <DialogDescription className="pt-2" asChild>
-              <div>
-                Esta acción es <strong>irreversible</strong>. Una vez realizado el sorteo:
-                <ul className="mt-2 list-inside list-disc space-y-1 text-sm">
-                  <li>Cada participante recibirá su Amigo Secreto</li>
-                  <li>No podrás agregar más participantes</li>
-                  <li>No podrás volver a sortear</li>
+            <DialogTitle>¿Hacemos el sorteo?</DialogTitle>
+            <DialogDescription asChild>
+              <div className="space-y-2">
+                <p>Cuando lo hagas:</p>
+                <ul className="list-inside list-disc space-y-1">
+                  <li>a cada persona le aparece a quién le regala</li>
+                  <li>ya no se puede sumar gente al grupo</li>
+                  <li>si algo sale mal, puedes reiniciarlo, pero todos pierden lo que vieron</li>
                 </ul>
               </div>
             </DialogDescription>
           </DialogHeader>
-          <DialogFooter className="gap-2 sm:gap-0">
+          <DialogFooter className="gap-2">
             <Button variant="outline" onClick={() => setShowDrawConfirm(false)}>
-              Cancelar
+              Todavía no
             </Button>
-            <Button onClick={handleDraw} className="bg-indigo-600 hover:bg-indigo-700">
-              <Shuffle className="mr-2 h-4 w-4" />
-              Confirmar sorteo
-            </Button>
+            <Button onClick={handleDraw}>Sortear ahora</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
-      {/* Edit Group Dialog */}
+      {/* Edit group */}
       <Dialog open={showEditDialog} onOpenChange={setShowEditDialog}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <Pencil className="h-5 w-5 text-indigo-600" />
-              Editar grupo
-            </DialogTitle>
+            <DialogTitle>Editar grupo</DialogTitle>
           </DialogHeader>
-          <div className="space-y-4 py-4">
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Nombre del grupo</label>
+          <div className="space-y-5 py-2">
+            <div className="grid gap-1.5">
+              <label htmlFor="edit-name" className="text-[15px] font-medium">
+                Nombre del grupo
+              </label>
               <Input
+                id="edit-name"
                 value={editName}
                 onChange={(e) => setEditName(e.target.value)}
-                placeholder="Nombre del grupo"
               />
             </div>
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Presupuesto y moneda</label>
+            <div className="grid gap-1.5">
+              <label htmlFor="edit-budget" className="text-[15px] font-medium">
+                Presupuesto por regalo
+              </label>
               <div className="flex gap-2">
                 <select
+                  aria-label="Moneda"
                   value={editCurrency}
                   onChange={(e) => setEditCurrency(e.target.value)}
-                  className="h-11 rounded-md border border-slate-300 bg-white px-3 text-sm text-slate-900 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+                  className="border-input bg-paper text-ink focus-visible:border-ink h-11 rounded-[2px] border px-3 text-base outline-none"
                 >
                   <option value="CLP">CLP ($)</option>
                   <option value="USD">USD ($)</option>
@@ -1033,129 +816,108 @@ export default function GroupPage() {
                   <option value="GBP">GBP (£)</option>
                 </select>
                 <Input
+                  id="edit-budget"
                   type="number"
+                  inputMode="numeric"
+                  min="0"
                   value={editBudget}
                   onChange={(e) => setEditBudget(e.target.value)}
-                  placeholder="Presupuesto"
                   className="flex-1"
                 />
               </div>
             </div>
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Fecha del evento</label>
-              <Input type="date" value={editDate} onChange={(e) => setEditDate(e.target.value)} />
+            <div className="grid gap-1.5">
+              <label htmlFor="edit-date" className="text-[15px] font-medium">
+                Día del intercambio
+              </label>
+              <Input
+                id="edit-date"
+                type="date"
+                value={editDate}
+                onChange={(e) => setEditDate(e.target.value)}
+              />
             </div>
           </div>
           <DialogFooter className="flex-col gap-2 sm:flex-row">
-            <Button
-              variant="destructive"
+            <button
+              type="button"
               onClick={() => {
                 setShowEditDialog(false)
                 setShowDeleteDialog(true)
               }}
-              className="sm:mr-auto"
+              className="text-destructive min-h-11 text-[15px] underline underline-offset-4 sm:mr-auto"
             >
-              <Trash2 className="mr-2 h-4 w-4" />
               Eliminar grupo
-            </Button>
+            </button>
             <Button variant="outline" onClick={() => setShowEditDialog(false)}>
               Cancelar
             </Button>
-            <Button
-              onClick={handleSaveEdit}
-              disabled={isSaving || !editName.trim()}
-              className="bg-indigo-600 hover:bg-indigo-700"
-            >
+            <Button onClick={handleSaveEdit} disabled={isSaving || !editName.trim()}>
               {isSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Guardar'}
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
-      {/* Delete Group Dialog */}
+      {/* Delete group */}
       <Dialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2 text-red-600">
-              <Trash2 className="h-5 w-5" />
-              Eliminar grupo
-            </DialogTitle>
-            <DialogDescription className="pt-2">
-              ¿Estás seguro de que quieres eliminar <strong>{group?.name}</strong>?
-              <br />
-              <br />
-              Esta acción es <strong>permanente</strong> y eliminará:
-              <ul className="mt-2 list-inside list-disc space-y-1 text-sm">
-                <li>Todos los miembros del grupo</li>
-                <li>El historial de actividades</li>
-                <li>Los resultados del sorteo (si aplica)</li>
-              </ul>
+            <DialogTitle>¿Eliminar {group?.name}?</DialogTitle>
+            <DialogDescription asChild>
+              <div className="space-y-2">
+                <p>Se borra para siempre, junto con:</p>
+                <ul className="list-inside list-disc space-y-1">
+                  <li>las personas del grupo y sus listas</li>
+                  <li>el historial</li>
+                  <li>el resultado del sorteo, si ya lo hicieron</li>
+                </ul>
+              </div>
             </DialogDescription>
           </DialogHeader>
-          <DialogFooter className="gap-2 sm:gap-0">
+          <DialogFooter className="gap-2">
             <Button variant="outline" onClick={() => setShowDeleteDialog(false)}>
               Cancelar
             </Button>
             <Button variant="destructive" onClick={handleDelete} disabled={isDeleting}>
-              {isDeleting ? (
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              ) : (
-                <Trash2 className="mr-2 h-4 w-4" />
-              )}
+              {isDeleting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               Eliminar
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
-      {/* Leave Group Dialog */}
+      {/* Leave group */}
       <Dialog open={showLeaveDialog} onOpenChange={setShowLeaveDialog}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <LogOut className="h-5 w-5 text-amber-600" />
-              Abandonar grupo
-            </DialogTitle>
-            <DialogDescription className="pt-2">
-              ¿Estás seguro de que quieres abandonar <strong>{group?.name}</strong>?
-              <br />
-              <br />
-              Perderás acceso al grupo y no podrás ver tu Amigo Secreto asignado.
+            <DialogTitle>¿Salir de {group?.name}?</DialogTitle>
+            <DialogDescription>
+              Dejarás de ver el grupo. Para volver, necesitarás el link de nuevo.
             </DialogDescription>
           </DialogHeader>
-          <DialogFooter className="gap-2 sm:gap-0">
+          <DialogFooter className="gap-2">
             <Button variant="outline" onClick={() => setShowLeaveDialog(false)}>
               Cancelar
             </Button>
             <Button variant="destructive" onClick={handleLeave} disabled={isLeaving}>
-              {isLeaving ? (
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              ) : (
-                <LogOut className="mr-2 h-4 w-4" />
-              )}
-              Abandonar
+              {isLeaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Salir
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
-      {/* Remove Member Dialog */}
+      {/* Remove member */}
       <Dialog open={showRemoveMemberDialog} onOpenChange={setShowRemoveMemberDialog}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <UserMinus className="h-5 w-5 text-red-600" />
-              Eliminar miembro
-            </DialogTitle>
-            <DialogDescription className="pt-2">
-              ¿Estás seguro de que quieres eliminar a <strong>{memberToRemove?.name}</strong> del
-              grupo?
-              <br />
-              <br />
-              Esta acción no se puede deshacer.
+            <DialogTitle>¿Quitar a {memberToRemove?.name}?</DialogTitle>
+            <DialogDescription>
+              Sale del grupo y se borra su lista. Si quiere volver, tendrá que entrar con el link.
             </DialogDescription>
           </DialogHeader>
-          <DialogFooter className="gap-2 sm:gap-0">
+          <DialogFooter className="gap-2">
             <Button
               variant="outline"
               onClick={() => {
@@ -1170,94 +932,66 @@ export default function GroupPage() {
               onClick={handleRemoveMember}
               disabled={removingMemberId === memberToRemove?.id}
             >
-              {removingMemberId === memberToRemove?.id ? (
+              {removingMemberId === memberToRemove?.id && (
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              ) : (
-                <UserMinus className="mr-2 h-4 w-4" />
               )}
-              Eliminar
+              Quitar
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
-      {/* Reset Draw Dialog */}
+      {/* Reset draw */}
       <Dialog open={showResetDialog} onOpenChange={setShowResetDialog}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2 text-red-600">
-              <AlertTriangle className="h-5 w-5" />
-              Reiniciar Sorteo
-            </DialogTitle>
-            <DialogDescription className="pt-2">
-              <strong>Advertencia:</strong> Esto borrará las asignaciones actuales y tendrás que
-              sortear de nuevo.
-              <br />
-              <br />
-              Todos los participantes perderán la información de a quién les tocó regalar.
-              <br />
-              <br />
-              ¿Estás seguro de que deseas continuar?
+            <DialogTitle>¿Reiniciar el sorteo?</DialogTitle>
+            <DialogDescription>
+              Se borra quién le regala a quién y habrá que sortear de nuevo. Lo que cada persona ya
+              vio deja de valer.
             </DialogDescription>
           </DialogHeader>
-          <DialogFooter className="gap-2 sm:gap-0">
+          <DialogFooter className="gap-2">
             <Button variant="outline" onClick={() => setShowResetDialog(false)}>
               Cancelar
             </Button>
             <Button variant="destructive" onClick={handleResetDraw} disabled={isResetting}>
-              {isResetting ? (
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              ) : (
-                <RotateCcw className="mr-2 h-4 w-4" />
-              )}
+              {isResetting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               Reiniciar
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
-      {/* Activity Dialog */}
+      {/* Activity */}
       <Dialog open={showActivityDialog} onOpenChange={setShowActivityDialog}>
         <DialogContent className="max-h-[80vh] max-w-md">
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <History className="h-5 w-5 text-indigo-600" />
-              Actividad del grupo
-            </DialogTitle>
+            <DialogTitle>Lo que ha pasado</DialogTitle>
           </DialogHeader>
           <div className="-mx-6 max-h-[50vh] overflow-y-auto px-6">
             {isLoadingActivities ? (
               <div className="flex justify-center py-8">
-                <Loader2 className="h-6 w-6 animate-spin text-indigo-600" />
+                <Loader2 className="text-faint h-6 w-6 animate-spin" />
               </div>
             ) : activities.length === 0 ? (
-              <p className="py-8 text-center text-slate-500">No hay actividades registradas</p>
+              <p className="text-graphite py-8 text-center">Todavía no hay nada.</p>
             ) : (
-              <div className="space-y-3">
+              <ol className="divide-rule divide-y">
                 {activities.map((activity) => (
-                  <div key={activity.id} className="flex gap-3 text-sm">
-                    <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-slate-100">
-                      <Avatar className="h-6 w-6">
-                        <AvatarImage src={activity.profiles?.avatar_url || undefined} />
-                        <AvatarFallback className="text-xs">
-                          {activity.profiles?.full_name?.charAt(0) || '?'}
-                        </AvatarFallback>
-                      </Avatar>
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <p className="text-slate-700">{activity.message}</p>
-                      <p className="text-xs text-slate-400">
-                        {new Date(activity.created_at).toLocaleDateString('es-ES', {
-                          day: 'numeric',
-                          month: 'short',
-                          hour: '2-digit',
-                          minute: '2-digit',
-                        })}
-                      </p>
-                    </div>
-                  </div>
+                  <li key={activity.id} className="py-3">
+                    <p>{activity.message}</p>
+                    <p className="text-faint font-mono text-xs">
+                      {new Date(activity.created_at).toLocaleDateString('es-CL', {
+                        day: 'numeric',
+                        month: 'short',
+                        hour: '2-digit',
+                        minute: '2-digit',
+                      })}
+                    </p>
+                  </li>
                 ))}
-              </div>
+              </ol>
             )}
           </div>
         </DialogContent>

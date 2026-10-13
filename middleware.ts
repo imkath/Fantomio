@@ -54,7 +54,11 @@ export async function middleware(request: NextRequest) {
   const authPaths = ['/login', '/register']
   const isAuthPath = authPaths.some((path) => request.nextUrl.pathname === path)
 
-  if (isAuthPath && user) {
+  // In dev, ?preview lets you look at /login and /register without signing out (see /dev).
+  const preview =
+    process.env.NODE_ENV !== 'production' && request.nextUrl.searchParams.has('preview')
+
+  if (isAuthPath && user && !preview) {
     const url = request.nextUrl.clone()
     url.pathname = '/dashboard'
     return NextResponse.redirect(url)

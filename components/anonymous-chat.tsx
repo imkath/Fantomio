@@ -2,8 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { MessageCircle, Send, Loader2, Ghost } from 'lucide-react'
+import { Loader2 } from 'lucide-react'
 import { sendAnonymousMessage, getGiverMessages, getReceiverMessages } from '@/app/actions/messages'
 import { toast } from 'sonner'
 
@@ -73,7 +72,7 @@ export function AnonymousChat({ matchId, groupId, role, receiverName }: Anonymou
       setNewMessage('')
       await loadMessages()
     } else {
-      toast.error(result.error || 'Error al enviar')
+      toast.error(result.error || 'No se pudo enviar. Intenta de nuevo.')
     }
 
     setIsSending(false)
@@ -91,122 +90,104 @@ export function AnonymousChat({ matchId, groupId, role, receiverName }: Anonymou
     return null
   }
 
-  const hasMessages = messages.length > 0
+  const giver = role === 'giver'
+  const panelId = `chat-${role}-${groupId}`
 
   return (
-    <Card className="border-slate-200">
-      <CardHeader className="cursor-pointer pb-3" onClick={() => setIsExpanded(!isExpanded)}>
-        <CardTitle className="flex items-center justify-between text-sm">
-          <div className="flex items-center gap-2">
-            <MessageCircle className="h-4 w-4 text-indigo-600" />
-            {role === 'giver' ? (
-              <span>Preguntas anónimas a {receiverName || 'tu amigo secreto'}</span>
-            ) : (
-              <span>Tu admirador secreto te escribió</span>
-            )}
-          </div>
-          <div className="flex items-center gap-2">
-            {hasMessages && (
-              <span className="rounded-full bg-indigo-100 px-2 py-0.5 text-xs font-medium text-indigo-600">
-                {messages.length}
-              </span>
-            )}
-            <span className="text-xs text-slate-400">{isExpanded ? '▲' : '▼'}</span>
-          </div>
-        </CardTitle>
-      </CardHeader>
+    <section
+      className={
+        giver ? 'border-rule border-t pt-5' : 'border-rule rounded-[4px] border p-6 md:p-8'
+      }
+    >
+      <button
+        type="button"
+        onClick={() => setIsExpanded(!isExpanded)}
+        aria-expanded={isExpanded}
+        aria-controls={panelId}
+        className="flex min-h-11 w-full items-center justify-between gap-4 text-left"
+      >
+        <span className={giver ? 'text-[17px]' : 'text-xl font-bold'}>
+          {giver
+            ? `Pregúntale algo a ${receiverName || 'tu amigo secreto'} sin que sepa que eres tú`
+            : 'Preguntas de quien te regala'}
+        </span>
+        <span className="text-graphite flex shrink-0 items-center gap-3 font-mono text-sm">
+          {messages.length > 0 && <span>{messages.length}</span>}
+          <span className="underline underline-offset-[3px]">
+            {isExpanded ? 'cerrar' : 'abrir'}
+          </span>
+        </span>
+      </button>
 
       {isExpanded && (
-        <CardContent className="pt-0">
+        <div id={panelId} className="mt-4">
           {isLoading ? (
             <div className="flex justify-center py-4">
-              <Loader2 className="h-5 w-5 animate-spin text-indigo-600" />
+              <Loader2 className="text-faint h-5 w-5 animate-spin" />
             </div>
           ) : (
             <>
-              {/* Hint */}
-              <div className="mb-3 rounded-lg bg-slate-50 p-3 text-xs text-slate-500">
-                {role === 'giver' ? (
-                  <>
-                    <Ghost className="mb-1 inline h-3 w-3" /> Pregunta lo que necesites para elegir
-                    el regalo perfecto. Tu identidad no se revela.
-                  </>
-                ) : (
-                  <>
-                    <Ghost className="mb-1 inline h-3 w-3" /> Alguien del grupo te hizo preguntas
-                    para elegir tu regalo. No sabes quién es.
-                  </>
-                )}
-              </div>
+              <p className="text-graphite mb-4 text-[15px]">
+                {giver
+                  ? 'Lo que preguntes le llega sin tu nombre. Sirve para cosas como la talla o qué le falta.'
+                  : 'Alguien del grupo te pregunta cosas para acertar con tu regalo. No sabes quién es, y no hace falta.'}
+              </p>
 
-              {/* Messages */}
-              <div className="mb-3 max-h-64 space-y-2 overflow-y-auto">
+              <div className="mb-4 grid max-h-72 gap-2 overflow-y-auto">
                 {messages.length === 0 && (
-                  <p className="py-4 text-center text-sm text-slate-400">
-                    {role === 'giver' ? 'Envía tu primera pregunta anónima' : 'No hay mensajes aún'}
+                  <p className="text-faint py-3 text-center font-mono text-sm">
+                    {giver ? 'todavía no preguntas nada' : 'todavía no hay preguntas'}
                   </p>
                 )}
                 {messages.map((msg) => {
-                  const isMe =
-                    (role === 'giver' && msg.sender_role === 'giver') ||
-                    (role === 'receiver' && msg.sender_role === 'receiver')
-
+                  const isMe = msg.sender_role === role
                   return (
                     <div
                       key={msg.message_id}
-                      className={`flex ${isMe ? 'justify-end' : 'justify-start'}`}
+                      className={`max-w-[85%] rounded-[12px] px-3.5 py-2.5 text-[15px] break-words ${
+                        isMe
+                          ? 'bg-ink text-paper justify-self-end rounded-br-[3px]'
+                          : 'bg-slip text-ink justify-self-start rounded-bl-[3px]'
+                      }`}
                     >
-                      <div
-                        className={`max-w-[80%] rounded-lg px-3 py-2 text-sm ${
-                          isMe ? 'bg-indigo-600 text-white' : 'bg-slate-100 text-slate-700'
-                        }`}
-                      >
-                        <p>{msg.content}</p>
-                        <p
-                          className={`mt-1 text-[10px] ${
-                            isMe ? 'text-indigo-200' : 'text-slate-400'
-                          }`}
-                        >
-                          {new Date(msg.created_at).toLocaleTimeString('es-ES', {
-                            hour: '2-digit',
-                            minute: '2-digit',
-                          })}
-                        </p>
-                      </div>
+                      <p>{msg.content}</p>
+                      <p className="mt-1 font-mono text-[11px] opacity-60">
+                        {new Date(msg.created_at).toLocaleTimeString('es-CL', {
+                          hour: '2-digit',
+                          minute: '2-digit',
+                        })}
+                      </p>
                     </div>
                   )
                 })}
                 <div ref={messagesEndRef} />
               </div>
 
-              {/* Input */}
-              <div className="flex gap-2">
+              <form
+                className="flex gap-2"
+                onSubmit={(e) => {
+                  e.preventDefault()
+                  handleSend()
+                }}
+              >
                 <input
                   type="text"
                   value={newMessage}
                   onChange={(e) => setNewMessage(e.target.value)}
                   onKeyDown={handleKeyDown}
-                  placeholder={role === 'giver' ? '¿Qué talla usas?' : 'Responder...'}
+                  aria-label={giver ? 'Tu pregunta' : 'Tu respuesta'}
+                  placeholder={giver ? '¿Qué talla usas?' : 'Escribe tu respuesta'}
                   maxLength={500}
-                  className="flex-1 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 focus:outline-none"
+                  className="border-input bg-paper text-ink placeholder:text-faint focus-visible:border-ink h-11 min-w-0 flex-1 rounded-[2px] border px-3 text-base outline-none"
                 />
-                <Button
-                  size="icon"
-                  onClick={handleSend}
-                  disabled={!newMessage.trim() || isSending}
-                  className="bg-indigo-600 hover:bg-indigo-700"
-                >
-                  {isSending ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                  ) : (
-                    <Send className="h-4 w-4" />
-                  )}
+                <Button type="submit" disabled={!newMessage.trim() || isSending}>
+                  {isSending ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Enviar'}
                 </Button>
-              </div>
+              </form>
             </>
           )}
-        </CardContent>
+        </div>
       )}
-    </Card>
+    </section>
   )
 }

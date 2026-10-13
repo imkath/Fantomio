@@ -3,27 +3,8 @@
 import { useState, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import {
-  LinkIcon,
-  Save,
-  Loader2,
-  Check,
-  ExternalLink,
-  Trash2,
-  Sparkles,
-  Laptop,
-  BookOpen,
-  Shirt,
-  Coffee,
-  Plus,
-  Gift,
-  Heart,
-  Music,
-  Gamepad2,
-  Home,
-} from 'lucide-react'
-import { cn } from '@/lib/utils'
+import { Notice } from '@/components/auth-shell'
+import { Loader2 } from 'lucide-react'
 import { createClient } from '@/lib/supabase'
 import { toast } from 'sonner'
 
@@ -40,58 +21,18 @@ interface LocalWishlistItem {
   url: string
 }
 
-// Configuración de cada slot con placeholder, icono y categoría (hasta 10)
-const wishlistSlots = [
-  {
-    placeholder: 'Ej: Unos audífonos bluetooth o accesorios para mi setup...',
-    icon: Laptop,
-    category: 'Tech/Hobby',
-  },
-  {
-    placeholder: 'Ej: El último libro de Stephen King o una novela gráfica...',
-    icon: BookOpen,
-    category: 'Libros/Cultura',
-  },
-  {
-    placeholder: 'Ej: Una polera negra talla M o calcetines divertidos...',
-    icon: Shirt,
-    category: 'Ropa/Estilo',
-  },
-  {
-    placeholder: 'Ej: Una planta para mi escritorio o una vela aromática...',
-    icon: Home,
-    category: 'Decoración/Casa',
-  },
-  {
-    placeholder: 'Ej: ¡Sorpréndeme! Me gustan los chocolates amargos...',
-    icon: Sparkles,
-    category: 'Comodín',
-  },
-  {
-    placeholder: 'Ej: Entradas para un concierto o vinilos de mi banda favorita...',
-    icon: Music,
-    category: 'Música/Eventos',
-  },
-  {
-    placeholder: 'Ej: Un juego de mesa o videojuego que quiero probar...',
-    icon: Gamepad2,
-    category: 'Gaming/Ocio',
-  },
-  {
-    placeholder: 'Ej: Productos de skincare o accesorios de autocuidado...',
-    icon: Heart,
-    category: 'Autocuidado',
-  },
-  {
-    placeholder: 'Ej: Una taza térmica o un set de café especial...',
-    icon: Coffee,
-    category: 'Café/Té',
-  },
-  {
-    placeholder: 'Ej: Cualquier cosa que te inspire, ¡me encanta lo inesperado!...',
-    icon: Gift,
-    category: 'Sorpresa',
-  },
+// One example per row, so an empty list gives ideas without feeling like a form.
+const PLACEHOLDERS = [
+  'Unos audífonos inalámbricos',
+  'Un libro que tengas ganas de leer',
+  'Una polera negra, talla M',
+  'Una planta que aguante poca luz',
+  'Chocolate amargo, siempre funciona',
+  'Entradas para un concierto',
+  'Un juego de mesa para jugar en familia',
+  'Algo para cuidarme: cremas, sales de baño',
+  'Una taza grande para té',
+  'Sorpréndeme',
 ]
 
 const MAX_WISHLIST_ITEMS = 10
@@ -184,7 +125,7 @@ export function WishlistEditor({ memberId, initialItems = [], onSave }: Wishlist
     // Validate: at least check for empty descriptions on items with URLs
     const invalidItems = items.filter((item) => item.url && !item.description.trim())
     if (invalidItems.length > 0) {
-      setError('Los artículos con URL deben tener una descripción')
+      setError('Si pegas un link, escribe también qué es.')
       setIsSaving(false)
       return
     }
@@ -210,9 +151,7 @@ export function WishlistEditor({ memberId, initialItems = [], onSave }: Wishlist
       }
 
       setLastSaved(new Date())
-      toast.success('Lista de deseos guardada', {
-        icon: <Sparkles className="h-4 w-4" />,
-      })
+      toast.success('Lista guardada')
 
       // Adjust visible count to match filled items (minimum 5)
       const filledCount = items.filter((item) => item.description.trim()).length
@@ -223,7 +162,7 @@ export function WishlistEditor({ memberId, initialItems = [], onSave }: Wishlist
         onSave()
       }
     } catch {
-      setError('Error de conexión')
+      setError('No pudimos guardar. Revisa tu internet e intenta de nuevo.')
     } finally {
       setIsSaving(false)
     }
@@ -249,146 +188,102 @@ export function WishlistEditor({ memberId, initialItems = [], onSave }: Wishlist
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div className="space-y-1">
-          <h3 className="text-lg font-semibold text-slate-900">Mi Lista de Deseos</h3>
-          <p className="text-sm text-slate-500">
-            Agrega hasta 10 deseos para inspirar a tu Amigo Secreto
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <h2 className="text-xl font-bold">Tu lista</h2>
+          <p className="text-graphite text-[15px]">
+            Hasta 10 cosas que te gustaría recibir. Solo la ve quien te regala.
           </p>
         </div>
-        <div className="flex items-center gap-3">
-          <span className="text-xs text-slate-400">{filledItemsCount}/10</span>
-          {lastSaved && (
-            <span className="flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-1 text-xs text-emerald-600">
-              <Check className="h-3 w-3" /> Guardado
-            </span>
-          )}
-        </div>
+        <span className="text-faint shrink-0 pt-1 font-mono text-sm">
+          {filledItemsCount}/{MAX_WISHLIST_ITEMS}
+        </span>
       </div>
 
-      {error && (
-        <div className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-600">
-          {error}
-        </div>
-      )}
+      {error && <Notice>{error}</Notice>}
 
-      <div className="space-y-3">
-        {items.slice(0, visibleCount).map((item, index) => {
-          const slot = wishlistSlots[index]
-          const SlotIcon = slot.icon
-
-          return (
-            <div
-              key={item.id}
-              className="group relative rounded-xl bg-slate-50 p-4 transition-all duration-200 hover:bg-white hover:shadow-md"
-            >
-              <div className="space-y-3">
-                {/* Input principal con icono */}
-                <div className="relative flex items-center gap-3">
-                  <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg bg-white text-slate-400 shadow-sm transition-colors group-hover:text-indigo-500">
-                    <SlotIcon className="h-4 w-4" />
-                  </div>
-                  <div className="flex-1">
-                    <Label htmlFor={`desc-${item.id}`} className="sr-only">
-                      Descripción
-                    </Label>
-                    <Input
-                      id={`desc-${item.id}`}
-                      placeholder={slot.placeholder}
-                      value={item.description}
-                      onChange={(e) => handleItemChange(item.id, 'description', e.target.value)}
-                      className="h-10 border-slate-200 bg-white focus-visible:ring-indigo-500"
-                    />
-                  </div>
-                  {(item.description || item.url) && (
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => handleClearItem(item.id)}
-                      className="h-8 w-8 flex-shrink-0 text-slate-400 hover:bg-red-50 hover:text-red-500"
+      <ol className="space-y-4">
+        {items.slice(0, visibleCount).map((item, index) => (
+          <li key={item.id} className="grid grid-cols-[28px_1fr] gap-x-3 gap-y-2">
+            <span className="text-faint pt-2.5 font-mono text-[13px]" aria-hidden="true">
+              {String(index + 1).padStart(2, '0')}
+            </span>
+            <div className="grid gap-2">
+              <div className="flex gap-2">
+                <Input
+                  aria-label={`Deseo ${index + 1}`}
+                  placeholder={PLACEHOLDERS[index]}
+                  value={item.description}
+                  onChange={(e) => handleItemChange(item.id, 'description', e.target.value)}
+                />
+                {(item.description || item.url) && (
+                  <button
+                    type="button"
+                    onClick={() => handleClearItem(item.id)}
+                    className="text-graphite hover:text-destructive min-h-11 w-14 shrink-0 text-right font-mono text-[13px] underline underline-offset-[3px]"
+                    aria-label={`Borrar deseo ${index + 1}`}
+                  >
+                    borrar
+                  </button>
+                )}
+              </div>
+              {(item.description || item.url) && (
+                <div className="flex items-center gap-2">
+                  <Input
+                    aria-label={`Link del deseo ${index + 1} (opcional)`}
+                    placeholder="Link, si tienes uno (opcional)"
+                    value={item.url}
+                    onChange={(e) => handleItemChange(item.id, 'url', e.target.value)}
+                    className="h-10 font-mono text-sm"
+                  />
+                  {isValidUrl(item.url) ? (
+                    <a
+                      href={normalizeUrl(item.url)}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-graphite hover:text-ink w-14 shrink-0 text-right font-mono text-[13px] underline underline-offset-[3px]"
                     >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
+                      abrir
+                    </a>
+                  ) : (
+                    <span className="w-14 shrink-0" aria-hidden="true" />
                   )}
                 </div>
-
-                {/* Input de URL secundario */}
-                <div className="pl-11">
-                  <div className="relative">
-                    <Label htmlFor={`url-${item.id}`} className="sr-only">
-                      URL
-                    </Label>
-                    <div className="relative">
-                      <LinkIcon
-                        className={cn(
-                          'absolute top-1/2 left-3 h-3.5 w-3.5 -translate-y-1/2 transition-colors',
-                          isValidUrl(item.url) ? 'text-emerald-500' : 'text-slate-300'
-                        )}
-                      />
-                      <Input
-                        id={`url-${item.id}`}
-                        placeholder="Pegar enlace (opcional)"
-                        value={item.url}
-                        onChange={(e) => handleItemChange(item.id, 'url', e.target.value)}
-                        className={cn(
-                          'h-8 border-slate-200 bg-white/80 pr-9 pl-9 text-sm placeholder:text-slate-400 focus-visible:ring-indigo-500',
-                          isValidUrl(item.url) &&
-                            'border-emerald-500/50 bg-emerald-50/30 focus-visible:ring-emerald-500/50'
-                        )}
-                      />
-                      {isValidUrl(item.url) && (
-                        <a
-                          href={normalizeUrl(item.url)}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="absolute top-1/2 right-3 z-10 -translate-y-1/2 text-slate-400 hover:text-indigo-600"
-                          onClick={(e) => e.stopPropagation()}
-                        >
-                          <ExternalLink className="h-3.5 w-3.5" />
-                        </a>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              </div>
+              )}
             </div>
-          )
-        })}
+          </li>
+        ))}
+      </ol>
 
-        {/* Botón para agregar más items */}
-        {visibleCount < MAX_WISHLIST_ITEMS && (
+      <div className="flex flex-wrap items-center justify-between gap-4">
+        {visibleCount < MAX_WISHLIST_ITEMS ? (
           <button
             type="button"
             onClick={handleAddMoreItems}
-            className="group flex w-full items-center justify-center gap-2 rounded-xl border-2 border-dashed border-slate-200 bg-slate-50/50 p-4 text-sm text-slate-500 transition-all duration-200 hover:border-indigo-300 hover:bg-indigo-50/50 hover:text-indigo-600"
+            className="text-graphite hover:text-ink min-h-11 text-[15px] underline underline-offset-4"
           >
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-white text-slate-400 shadow-sm transition-colors group-hover:text-indigo-500">
-              <Plus className="h-4 w-4" />
-            </div>
-            <span className="font-medium">Agregar otro deseo</span>
+            Agregar otra línea
           </button>
+        ) : (
+          <span />
         )}
-      </div>
-
-      <div className="flex justify-end">
-        <Button
-          onClick={handleSave}
-          disabled={isSaving}
-          className="w-full bg-indigo-600 hover:bg-indigo-700 sm:w-auto"
-        >
-          {isSaving ? (
-            <>
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              Guardando...
-            </>
-          ) : (
-            <>
-              <Save className="mr-2 h-4 w-4" />
-              Guardar Lista
-            </>
+        <div className="flex items-center gap-4">
+          {lastSaved && !isSaving && (
+            <span className="text-faint font-mono text-sm" role="status">
+              guardada
+            </span>
           )}
-        </Button>
+          <Button onClick={handleSave} disabled={isSaving}>
+            {isSaving ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Guardando…
+              </>
+            ) : (
+              'Guardar lista'
+            )}
+          </Button>
+        </div>
       </div>
     </div>
   )

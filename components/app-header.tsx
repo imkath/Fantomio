@@ -1,13 +1,12 @@
-"use client"
+'use client'
 
-import { Button } from "@/components/ui/button"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { LogOut } from "lucide-react"
-import Link from "next/link"
-import { useRouter } from "next/navigation"
-import { useEffect, useState } from "react"
-import { createClient } from "@/lib/supabase"
-import { Logo } from "@/components/logo"
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
+import Link from 'next/link'
+import { useRouter } from 'next/navigation'
+import { useEffect, useState } from 'react'
+import { createClient } from '@/lib/supabase'
+import { Logo } from '@/components/logo'
+import { ThemeToggle } from '@/components/theme-toggle'
 
 interface User {
   id: string
@@ -24,7 +23,9 @@ export function AppHeader() {
     const supabase = createClient()
 
     const getUser = async () => {
-      const { data: { user: authUser } } = await supabase.auth.getUser()
+      const {
+        data: { user: authUser },
+      } = await supabase.auth.getUser()
       if (authUser) {
         // Get profile data
         const { data: profile } = await supabase
@@ -37,7 +38,7 @@ export function AppHeader() {
           id: authUser.id,
           email: authUser.email || '',
           name: profile?.full_name || authUser.user_metadata?.name || authUser.email?.split('@')[0],
-          avatar_url: profile?.avatar_url || authUser.user_metadata?.avatar_url
+          avatar_url: profile?.avatar_url || authUser.user_metadata?.avatar_url,
         })
       }
     }
@@ -55,28 +56,32 @@ export function AppHeader() {
   if (!user) return null
 
   return (
-    <header className="border-b border-border bg-white/80 backdrop-blur-sm sticky top-0 z-10">
-      <div className="container mx-auto px-4 h-16 flex items-center justify-between">
-        <Link href="/dashboard">
+    <header className="border-rule bg-paper/90 sticky top-0 z-10 border-b backdrop-blur-sm">
+      <div className="mx-auto flex h-[68px] max-w-[1040px] items-center justify-between gap-4 px-4 md:px-8">
+        <Link
+          href="/dashboard"
+          aria-label="Mis grupos"
+          className="transition-opacity hover:opacity-80"
+        >
           <Logo linkToHome={false} />
         </Link>
 
-        <div className="flex items-center gap-4">
-          <div className="flex items-center gap-3">
-            <span className="text-sm font-medium hidden md:block text-muted-foreground">{user.name}</span>
-            <Avatar className="h-9 w-9 border border-border">
-              <AvatarImage src={user.avatar_url || "/placeholder.svg"} alt={user.name || "Usuario"} />
-              <AvatarFallback>{user.name?.charAt(0) || "U"}</AvatarFallback>
-            </Avatar>
-          </div>
-          <Button
-            variant="ghost"
-            size="icon"
+        <div className="flex items-center gap-3 md:gap-5">
+          <span className="text-graphite hidden text-[15px] md:block">{user.name}</span>
+          <Avatar className="border-rule h-9 w-9 border">
+            <AvatarImage src={user.avatar_url || '/placeholder.svg'} alt="" />
+            <AvatarFallback className="bg-slip text-ink text-sm font-bold">
+              {user.name?.charAt(0).toUpperCase() || 'U'}
+            </AvatarFallback>
+          </Avatar>
+          <ThemeToggle compact />
+          <button
+            type="button"
             onClick={handleSignOut}
-            className="text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+            className="text-graphite hover:text-ink min-h-11 text-[15px] underline underline-offset-4"
           >
-            <LogOut className="w-5 h-5" />
-          </Button>
+            Salir
+          </button>
         </div>
       </div>
     </header>

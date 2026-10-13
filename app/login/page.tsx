@@ -1,8 +1,8 @@
 'use client'
 
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Gift, Loader2, ArrowLeft, Eye, EyeOff } from 'lucide-react'
+import { Loader2 } from 'lucide-react'
+import { AuthShell, Divider, Field, Notice, PasswordField } from '@/components/auth-shell'
 import { useState, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
@@ -18,7 +18,6 @@ function LoginForm() {
   const [password, setPassword] = useState('')
   const [error, setError] = useState(urlError || '')
   const [isLoading, setIsLoading] = useState(false)
-  const [showPassword, setShowPassword] = useState(false)
 
   const handleGoogleSignIn = async () => {
     const supabase = createClient()
@@ -43,7 +42,9 @@ function LoginForm() {
 
     if (error) {
       setError(
-        error.message === 'Invalid login credentials' ? 'Credenciales inválidas' : error.message
+        error.message === 'Invalid login credentials'
+          ? 'El correo o la contraseña no coinciden'
+          : error.message
       )
       setIsLoading(false)
     } else {
@@ -52,136 +53,84 @@ function LoginForm() {
     }
   }
 
+  const keep = redirectTo !== '/dashboard' ? `?redirectTo=${encodeURIComponent(redirectTo)}` : ''
+
   return (
-    <main className="flex min-h-screen flex-col items-center justify-center bg-slate-50 p-4">
-      <div className="absolute top-4 left-4 md:top-8 md:left-8">
-        <Link
-          href="/"
-          className="flex items-center text-slate-500 transition-colors hover:text-indigo-600"
-        >
-          <ArrowLeft className="mr-2 h-4 w-4" />
-          Volver
-        </Link>
-      </div>
+    <AuthShell title="Entrar" lede="Para ver tus grupos y a quién te tocó.">
+      <div className="space-y-6">
+        <Button size="lg" variant="outline" className="w-full" onClick={handleGoogleSignIn}>
+          <svg className="mr-1 h-5 w-5" aria-hidden="true" viewBox="0 0 24 24">
+            <path
+              d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
+              fill="#4285F4"
+            />
+            <path
+              d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
+              fill="#34A853"
+            />
+            <path
+              d="M5.84 14.11c-.22-.66-.35-1.36-.35-2.11s.13-1.45.35-2.11V7.05H2.18C.79 9.81 0 12.92 0 16c0 3.08.79 6.19 2.18 8.95l3.66-2.84z"
+              fill="#FBBC05"
+            />
+            <path
+              d="M12 4.63c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 1.09 14.97 0 12 0 7.7 0 3.99 2.47 2.18 7.05l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
+              fill="#EA4335"
+            />
+          </svg>
+          Seguir con Google
+        </Button>
 
-      <div className="w-full max-w-[400px] rounded-2xl border border-slate-100 bg-white p-8 shadow-[0_20px_50px_rgba(99,102,241,0.15)]">
-        <div className="mb-8 space-y-2 text-center">
-          <div className="mb-2 inline-flex rounded-full bg-indigo-50 p-3 text-indigo-600">
-            <Gift className="h-8 w-8" />
-          </div>
-          <h1 className="text-2xl font-bold text-slate-900">Bienvenido</h1>
-          <p className="text-slate-500">Ingresa para gestionar tus intercambios</p>
-        </div>
+        <Divider>o con tu correo</Divider>
 
-        <div className="space-y-6">
-          {/* Google Sign In */}
-          <Button
-            size="lg"
-            variant="outline"
-            className="relative h-12 w-full border-slate-300 bg-white text-base font-medium text-slate-800 shadow-sm hover:bg-slate-100"
-            onClick={handleGoogleSignIn}
-          >
-            <svg className="mr-3 h-5 w-5" viewBox="0 0 24 24">
-              <path
-                d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
-                fill="#4285F4"
-              />
-              <path
-                d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
-                fill="#34A853"
-              />
-              <path
-                d="M5.84 14.11c-.22-.66-.35-1.36-.35-2.11s.13-1.45.35-2.11V7.05H2.18C.79 9.81 0 12.92 0 16c0 3.08.79 6.19 2.18 8.95l3.66-2.84z"
-                fill="#FBBC05"
-              />
-              <path
-                d="M12 4.63c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 1.09 14.97 0 12 0 7.7 0 3.99 2.47 2.18 7.05l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
-                fill="#EA4335"
-              />
-            </svg>
-            Continuar con Google
+        <form onSubmit={handleCredentialsSignIn} className="space-y-5">
+          {verified && <Notice tone="ok">Tu cuenta quedó confirmada. Ya puedes entrar.</Notice>}
+          {error && <Notice>{error}</Notice>}
+          <Field
+            label="Correo"
+            type="email"
+            autoComplete="email"
+            placeholder="nombre@ejemplo.com"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            required
+          />
+          <PasswordField
+            label="Contraseña"
+            autoComplete="current-password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            required
+          />
+          <Button type="submit" size="lg" className="w-full" disabled={isLoading}>
+            {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Entrar'}
           </Button>
+        </form>
 
-          {/* Divider */}
-          <div className="relative">
-            <div className="absolute inset-0 flex items-center">
-              <span className="w-full border-t border-slate-200" />
-            </div>
-            <div className="relative flex justify-center text-xs uppercase">
-              <span className="bg-white px-2 text-slate-500">O ingresa con correo</span>
-            </div>
-          </div>
-
-          {/* Email/Password Sign In */}
-          <form onSubmit={handleCredentialsSignIn} className="space-y-4">
-            {verified && (
-              <div className="rounded-lg border border-green-200 bg-green-50 p-3 text-sm text-green-600">
-                ¡Tu cuenta ha sido verificada! Ahora puedes iniciar sesión.
-              </div>
-            )}
-            {error && (
-              <div className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-600">
-                {error}
-              </div>
-            )}
-            <div className="space-y-2">
-              <Input
-                type="email"
-                placeholder="nombre@ejemplo.com"
-                className="h-11 border-slate-300 bg-white text-slate-900 placeholder:text-slate-500 focus:border-indigo-500 focus:ring-indigo-500"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
-              />
-            </div>
-            <div className="relative space-y-2">
-              <Input
-                type={showPassword ? 'text' : 'password'}
-                placeholder="Contraseña"
-                className="h-11 border-slate-300 bg-white pr-10 text-slate-900 placeholder:text-slate-500 focus:border-indigo-500 focus:ring-indigo-500"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-              />
-              <button
-                type="button"
-                onClick={() => setShowPassword(!showPassword)}
-                className="absolute top-1/2 right-2 flex min-h-11 min-w-11 -translate-y-1/2 items-center justify-center p-2 text-slate-500 hover:text-slate-700"
-                aria-label={showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'}
-              >
-                {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-              </button>
-            </div>
-            <Button
-              type="submit"
-              className="h-11 w-full bg-indigo-600 shadow-lg shadow-indigo-200/50 hover:bg-indigo-700"
-              disabled={isLoading}
-            >
-              {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Ingresar'}
-            </Button>
-          </form>
-
-          <div className="flex justify-between text-sm">
-            <Link
-              href={`/register${redirectTo !== '/dashboard' ? `?redirectTo=${encodeURIComponent(redirectTo)}` : ''}`}
-              className="inline-block py-2 text-indigo-600 hover:text-indigo-700"
-            >
-              Crear cuenta
-            </Link>
-            <Link
-              href="/forgot-password"
-              className="inline-block py-2 text-slate-500 hover:text-slate-700"
-            >
-              ¿Olvidaste tu contraseña?
-            </Link>
-          </div>
-
-          <p className="pt-2 text-center text-xs text-slate-500">
-            Al continuar, aceptas nuestros Términos de Servicio y Política de Privacidad.
-          </p>
+        <div className="flex flex-wrap justify-between gap-3 text-[15px]">
+          <Link href={`/register${keep}`} className="text-ink underline underline-offset-4">
+            Crear cuenta
+          </Link>
+          <Link
+            href="/forgot-password"
+            className="text-graphite hover:text-ink underline underline-offset-4"
+          >
+            Olvidé mi contraseña
+          </Link>
         </div>
+
+        <p className="text-faint text-sm">
+          Al entrar aceptas los{' '}
+          <Link href="/terms" className="hover:text-ink underline underline-offset-[3px]">
+            términos
+          </Link>{' '}
+          y la{' '}
+          <Link href="/privacy" className="hover:text-ink underline underline-offset-[3px]">
+            política de privacidad
+          </Link>
+          .
+        </p>
       </div>
-    </main>
+    </AuthShell>
   )
 }
 
@@ -189,8 +138,8 @@ export default function LoginPage() {
   return (
     <Suspense
       fallback={
-        <main className="flex min-h-screen flex-col items-center justify-center bg-slate-50 p-4">
-          <Loader2 className="h-8 w-8 animate-spin text-indigo-600" />
+        <main className="bg-paper flex min-h-screen items-center justify-center">
+          <Loader2 className="text-faint h-8 w-8 animate-spin" />
         </main>
       }
     >

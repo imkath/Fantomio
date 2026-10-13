@@ -2,7 +2,6 @@ import { Metadata } from 'next'
 import Link from 'next/link'
 import { LandingHeader } from '@/components/landing-header'
 import { Footer } from '@/components/footer'
-import { FileText } from 'lucide-react'
 import { LEGAL } from '@/lib/legal'
 
 export const metadata: Metadata = {
@@ -13,8 +12,8 @@ export const metadata: Metadata = {
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <section className="mb-8">
-      <h2 className="mb-3 text-xl font-semibold text-slate-900">{title}</h2>
-      <div className="space-y-4 text-slate-600">{children}</div>
+      <h2 className="mb-3 text-xl font-bold">{title}</h2>
+      <div className="text-graphite space-y-4">{children}</div>
     </section>
   )
 }
@@ -24,16 +23,14 @@ export default function TermsPage() {
     <div className="mx-auto flex min-h-screen w-full max-w-[1040px] flex-col px-4 md:px-8">
       <LandingHeader />
 
-      <main className="container mx-auto max-w-3xl flex-1 px-4 py-8">
-        <div className="rounded-xl border border-slate-200 bg-white p-8 md:p-12">
-          <div className="mb-6 flex items-center gap-3">
-            <div className="rounded-lg bg-indigo-100 p-2.5">
-              <FileText className="h-6 w-6 text-indigo-600" />
-            </div>
-            <h1 className="text-3xl font-bold text-slate-900">Términos del Servicio</h1>
-          </div>
+      <main className="text-ink w-full max-w-[720px] flex-1 py-10 md:py-16">
+        <div>
+          <p className="text-graphite mb-2 font-mono text-sm tracking-[0.12em] uppercase">Legal</p>
+          <h1 className="mb-2 text-[34px] leading-tight font-light md:text-[44px]">
+            Términos del Servicio
+          </h1>
 
-          <p className="mb-8 text-sm text-slate-500">
+          <p className="text-faint mb-10 font-mono text-sm">
             Versión {LEGAL.version}, vigente desde el {LEGAL.fecha}
           </p>
 
@@ -42,7 +39,7 @@ export default function TermsPage() {
               <p>
                 GhostSwap es un servicio gratuito para organizar sorteos de Amigo Secreto e
                 intercambios de regalos. Quién lo ofrece y cómo contactarla está en la{' '}
-                <Link href="/privacy" className="text-indigo-600 hover:underline">
+                <Link href="/privacy" className="text-ink underline underline-offset-[3px]">
                   Política de Privacidad
                 </Link>
                 . Al crear una cuenta o usar el servicio aceptas estos términos. Si no estás de
@@ -86,7 +83,7 @@ export default function TermsPage() {
             <Section title="6. Tus datos">
               <p>
                 Cómo tratamos tus datos personales y cómo ejercer tus derechos está en la{' '}
-                <Link href="/privacy" className="text-indigo-600 hover:underline">
+                <Link href="/privacy" className="text-ink underline underline-offset-[3px]">
                   Política de Privacidad
                 </Link>
                 .
@@ -107,7 +104,10 @@ export default function TermsPage() {
               <p>
                 Puedes dejar de usar GhostSwap cuando quieras y pedir que eliminemos tu cuenta
                 escribiendo a{' '}
-                <a href={`mailto:${LEGAL.contacto}`} className="text-indigo-600 hover:underline">
+                <a
+                  href={`mailto:${LEGAL.contacto}`}
+                  className="text-ink underline underline-offset-[3px]"
+                >
                   {LEGAL.contacto}
                 </a>
                 . Si el servicio deja de funcionar, avisaremos con anticipación razonable.
