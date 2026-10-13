@@ -3,7 +3,6 @@
 import { GhostAvatar } from '@/components/ghost-avatar'
 import { Button } from '@/components/ui/button'
 import { LogOut } from 'lucide-react'
-import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import { createClient, getSessionUser } from '@/lib/supabase'
@@ -68,18 +67,12 @@ export function AppHeader() {
   return (
     <header className="border-rule bg-paper/90 sticky top-0 z-10 border-b backdrop-blur-sm">
       <div className="mx-auto flex h-[68px] max-w-[1040px] items-center justify-between gap-4 px-4 md:px-8">
-        <Link
-          href="/dashboard"
-          aria-label="Mis grupos"
-          className="transition-opacity hover:opacity-80"
-        >
-          <Logo linkToHome={false} />
-        </Link>
+        <Logo />
 
         <div className="flex items-center gap-3 md:gap-5">
           <span className="text-graphite hidden text-[15px] md:block">{user.name}</span>
           <GhostAvatar seed={user.id} src={user.avatar_url} size={36} />
-          <ThemeToggle compact />
+          <ThemeToggle />
           <Button type="button" variant="outline" size="sm" onClick={handleSignOut}>
             <LogOut aria-hidden="true" />
             <span className="sr-only md:not-sr-only">Salir</span>

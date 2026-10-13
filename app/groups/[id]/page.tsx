@@ -454,7 +454,7 @@ export default function GroupPage() {
     <div className="bg-paper text-ink min-h-screen pb-16">
       <AppHeader />
 
-      <main className="mx-auto max-w-[1040px] px-4 py-10 md:px-8">
+      <main className="mx-auto max-w-[1040px] px-4 pt-8 pb-10 md:px-8">
         <BackLink />
 
         {error && (
@@ -464,7 +464,7 @@ export default function GroupPage() {
         )}
 
         {/* Header */}
-        <div className="mt-8 mb-10 flex flex-col justify-between gap-6 md:flex-row md:items-end">
+        <div className="mt-6 mb-10 flex flex-col justify-between gap-6 min-[1440px]:mt-0 md:flex-row md:items-end">
           <div className="min-w-0">
             <p className="text-graphite mb-2 text-[15px]">
               {drawn ? 'Sorteado' : 'Sin sortear'} · {members.length}{' '}
@@ -641,8 +641,11 @@ export default function GroupPage() {
             />
 
             <section className="border-rule rounded-[4px] border p-6">
-              <div className="mb-1 flex items-baseline justify-between">
-                <h2 className="text-lg font-bold">Participantes</h2>
+              <div className="mb-1 flex items-center justify-between">
+                <h2 className="flex items-center gap-2.5 text-lg font-bold">
+                  <GhostMark className="h-[22px] w-[19px]" />
+                  Participantes
+                </h2>
                 <span className="text-graphite text-[15px]">{members.length}</span>
               </div>
               <p className="text-graphite mb-4 text-[15px]">

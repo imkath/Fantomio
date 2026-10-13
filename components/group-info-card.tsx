@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { Check, Copy } from 'lucide-react'
+import { Banknote, CalendarDays, Check, Copy, Hash } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { toast } from 'sonner'
 
@@ -89,34 +89,58 @@ export function GroupInfoCard({
 
   return (
     <section className="border-rule bg-slip rounded-[4px] border p-6">
-      <dl className="grid gap-4">
+      <dl className="grid gap-5">
         {budget != null && (
-          <div>
-            <dt className="text-graphite text-[15px]">Presupuesto</dt>
-            <dd className="text-2xl">{formatCurrency(budget, currency)}</dd>
+          <div className="flex gap-4">
+            <span
+              className="bg-paper border-rule text-ink grid size-10 shrink-0 place-items-center rounded-full border"
+              aria-hidden="true"
+            >
+              <Banknote className="size-5" />
+            </span>
+            <div>
+              <dt className="text-graphite text-[15px]">Presupuesto</dt>
+              <dd className="text-2xl">{formatCurrency(budget, currency)}</dd>
+            </div>
           </div>
         )}
         {exchangeDate && (
-          <div>
-            <dt className="text-graphite text-[15px]">Intercambio</dt>
-            <dd className="text-xl first-letter:uppercase">{formatDate(exchangeDate)}</dd>
-            {days >= 0 && (
-              <dd className="text-faint text-sm">
-                {days === 0 ? 'Es hoy' : days === 1 ? 'Mañana' : `Faltan ${days} días`}
-              </dd>
-            )}
+          <div className="flex gap-4">
+            <span
+              className="bg-paper border-rule text-ink grid size-10 shrink-0 place-items-center rounded-full border"
+              aria-hidden="true"
+            >
+              <CalendarDays className="size-5" />
+            </span>
+            <div>
+              <dt className="text-graphite text-[15px]">Intercambio</dt>
+              <dd className="text-xl first-letter:uppercase">{formatDate(exchangeDate)}</dd>
+              {days >= 0 && (
+                <dd className="text-graphite text-[15px]">
+                  {days === 0 ? 'Es hoy' : days === 1 ? 'Mañana' : `Faltan ${days} días`}
+                </dd>
+              )}
+            </div>
           </div>
         )}
         {inviteCode && (
-          <div>
-            <dt className="text-graphite text-[15px]">Código para unirse</dt>
-            <dd className="flex items-center gap-3">
-              <span className="font-detail text-xl tracking-wider">{inviteCode}</span>
-              <Button variant="outline" size="sm" onClick={handleCopyCode}>
-                {codeCopied ? <Check aria-hidden="true" /> : <Copy aria-hidden="true" />}
-                {codeCopied ? 'Copiado' : 'Copiar'}
-              </Button>
-            </dd>
+          <div className="flex gap-4">
+            <span
+              className="bg-paper border-rule text-ink grid size-10 shrink-0 place-items-center rounded-full border"
+              aria-hidden="true"
+            >
+              <Hash className="size-5" />
+            </span>
+            <div>
+              <dt className="text-graphite text-[15px]">Código para unirse</dt>
+              <dd className="flex flex-wrap items-center gap-3">
+                <span className="font-detail text-xl tracking-wider">{inviteCode}</span>
+                <Button variant="outline" size="sm" onClick={handleCopyCode}>
+                  {codeCopied ? <Check aria-hidden="true" /> : <Copy aria-hidden="true" />}
+                  {codeCopied ? 'Copiado' : 'Copiar'}
+                </Button>
+              </dd>
+            </div>
           </div>
         )}
       </dl>

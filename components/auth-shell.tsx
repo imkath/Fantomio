@@ -25,7 +25,7 @@ export function AuthShell({
       <header className="mx-auto flex w-full max-w-[1040px] items-center justify-between gap-4 px-4 py-[22px] md:px-8">
         <Logo />
         <div className="flex items-center gap-5">
-          <ThemeToggle compact />
+          <ThemeToggle />
           <Button asChild variant="outline" size="sm">
             <Link href={back}>
               <ArrowLeft aria-hidden="true" />

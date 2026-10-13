@@ -129,10 +129,10 @@ export default function NewGroupPage() {
     <div className="bg-paper text-ink min-h-screen">
       <AppHeader />
 
-      <main className="mx-auto max-w-[560px] px-4 py-10 md:py-16">
+      <main className="mx-auto max-w-[560px] px-4 pt-8 pb-10 md:pb-16">
         <BackLink />
 
-        <h1 className="mt-8 mb-2 text-[34px] leading-tight font-light md:text-[40px]">
+        <h1 className="mt-6 mb-2 text-[34px] leading-tight font-light min-[1440px]:mt-0 md:text-[40px]">
           Crear grupo
         </h1>
         <p className="text-graphite mb-8">

@@ -1,8 +1,7 @@
 import Link from 'next/link'
 import { Logo } from '@/components/logo'
 import { ThemeToggle } from '@/components/theme-toggle'
-import { Button } from '@/components/ui/button'
-import { ArrowRight } from 'lucide-react'
+import { AccountLink } from '@/components/account-link'
 
 export function LandingHeader() {
   return (
@@ -21,13 +20,8 @@ export function LandingHeader() {
         >
           Privacidad
         </Link>
-        <ThemeToggle compact />
-        <Button asChild size="sm">
-          <Link href="/login">
-            Entrar
-            <ArrowRight aria-hidden="true" />
-          </Link>
-        </Button>
+        <ThemeToggle />
+        <AccountLink />
       </nav>
     </header>
   )
