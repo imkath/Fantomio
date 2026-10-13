@@ -222,7 +222,7 @@ export function AnonymousChat({ matchId, groupId, role, receiverName }: Anonymou
                   aria-label={giver ? 'Tu pregunta' : 'Tu respuesta'}
                   placeholder={giver ? '¿Qué talla usas?' : 'Escribe tu respuesta'}
                   maxLength={500}
-                  className="border-input bg-paper text-ink placeholder:text-faint focus-visible:border-ink h-11 min-w-0 flex-1 rounded-[2px] border px-3 text-base outline-none"
+                  className="border-input bg-paper text-ink placeholder:text-faint focus-visible:border-ink h-11 min-w-0 flex-1 rounded-[8px] border px-3 text-base outline-none"
                 />
                 <Button type="submit" disabled={!newMessage.trim() || isSending}>
                   {isSending ? <Loader2 className="animate-spin" /> : <Send aria-hidden="true" />}

@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import { buttonVariants } from '@/components/ui/button'
 import { LandingHeader } from '@/components/landing-header'
 import { Footer } from '@/components/footer'
 import { GhostMark } from '@/components/ghost-mark'
@@ -20,7 +21,7 @@ export default function NotFound() {
         <div className="mt-2 flex flex-wrap items-center gap-5">
           <Link
             href="/"
-            className="bg-ink text-paper border-ink hover:text-ink inline-flex min-h-[52px] items-center rounded-[2px] border-[1.5px] px-7 text-lg font-medium hover:bg-transparent"
+            className={buttonVariants({ size: 'lg' })}
           >
             Ir al inicio
           </Link>

@@ -158,3 +158,49 @@
     }
   }
 }
+
+/* Buttons are paper slips sitting on a second slip, slightly tilted, that peeks out behind.
+   The face is its own layer (::after) so it paints above the slip (::before); the element's
+   own background would paint below both. Variants set --face, --edge and the slip's tilt. */
+.btn-paper {
+  position: relative;
+  isolation: isolate;
+  background: transparent;
+  border: 0;
+}
+.btn-paper::before,
+.btn-paper::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border-radius: inherit;
+  border: 1.5px solid var(--edge, var(--ink));
+  pointer-events: none;
+}
+.btn-paper::before {
+  background: var(--slip);
+  transform: translate(var(--slip-x, 4px), 5px) rotate(calc(var(--slip-dir, 1) * var(--slip-a, 1.8deg)));
+  transition: transform 0.15s ease;
+}
+.btn-paper::after {
+  background: var(--face, var(--paper));
+  transition: background-color 0.15s ease;
+}
+/* Pressing pushes the slip down onto the one behind it. */
+.btn-paper:active:not(:disabled) {
+  transform: translateY(2px);
+}
+.btn-paper:active:not(:disabled)::before {
+  transform: translate(calc(var(--slip-x, 4px) / 2), 2px)
+    rotate(calc(var(--slip-dir, 1) * var(--slip-a, 1.8deg) / 2));
+}
+/* The same angle droops a lot at the far end of a wide button, so those tilt less. */
+.btn-paper.w-full,
+.grid > .btn-paper {
+  --slip-a: 0.5deg;
+}
+/* Small icon-only controls (the bell) keep a single slip. */
+.btn-paper.btn-single::before {
+  display: none;
+}

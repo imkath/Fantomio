@@ -55,7 +55,7 @@ export function Notice({
   return (
     <div
       role={tone === 'error' ? 'alert' : 'status'}
-      className={`rounded-[2px] border px-4 py-3 text-[15px] ${
+      className={`rounded-[8px] border px-4 py-3 text-[15px] ${
         tone === 'error' ? 'border-destructive text-destructive' : 'border-ink bg-slip text-ink'
       }`}
     >
