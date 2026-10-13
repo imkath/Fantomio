@@ -33,10 +33,14 @@ export async function middleware(request: NextRequest) {
     }
   )
 
-  // Get user session (this will also refresh cookies if needed)
+  // Read the session from the cookie (refreshing it only when it has expired) instead of
+  // asking the auth server on every navigation, which cost a round trip to Supabase each time.
+  // This is enough here: the middleware only decides redirects. Data is protected by RLS on
+  // every query, and server actions still verify the user with getUser().
   const {
-    data: { user },
-  } = await supabase.auth.getUser()
+    data: { session },
+  } = await supabase.auth.getSession()
+  const user = session?.user ?? null
 
   // Protected routes
   const protectedPaths = ['/dashboard', '/groups']
