@@ -99,11 +99,6 @@
 .dot {
   fill: var(--ink);
 }
-.note {
-  font-family: var(--font-mono);
-  font-size: 11px;
-  fill: var(--faint);
-}
 @media (prefers-reduced-motion: no-preference) {
   .draw {
     stroke-dasharray: var(--len);

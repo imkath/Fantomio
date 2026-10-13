@@ -128,9 +128,6 @@ export default function LandingPage() {
                 d="M200 188l58-14 10 44-58 14z M229 181l10 44"
               />
               <path className={`${s.line} ${s.draw}`} style={len(80)} d="M186 200c8-2 14 2 18 8" />
-              <text className={s.note} x="216" y="262">
-                p/ ti
-              </text>
             </svg>
           </div>
         </div>
