@@ -205,3 +205,118 @@
 .btn-paper.btn-single::before {
   display: none;
 }
+
+/* Theme switch (components/theme-toggle.tsx). Positions follow the theme class on <html>, set
+   before paint, so it never animates on load; [data-target] drives the slide after a click.
+   Colours are fixed on purpose: it's a little object, like the phone in the landing. */
+.theme-switch {
+  --ease: cubic-bezier(0.45, 0, 0.2, 1.25);
+  transition: transform 0.15s;
+}
+.theme-switch .sky-day,
+.theme-switch .sky-night {
+  position: absolute;
+  inset: 0;
+  transition: opacity 0.5s;
+}
+.theme-switch .sky-day {
+  background: linear-gradient(120deg, #9fd3f2 0%, #cfe9f7 55%, #fde6a8 100%);
+}
+.theme-switch .sky-night {
+  opacity: 0;
+  background-image:
+    radial-gradient(1.2px 1.2px at 14px 9px, #fff 99%, transparent),
+    radial-gradient(1px 1px at 24px 26px, #fff 99%, transparent),
+    radial-gradient(1.4px 1.4px at 34px 14px, #fff 99%, transparent),
+    radial-gradient(1px 1px at 9px 22px, #fff 99%, transparent),
+    linear-gradient(120deg, #141b34 0%, #26305a 60%, #3b3f73 100%);
+}
+.theme-switch .sun,
+.theme-switch .moon {
+  position: absolute;
+  top: 50%;
+  transition:
+    opacity 0.4s,
+    transform 0.6s var(--ease);
+}
+.theme-switch .sun {
+  left: 11px;
+  width: 19px;
+  height: 19px;
+  color: #e8962e;
+  fill: #f6c453;
+  transform: translateY(-50%);
+}
+.theme-switch .moon {
+  right: 11px;
+  width: 18px;
+  height: 18px;
+  color: #f3d36b;
+  fill: #f7e08f;
+  opacity: 0;
+  transform: translateY(-50%) rotate(90deg) scale(0.5);
+}
+.theme-switch .knob {
+  position: absolute;
+  top: 4px;
+  left: 4px;
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 999px;
+  background: #fff;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
+  transform: translateX(36px) rotate(0deg);
+  transition: transform 0.52s var(--ease);
+}
+
+/* night: from the theme class, or from a click on its way there */
+.dark .theme-switch .sky-day,
+.theme-switch[data-target='dark'] .sky-day {
+  opacity: 0;
+}
+.dark .theme-switch .sky-night,
+.theme-switch[data-target='dark'] .sky-night {
+  opacity: 1;
+}
+.dark .theme-switch .sun,
+.theme-switch[data-target='dark'] .sun {
+  opacity: 0;
+  transform: translateY(-50%) rotate(-90deg) scale(0.5);
+}
+.dark .theme-switch .moon,
+.theme-switch[data-target='dark'] .moon {
+  opacity: 1;
+  transform: translateY(-50%);
+}
+.dark .theme-switch .knob,
+.theme-switch[data-target='dark'] .knob {
+  transform: translateX(0) rotate(-360deg);
+}
+
+/* day on its way back, beating the still-dark class until the theme switches */
+.dark .theme-switch[data-target='light'] .sky-day {
+  opacity: 1;
+}
+.dark .theme-switch[data-target='light'] .sky-night {
+  opacity: 0;
+}
+.dark .theme-switch[data-target='light'] .sun {
+  opacity: 1;
+  transform: translateY(-50%);
+}
+.dark .theme-switch[data-target='light'] .moon {
+  opacity: 0;
+  transform: translateY(-50%) rotate(90deg) scale(0.5);
+}
+.dark .theme-switch[data-target='light'] .knob {
+  transform: translateX(36px) rotate(0deg);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .theme-switch *,
+  .theme-switch {
+    transition: none !important;
+  }
+}

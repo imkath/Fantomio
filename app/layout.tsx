@@ -27,6 +27,8 @@ const atkinson = Atkinson_Hyperlegible_Next({
   adjustFontFallback: false,
 })
 
+const THEME_SCRIPT = `(function(){try{var t=localStorage.getItem('theme');var d=t==='dark'||((!t||t==='system')&&matchMedia('(prefers-color-scheme: dark)').matches);var e=document.documentElement;e.classList.add(d?'dark':'light');e.style.colorScheme=d?'dark':'light'}catch(_){}})()`
+
 export const viewport: Viewport = {
   width: 'device-width',
   initialScale: 1,
@@ -118,6 +120,10 @@ export default function RootLayout({
   return (
     <html lang="es" suppressHydrationWarning>
       <head>
+        {/* Sets the theme before anything paints: the saved choice, or the system's if none.
+            next-themes' own script sits in <body> and runs after the CSS loads, which let the
+            page paint light first and then switch. Fixed text, no user data. */}
+        <script dangerouslySetInnerHTML={{ __html: THEME_SCRIPT }} />
         <link rel="icon" href="/icon.svg" type="image/svg+xml" />
         <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
         <link rel="manifest" href="/manifest.json" />
@@ -125,11 +131,11 @@ export default function RootLayout({
       <body
         className={`${zenKaku.variable} ${delaGothic.variable} ${atkinson.variable} bg-background text-foreground min-h-screen font-sans antialiased`}
       >
-        {/* Light by default: most people organizing a family or office exchange expect it. */}
+        {/* Follows the system until the person picks a theme with the switch. */}
         <ThemeProvider
           attribute="class"
-          defaultTheme="light"
-          enableSystem={false}
+          defaultTheme="system"
+          enableSystem
           disableTransitionOnChange
         >
           <AnimatedFavicon />
