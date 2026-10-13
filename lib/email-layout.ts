@@ -120,3 +120,45 @@ export const AUTH_EMAILS = {
     }),
   },
 }
+
+// Sent by the database (see the notifications migration) through Brevo, so the app never
+// needs the asker's address. {{GROUP}}, {{NAME}} and {{URL}} are filled in, escaped, there.
+export const NOTIFICATION_EMAILS = {
+  question: {
+    subject: 'Te hicieron una pregunta en {{GROUP}}',
+    html: emailLayout({
+      label: '{{GROUP}}',
+      title: 'Tienes una pregunta',
+      paragraphs: [
+        'Quien te regala en <strong style="color: #1b1b1a;">{{GROUP}}</strong> te hizo una pregunta para acertar con tu regalo.',
+        'Entra para leerla y responder. Quién la hizo sigue siendo secreto.',
+      ],
+      cta: { text: 'Ver la pregunta', href: '{{URL}}' },
+      note: 'Te avisamos como máximo una vez cada 15 minutos por grupo.',
+    }),
+  },
+  reply: {
+    subject: '{{NAME}} te respondió en {{GROUP}}',
+    html: emailLayout({
+      label: '{{GROUP}}',
+      title: 'Te respondieron',
+      paragraphs: [
+        '<strong style="color: #1b1b1a;">{{NAME}}</strong> respondió tu pregunta en <strong style="color: #1b1b1a;">{{GROUP}}</strong>. No sabe que fuiste tú.',
+      ],
+      cta: { text: 'Ver la respuesta', href: '{{URL}}' },
+      note: 'Te avisamos como máximo una vez cada 15 minutos por grupo.',
+    }),
+  },
+  wishlist: {
+    subject: '{{NAME}} actualizó su lista en {{GROUP}}',
+    html: emailLayout({
+      label: '{{GROUP}}',
+      title: 'Tu amigo secreto cambió su lista',
+      paragraphs: [
+        '<strong style="color: #1b1b1a;">{{NAME}}</strong> agregó o cambió cosas en su lista de <strong style="color: #1b1b1a;">{{GROUP}}</strong>. Puede que te dé una idea para el regalo.',
+      ],
+      cta: { text: 'Ver su lista', href: '{{URL}}' },
+      note: 'Te avisamos como máximo una vez cada 12 horas por grupo.',
+    }),
+  },
+}

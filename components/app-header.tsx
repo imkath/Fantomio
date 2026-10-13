@@ -9,6 +9,7 @@ import { createClient, getSessionUser } from '@/lib/supabase'
 import { Logo } from '@/components/logo'
 import { formatName } from '@/lib/utils'
 import { ThemeToggle } from '@/components/theme-toggle'
+import { NotificationBell } from '@/components/notification-bell'
 
 interface User {
   id: string
@@ -72,6 +73,7 @@ export function AppHeader() {
         <div className="flex items-center gap-3 md:gap-5">
           <span className="text-graphite hidden text-[15px] md:block">{user.name}</span>
           <GhostAvatar seed={user.id} src={user.avatar_url} size={36} />
+          <NotificationBell userId={user.id} />
           <ThemeToggle />
           <Button type="button" variant="outline" size="sm" onClick={handleSignOut}>
             <LogOut aria-hidden="true" />

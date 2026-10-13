@@ -227,7 +227,7 @@ export function WishlistEditor({ memberId, initialItems = [], onSave }: Wishlist
                   value={item.description}
                   onChange={(e) => handleItemChange(item.id, 'description', e.target.value)}
                 />
-                <span className="flex w-20 shrink-0 justify-end">
+                <span className="flex w-11 shrink-0 justify-end sm:w-20">
                   {(item.description || item.url) && (
                     <Button
                       type="button"
@@ -251,7 +251,7 @@ export function WishlistEditor({ memberId, initialItems = [], onSave }: Wishlist
                     onChange={(e) => handleItemChange(item.id, 'url', e.target.value)}
                     className="h-10 text-[15px]"
                   />
-                  <span className="flex w-20 shrink-0 justify-end">
+                  <span className="flex shrink-0 justify-end sm:w-20">
                     {isValidUrl(item.url) && (
                       <a
                         href={normalizeUrl(item.url)}

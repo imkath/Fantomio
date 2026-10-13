@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button'
 import { Loader2, MessageCircle, Send } from 'lucide-react'
 import { sendAnonymousMessage, getGiverMessages, getReceiverMessages } from '@/app/actions/messages'
 import { toast } from 'sonner'
+import { createClient } from '@/lib/supabase'
 
 interface Message {
   message_id: string
@@ -33,35 +34,64 @@ export function AnonymousChat({ matchId, groupId, role, receiverName }: Anonymou
 
   // Las tres dependencias son las que determinan qué mensajes se piden:
   // quién eres en el intercambio y de qué grupo o emparejamiento.
-  const loadMessages = useCallback(async () => {
-    setIsLoading(true)
+  // `quiet` skips the spinner for refreshes triggered by realtime.
+  const loadMessages = useCallback(
+    async (quiet = false) => {
+      if (!quiet) setIsLoading(true)
 
-    if (role === 'giver' && matchId) {
-      const result = await getGiverMessages(matchId)
-      if (result.success) {
-        setMessages(result.messages)
+      if (role === 'giver' && matchId) {
+        const result = await getGiverMessages(matchId)
+        if (result.success) {
+          setMessages(result.messages)
+        }
+        setResolvedMatchId(matchId)
+      } else if (role === 'receiver') {
+        const result = await getReceiverMessages(groupId)
+        if (result.success) {
+          setMessages(result.messages)
+          setResolvedMatchId(result.matchId)
+        }
       }
-      setResolvedMatchId(matchId)
-    } else if (role === 'receiver') {
-      const result = await getReceiverMessages(groupId)
-      if (result.success) {
-        setMessages(result.messages)
-        setResolvedMatchId(result.matchId)
-      }
-    }
 
-    setIsLoading(false)
-  }, [matchId, groupId, role])
+      setIsLoading(false)
+    },
+    [matchId, groupId, role]
+  )
 
   useEffect(() => {
     loadMessages()
   }, [loadMessages])
 
+  // New messages arrive live. Realtime applies the table's RLS, so each side only hears its match.
+  useEffect(() => {
+    if (!resolvedMatchId) return
+    const supabase = createClient()
+    const channel = supabase
+      .channel(`chat-${role}-${resolvedMatchId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'anonymous_messages',
+          filter: `match_id=eq.${resolvedMatchId}`,
+        },
+        () => loadMessages(true)
+      )
+      .subscribe()
+    return () => {
+      supabase.removeChannel(channel)
+    }
+  }, [resolvedMatchId, role, loadMessages])
+
+  // A conversation that already has messages starts open.
+  const open = isExpanded || messages.length > 0
+
   useEffect(() => {
     // Scroll only the message box: scrollIntoView would move the whole page past the chat.
     const list = listRef.current
-    if (isExpanded && list) list.scrollTop = list.scrollHeight
-  }, [messages, isExpanded])
+    if (open && list) list.scrollTop = list.scrollHeight
+  }, [messages, open])
 
   // "Preguntar" always lands on the question field, even when the chat is already open.
   const [focusRequest, setFocusRequest] = useState(0)
@@ -70,7 +100,7 @@ export function AnonymousChat({ matchId, groupId, role, receiverName }: Anonymou
     if (!focusRequest || isLoading || !input) return
     input.focus({ preventScroll: true })
     input.scrollIntoView({ behavior: 'smooth', block: 'center' })
-  }, [focusRequest, isLoading, isExpanded])
+  }, [focusRequest, isLoading, open])
 
   const openChat = () => {
     setIsExpanded(true)
@@ -114,7 +144,7 @@ export function AnonymousChat({ matchId, groupId, role, receiverName }: Anonymou
         giver ? 'border-rule border-t pt-5' : 'border-rule rounded-[4px] border p-6 md:p-8'
       }
     >
-      <div className="flex items-center justify-between gap-4">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
         <h3 className={giver ? 'text-[17px]' : 'text-xl font-bold'}>
           {giver
             ? `Pregúntale algo a ${receiverName || 'tu amigo secreto'} sin que sepa que eres tú`
@@ -133,7 +163,7 @@ export function AnonymousChat({ matchId, groupId, role, receiverName }: Anonymou
         </div>
       </div>
 
-      {isExpanded && (
+      {open && (
         <div id={panelId} className="mt-4">
           {isLoading ? (
             <div className="flex justify-center py-4">
