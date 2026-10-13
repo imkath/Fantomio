@@ -1,133 +1,55 @@
 'use client'
 
-import { useEffect, useRef, useState, useCallback } from 'react'
+import { useEffect, useState } from 'react'
 
-const TARGET = 'Amigo Secreto'
-const LETTERS = TARGET.split('')
-
-function derangement(): number[] {
-  const n = LETTERS.length
-  for (let attempt = 0; attempt < 200; attempt++) {
-    const perm = Array.from({ length: n }, (_, i) => i)
-    for (let i = n - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1))
-      ;[perm[i], perm[j]] = [perm[j]!, perm[i]!]
-    }
-    if (perm.every((v, i) => LETTERS[i] === ' ' || v !== i)) return perm
-  }
-  return Array.from({ length: n }, (_, i) => (i + 3) % n)
+// Each word starts as a derangement of its letters (no letter in its own place, the
+// same rule as the draw) and settles one letter at a time. The final spelling is
+// laid out invisibly underneath, so the heading never changes size while it moves.
+function derange(letters: string[]): string[] {
+  let order: number[]
+  do {
+    order = letters.map((_, i) => i).sort(() => Math.random() - 0.5)
+  } while (order.some((v, i) => v === i))
+  return order.map((i) => letters[i]!)
 }
 
-export function ScrambleTitle() {
-  const containerRef = useRef<HTMLSpanElement>(null)
-  const slotsRef = useRef<(HTMLSpanElement | null)[]>([])
-  const charsRef = useRef<(HTMLSpanElement | null)[]>([])
-  const [ready, setReady] = useState(false)
-  const [shuffled, setShuffled] = useState(true)
-  const orderRef = useRef<number[]>(derangement())
-  const hasRun = useRef(false)
-
-  // Measure slot positions and position characters
-  const positionChars = useCallback(() => {
-    const slots = slotsRef.current
-    const chars = charsRef.current
-    const container = containerRef.current
-    if (!container) return
-
-    const containerRect = container.getBoundingClientRect()
-    const order = orderRef.current
-
-    // Position each character at its assigned slot
-    LETTERS.forEach((_, charIdx) => {
-      const charEl = chars[charIdx]
-      if (!charEl || LETTERS[charIdx] === ' ') return
-
-      // This character should be in slot order[charIdx] (when shuffled)
-      // or in slot charIdx (when resolved)
-      const targetSlot = shuffled ? order.indexOf(charIdx) : charIdx
-      const slotEl = slots[targetSlot]
-      if (!slotEl) return
-
-      const slotRect = slotEl.getBoundingClientRect()
-      const x = slotRect.left - containerRect.left
-
-      charEl.style.transition = shuffled
-        ? 'none'
-        : `transform 0.8s cubic-bezier(0.22, 1, 0.36, 1) ${charIdx * 40}ms, opacity 0.4s ease ${charIdx * 40}ms`
-      charEl.style.transform = `translateX(${x}px)`
-      charEl.style.opacity = shuffled ? '0.55' : '1'
-    })
-  }, [shuffled])
+function ScrambledWord({ word }: { word: string }) {
+  const [shown, setShown] = useState(word)
 
   useEffect(() => {
-    // Measure initial positions
-    requestAnimationFrame(() => {
-      setReady(true)
-      positionChars()
-    })
-  }, [positionChars])
-
-  useEffect(() => {
-    if (!ready || hasRun.current) return
-    hasRun.current = true
-
-    // Start resolving immediately — letters are already in motion
-    requestAnimationFrame(() => {
-      setShuffled(false)
-    })
-  }, [ready])
-
-  useEffect(() => {
-    if (ready) positionChars()
-  }, [shuffled, ready, positionChars])
-
-  // Re-measure on resize
-  useEffect(() => {
-    const onResize = () => positionChars()
-    window.addEventListener('resize', onResize)
-    return () => window.removeEventListener('resize', onResize)
-  }, [positionChars])
+    if (word.length < 2 || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return
+    const target = [...word]
+    const current = derange(target)
+    const order = target.map((_, i) => i).sort(() => Math.random() - 0.5)
+    let step = 0
+    setShown(current.join(''))
+    const timer = setInterval(() => {
+      const i = order[step]!
+      current[i] = target[i]!
+      setShown(current.join(''))
+      if (++step >= order.length) clearInterval(timer)
+    }, 90)
+    return () => clearInterval(timer)
+  }, [word])
 
   return (
-    <span
-      ref={containerRef}
-      className="relative inline-block text-indigo-600"
-      aria-label="Amigo Secreto"
-    >
-      {/* Invisible slots that define the natural text layout */}
-      {LETTERS.map((letter, i) => (
-        <span
-          key={`slot-${i}`}
-          ref={(el) => {
-            slotsRef.current[i] = el
-          }}
-          className="invisible"
-          aria-hidden="true"
-        >
-          {letter}
+    <span className="relative inline-block whitespace-nowrap" aria-hidden="true">
+      <span className="invisible">{word}</span>
+      <span className="absolute top-0 left-0">{shown}</span>
+    </span>
+  )
+}
+
+export function ScrambleTitle({ text = 'Amigo Secreto' }: { text?: string }) {
+  const words = text.split(' ')
+  return (
+    <span className="font-bold" aria-label={text}>
+      {words.map((w, i) => (
+        <span key={i}>
+          <ScrambledWord word={w} />
+          {i < words.length - 1 ? ' ' : null}
         </span>
       ))}
-
-      {/* Animated characters positioned absolutely over slots */}
-      {LETTERS.map((letter, i) => {
-        if (letter === ' ') return null
-        return (
-          <span
-            key={`char-${i}`}
-            ref={(el) => {
-              charsRef.current[i] = el
-            }}
-            className="absolute top-0 left-0"
-            style={{
-              willChange: 'transform',
-              opacity: ready ? undefined : 0,
-            }}
-            aria-hidden="true"
-          >
-            {letter}
-          </span>
-        )
-      })}
     </span>
   )
 }

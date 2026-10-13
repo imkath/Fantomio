@@ -1,16 +1,27 @@
-import Link from "next/link"
-import { Button } from "@/components/ui/button"
-import { Logo } from "@/components/logo"
+import Link from 'next/link'
+import { Logo } from '@/components/logo'
+import { ThemeToggle } from '@/components/theme-toggle'
 
 export function LandingHeader() {
   return (
-    <header className="sticky top-0 z-50 bg-white/80 backdrop-blur-sm border-b border-slate-200" role="banner">
-      <nav className="container mx-auto px-4 h-16 flex items-center justify-between" aria-label="Navegación principal">
-        <Logo />
-        <Link href="/login">
-          <Button variant="ghost" className="font-medium hover:text-indigo-600 hover:bg-indigo-50 !h-11 px-4">
-            Entrar
-          </Button>
+    <header className="flex items-center justify-between gap-4 py-[22px]" role="banner">
+      <Logo />
+      <nav className="flex items-center gap-6" aria-label="Navegación principal">
+        <Link
+          href="/#por-dentro"
+          className="text-graphite hover:text-ink hidden text-base no-underline md:inline"
+        >
+          Por dentro
+        </Link>
+        <Link
+          href="/#privacidad"
+          className="text-graphite hover:text-ink hidden text-base no-underline md:inline"
+        >
+          Privacidad
+        </Link>
+        <ThemeToggle />
+        <Link href="/login" className="text-ink text-base font-medium underline underline-offset-4">
+          Entrar
         </Link>
       </nav>
     </header>

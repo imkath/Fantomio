@@ -1,14 +1,55 @@
 import Link from 'next/link'
-import { Button } from '@/components/ui/button'
 import { LandingHeader } from '@/components/landing-header'
 import { Footer } from '@/components/footer'
-import { AuroraBackground } from '@/components/aurora-background'
-import { AnimatedFeatures } from '@/components/animated-features'
-import { SectionAurora } from '@/components/section-aurora'
 import { ScrambleTitle } from '@/components/scramble-title'
-import { PrivacyDemo } from '@/components/privacy-demo'
-import { ScrollReveal, CardReveal, StaggerReveal, StaggerItem } from '@/components/scroll-reveal'
-import { Ghost, Calendar, Share2, Shuffle, Users, Star } from 'lucide-react'
+import { InsideDemo } from '@/components/landing/inside-demo'
+import s from '@/components/landing/landing.module.css'
+
+const STEPS = [
+  {
+    title: 'Crea el grupo',
+    text: 'Ponle nombre, la fecha del intercambio y el presupuesto (en pesos o en la moneda que usen).',
+  },
+  {
+    title: 'Comparte el link',
+    text: 'Mándalo por WhatsApp o por donde quieras. Cada uno entra con su cuenta y anota lo que le gustaría recibir.',
+  },
+  {
+    title: 'Sortea',
+    text: 'Si hay personas que no deberían tocarse, como una pareja, lo marcas antes de sortear. Después cada uno ve a quién le tocó.',
+  },
+]
+
+const INSIDE = [
+  {
+    title: 'Lo abres cuando quieras',
+    text: 'El nombre queda tapado hasta que tú lo destapas, por si estás con gente al lado.',
+  },
+  { title: 'Ves lo que le gustaría', text: 'Su lista de deseos, con links si los puso.' },
+  {
+    title: 'Le preguntas sin delatarte',
+    text: 'Los mensajes llegan sin tu nombre. Te responde sin saber quién pregunta.',
+  },
+]
+
+const FAQ = [
+  {
+    q: '¿Hay que descargar algo?',
+    a: 'No. Se usa desde el navegador del celular y entras con Google o con correo y contraseña.',
+  },
+  {
+    q: '¿Y si alguien se suma tarde?',
+    a: 'Si todavía no se sortea, entra con el mismo link. Si ya se sorteó, quien organiza puede hacer el sorteo de nuevo.',
+  },
+  {
+    q: '¿Cuántas personas pueden participar?',
+    a: 'Desde tres. Sirve igual para una oficina de cuarenta que para una familia de seis.',
+  },
+  {
+    q: '¿Puedo preguntarle algo a mi amigo secreto?',
+    a: 'Sí, con los mensajes anónimos del grupo. Te responde sin saber quién le está preguntando.',
+  },
+]
 
 const jsonLd = {
   '@context': 'https://schema.org',
@@ -19,231 +60,214 @@ const jsonLd = {
   url: 'https://ghostswap.nvrkth.com',
   applicationCategory: 'EntertainmentApplication',
   operatingSystem: 'Web',
-  offers: {
-    '@type': 'Offer',
-    price: '0',
-    priceCurrency: 'USD',
-  },
+  offers: { '@type': 'Offer', price: '0', priceCurrency: 'USD' },
   inLanguage: 'es',
-  keywords: 'amigo secreto, secret santa, intercambio de regalos, sorteo navidad',
+  keywords: 'amigo secreto, secret santa, intercambio de regalos, sorteo',
 }
 
 const faqJsonLd = {
   '@context': 'https://schema.org',
   '@type': 'FAQPage',
-  mainEntity: [
-    {
-      '@type': 'Question',
-      name: '¿Cómo funciona el Amigo Secreto en GhostSwap?',
-      acceptedAnswer: {
-        '@type': 'Answer',
-        text: 'Creas un grupo, compartes el link con tus amigos, y cuando todos se unan, realizas el sorteo automático. Cada persona ve solo a quién le tocó regalar.',
-      },
-    },
-    {
-      '@type': 'Question',
-      name: '¿GhostSwap es gratis?',
-      acceptedAnswer: {
-        '@type': 'Answer',
-        text: 'Sí, GhostSwap es 100% gratis. No hay costos ocultos ni versiones premium.',
-      },
-    },
-    {
-      '@type': 'Question',
-      name: '¿Cuántas personas pueden participar en un grupo?',
-      acceptedAnswer: {
-        '@type': 'Answer',
-        text: 'Se necesitan al menos 3 participantes para realizar el sorteo. No hay límite máximo de participantes.',
-      },
-    },
-  ],
+  mainEntity: FAQ.map(({ q, a }) => ({
+    '@type': 'Question',
+    name: q,
+    acceptedAnswer: { '@type': 'Answer', text: a },
+  })),
 }
+
+// Static constants only. Escaping "<" keeps the JSON from ever closing the script tag,
+// as the Next.js docs recommend for JSON-LD.
+const ld = (data: object) => ({ __html: JSON.stringify(data).replace(/</g, '\\u003c') })
+
+const len = (n: number) => ({ '--len': n }) as React.CSSProperties
 
 export default function LandingPage() {
   return (
-    <div className="flex min-h-screen flex-col bg-slate-50">
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
-      />
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(faqJsonLd) }}
-      />
-      <LandingHeader />
+    <div className={s.page}>
+      <script type="application/ld+json" dangerouslySetInnerHTML={ld(jsonLd)} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={ld(faqJsonLd)} />
 
-      <main className="flex-1" role="main">
-        {/* Hero Section */}
-        <section className="relative px-4 py-20 md:py-32" aria-labelledby="hero-title">
-          <AuroraBackground />
-          <div className="pointer-events-none absolute inset-0 bg-slate-50/70" aria-hidden="true" />
-
-          <div className="relative z-10 mx-auto max-w-3xl space-y-8 text-center">
-            <div className="inline-flex items-center gap-2 rounded-full border border-indigo-100 bg-indigo-50 px-3 py-1.5 text-sm font-medium text-indigo-600">
-              <Star className="h-3.5 w-3.5" aria-hidden="true" />
-              Sorteos invisibles, regalos inolvidables
-            </div>
-
-            <h1
-              id="hero-title"
-              className="text-4xl font-bold tracking-tight text-slate-900 md:text-5xl lg:text-6xl"
-            >
-              Organiza el <ScrambleTitle /> más genial
-            </h1>
-
-            <p className="mx-auto max-w-xl text-lg leading-relaxed text-slate-600">
-              Crea tu grupo, comparte el link, y el sorteo se hace solo. Sin ads. Sin tracking. Sin
-              que nadie pueda espiar.
-            </p>
-
-            <div className="flex flex-col items-center justify-center gap-3 pt-2 sm:flex-row">
-              <Link href="/login" className="w-full sm:w-auto">
-                <Button
-                  size="lg"
-                  className="h-12 w-full bg-indigo-600 text-base shadow-lg shadow-indigo-200/50 hover:bg-indigo-700"
-                >
-                  Crear mi grupo
-                </Button>
-              </Link>
-              <Link href="/join" className="w-full sm:w-auto">
-                <Button
-                  size="lg"
-                  variant="outline"
-                  className="h-12 w-full border-slate-300 bg-white text-base text-slate-700 hover:bg-slate-50"
-                >
-                  Unirme a un grupo
-                </Button>
-              </Link>
-            </div>
-
-            <div
-              className="flex items-center justify-center gap-6 text-sm text-slate-500"
-              aria-label="Beneficios de GhostSwap"
-            >
-              <div className="flex items-center gap-1.5">
-                <Ghost className="h-4 w-4" aria-hidden="true" />
-                <span>100% Gratis</span>
-              </div>
-              <div className="flex items-center gap-1.5">
-                <Users className="h-4 w-4" aria-hidden="true" />
-                <span>Sin ads, sin tracking</span>
+      <div className={s.wrap}>
+        <div className={s.first}>
+          <LandingHeader />
+          <div className={s.hero}>
+            <div>
+              <p className={s.kicker}>Para la familia, los amigos o la oficina</p>
+              <h1 className={s.h1}>
+                Arma tu <ScrambleTitle /> en un minuto.
+              </h1>
+              <p className={s.lede}>
+                Creas el grupo, mandas el link y GhostSwap hace el sorteo. Cada persona ve solo a
+                quién le regala, y eso también corre para quien organiza.
+              </p>
+              <div className={s.actions}>
+                <Link className={s.btn} href="/login">
+                  Crear un grupo
+                </Link>
+                <Link className={s.quiet} href="/join">
+                  Tengo un código de invitación
+                </Link>
               </div>
             </div>
+            <svg
+              className={s.sketch}
+              viewBox="0 0 300 330"
+              role="img"
+              aria-label="Dibujo a mano de un fantasma que sostiene un papelito doblado"
+            >
+              <path
+                className={`${s.line} ${s.draw}`}
+                style={len(900)}
+                d="M70 300c-6-60-14-120-2-168 12-50 52-84 96-82 46 2 80 40 86 92 6 52-4 104-8 158-12-8-22-18-34-10-10 8-18 18-30 10-12-8-20-20-34-12-12 8-20 20-34 14-14-6-26-12-40-2"
+              />
+              <circle className={s.dot} cx="128" cy="134" r="5" />
+              <circle className={s.dot} cx="172" cy="134" r="5" />
+              <path
+                className={`${s.line} ${s.draw}`}
+                style={len(220)}
+                d="M200 188l58-14 10 44-58 14z M229 181l10 44"
+              />
+              <path className={`${s.line} ${s.draw}`} style={len(80)} d="M186 200c8-2 14 2 18 8" />
+              <text className={s.note} x="216" y="262">
+                p/ ti
+              </text>
+            </svg>
           </div>
-        </section>
+        </div>
 
-        {/* How it works — card reveal on scroll */}
-        <section
-          className="border-y border-slate-200 bg-white py-20"
-          aria-labelledby="how-it-works-title"
-        >
-          <div className="container mx-auto px-4">
-            <ScrollReveal>
-              <div className="mb-16 text-center">
-                <h2 id="how-it-works-title" className="mb-4 text-3xl font-bold text-slate-900">
-                  ¿Cómo funciona?
+        <main>
+          <section
+            id="por-dentro"
+            className={`${s.section} ${s.fullscreen}`}
+            aria-labelledby="t-dentro"
+          >
+            <p className={s.label}>Por dentro</p>
+            <div className={s.inside}>
+              <InsideDemo />
+              <div>
+                <h2 id="t-dentro" className={s.h2}>
+                  Así se ve cuando te toca
                 </h2>
-                <p className="text-lg text-slate-500">Tres pasos. Sin complicaciones.</p>
+                <p className={s.sub}>
+                  Cuando entras al grupo ves a quién le regalas y lo que anotó en su lista. Desde
+                  ahí mismo le puedes escribir sin que sepa que eres tú. Prueba la pantalla de al
+                  lado.
+                </p>
+                <ol className={s.notes}>
+                  {INSIDE.map((item, i) => (
+                    <li key={item.title}>
+                      <span className={s.n}>{i + 1}</span>
+                      <div>
+                        <h3>{item.title}</h3>
+                        <p>{item.text}</p>
+                      </div>
+                    </li>
+                  ))}
+                </ol>
               </div>
-            </ScrollReveal>
+            </div>
+          </section>
 
-            <StaggerReveal
-              className="mx-auto grid max-w-5xl list-none gap-12 md:grid-cols-3"
-              stagger={0.15}
-            >
-              <StaggerItem>
-                <li className="flex flex-col items-center space-y-4 text-center">
-                  <div
-                    className="mb-2 flex h-16 w-16 rotate-3 items-center justify-center rounded-2xl bg-rose-100 text-rose-600 transition-transform hover:rotate-6"
-                    aria-hidden="true"
-                  >
-                    <Calendar className="h-8 w-8" />
-                  </div>
-                  <h3 className="text-xl font-bold text-slate-900">1. Crea tu grupo</h3>
-                  <p className="leading-relaxed text-slate-600">
-                    Nombre, fecha, presupuesto y moneda. Listo.
-                  </p>
+          <section className={`${s.section} ${s.fullscreen}`} aria-labelledby="t-pasos">
+            <p className={s.label}>Pasos</p>
+            <h2 id="t-pasos" className={s.h2}>
+              Cómo se arma
+            </h2>
+            <ol className={s.steps}>
+              {STEPS.map((step, i) => (
+                <li key={step.title}>
+                  <span className={s.n}>{i + 1}</span>
+                  <h3>{step.title}</h3>
+                  <p>{step.text}</p>
                 </li>
-              </StaggerItem>
+              ))}
+            </ol>
+          </section>
 
-              <StaggerItem>
-                <li className="flex flex-col items-center space-y-4 text-center">
-                  <div
-                    className="mb-2 flex h-16 w-16 -rotate-3 items-center justify-center rounded-2xl bg-indigo-100 text-indigo-600 transition-transform hover:-rotate-6"
-                    aria-hidden="true"
-                  >
-                    <Share2 className="h-8 w-8" />
-                  </div>
-                  <h3 className="text-xl font-bold text-slate-900">2. Comparte el link</h3>
-                  <p className="leading-relaxed text-slate-600">
-                    Tus amigos entran con Google o magic link. Cero fricción.
-                  </p>
-                </li>
-              </StaggerItem>
-
-              <StaggerItem>
-                <li className="flex flex-col items-center space-y-4 text-center">
-                  <div
-                    className="mb-2 flex h-16 w-16 rotate-3 items-center justify-center rounded-2xl bg-teal-100 text-teal-600 transition-transform hover:rotate-6"
-                    aria-hidden="true"
-                  >
-                    <Shuffle className="h-8 w-8" />
-                  </div>
-                  <h3 className="text-xl font-bold text-slate-900">3. Sortear</h3>
-                  <p className="leading-relaxed text-slate-600">
-                    Un clic. Nadie se regala a sí mismo. Nadie puede espiar. Fin.
-                  </p>
-                </li>
-              </StaggerItem>
-            </StaggerReveal>
-          </div>
-        </section>
-
-        {/* Privacy Section — card reveal */}
-        <section className="relative overflow-hidden px-4 py-20" aria-labelledby="privacy-title">
-          <SectionAurora />
-
-          <div className="relative z-10">
-            <ScrollReveal className="mx-auto mb-10 max-w-4xl">
-              <div className="mb-8 text-center">
-                <h2 id="privacy-title" className="mb-3 text-2xl font-bold text-slate-900">
-                  Privacidad que se demuestra, no se promete
+          <section
+            id="privacidad"
+            className={`${s.section} ${s.fullscreen}`}
+            aria-labelledby="t-priv"
+          >
+            <div className={s.privacy}>
+              <div>
+                <p className={s.label}>Privacidad</p>
+                <h2 id="t-priv" className={s.h2}>
+                  Quien organiza tampoco sabe a quién te tocó
                 </h2>
-                <p className="mx-auto max-w-lg text-slate-600">
-                  Ni siquiera el admin puede ver las asignaciones. Cada persona solo ve la suya.
-                  Pruébalo.
+                <p className={s.sub}>
+                  La base de datos le muestra cada asignación solo a la persona que regala. Esa
+                  regla vive en la base, así que nadie se la puede saltar desde la app, ni siquiera
+                  quien armó el grupo.
                 </p>
               </div>
-            </ScrollReveal>
+              <div className={s.sealCard}>
+                <div className={s.stamp} aria-hidden="true">
+                  SOLO
+                  <br />
+                  PARA
+                  <br />
+                  TI
+                </div>
+                <dl>
+                  <dt>Tú ves</dt>
+                  <dd>
+                    A quién le regalas, su lista de deseos y lo que te responde en los mensajes
+                    anónimos.
+                  </dd>
+                  <dt>Tu grupo ve</dt>
+                  <dd>Que estás dentro y tu lista de deseos.</dd>
+                  <dt>Quien organiza</dt>
+                  <dd>Que el sorteo ya se hizo.</dd>
+                  <dt>Nosotros</dt>
+                  <dd>No mostramos anuncios ni vendemos tus datos. Tampoco te rastreamos.</dd>
+                </dl>
+              </div>
+            </div>
+          </section>
 
-            <CardReveal className="mx-auto mb-16 max-w-4xl">
-              <PrivacyDemo />
-            </CardReveal>
+          <ul className={s.facts} aria-label="Lo que incluye">
+            <li>
+              <b>Gratis</b>, sin plan pagado
+            </li>
+            <li>
+              <b>Mensajes anónimos</b> con tu amigo secreto
+            </li>
+            <li>
+              Puedes evitar que se toquen <b>parejas o hermanos</b>
+            </li>
+            <li>
+              <b>Listas de deseos</b> con links
+            </li>
+          </ul>
 
-            <ScrollReveal className="mx-auto mb-16 max-w-4xl" delay={0.1}>
-              <AnimatedFeatures />
-            </ScrollReveal>
+          <section className={`${s.section} ${s.fullscreen}`} aria-labelledby="t-faq">
+            <p className={s.label}>Preguntas</p>
+            <h2 id="t-faq" className={s.h2}>
+              Lo que suelen preguntar
+            </h2>
+            <div className={s.faq}>
+              {FAQ.map(({ q, a }) => (
+                <div key={q}>
+                  <h3>{q}</h3>
+                  <p>{a}</p>
+                </div>
+              ))}
+            </div>
+          </section>
 
-            {/* CTA Final */}
-            <ScrollReveal className="mx-auto max-w-2xl text-center" delay={0.1}>
-              <h2 className="mb-4 text-2xl font-bold text-slate-900">
-                ¿Listos para el intercambio?
-              </h2>
-              <p className="mb-6 text-slate-600">En menos de un minuto tendrás tu grupo listo.</p>
-              <Link href="/login">
-                <Button
-                  size="lg"
-                  className="h-12 bg-indigo-600 px-8 text-base shadow-lg shadow-indigo-200/50 hover:bg-indigo-700"
-                >
-                  Comenzar ahora
-                </Button>
-              </Link>
-            </ScrollReveal>
-          </div>
-        </section>
-      </main>
+          <section className={`${s.section} ${s.closing}`} aria-labelledby="t-end">
+            <h2 id="t-end" className={s.h2}>
+              ¿Armamos el de este año?
+            </h2>
+            <Link className={s.btn} href="/login">
+              Crear un grupo
+            </Link>
+          </section>
+        </main>
 
-      <Footer />
+        <Footer />
+      </div>
     </div>
   )
 }

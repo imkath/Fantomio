@@ -1,16 +1,26 @@
 import type React from 'react'
 import type { Metadata, Viewport } from 'next'
-import { Inter, JetBrains_Mono } from 'next/font/google'
+import { Zen_Kaku_Gothic_New, Dela_Gothic_One, Courier_Prime } from 'next/font/google'
 import { Toaster } from '@/components/ui/sonner'
+import { ThemeProvider } from '@/components/theme-provider'
 import './globals.css'
 
-const inter = Inter({
+const zenKaku = Zen_Kaku_Gothic_New({
   subsets: ['latin'],
+  weight: ['300', '400', '500', '700'],
   variable: '--font-sans',
 })
 
-const jetbrainsMono = JetBrains_Mono({
+// Only for the wordmark and a few display moments.
+const delaGothic = Dela_Gothic_One({
   subsets: ['latin'],
+  weight: '400',
+  variable: '--font-display',
+})
+
+const courierPrime = Courier_Prime({
+  subsets: ['latin'],
+  weight: ['400', '700'],
   variable: '--font-mono',
 })
 
@@ -18,7 +28,10 @@ export const viewport: Viewport = {
   width: 'device-width',
   initialScale: 1,
   maximumScale: 5,
-  themeColor: '#4f46e5',
+  themeColor: [
+    { media: '(prefers-color-scheme: light)', color: '#ffffff' },
+    { media: '(prefers-color-scheme: dark)', color: '#131312' },
+  ],
 }
 
 export const metadata: Metadata = {
@@ -100,17 +113,25 @@ export default function RootLayout({
   children: React.ReactNode
 }>) {
   return (
-    <html lang="es">
+    <html lang="es" suppressHydrationWarning>
       <head>
         <link rel="icon" href="/icon.svg" type="image/svg+xml" />
-        <link rel="apple-touch-icon" href="/apple-touch-icon.svg" />
+        <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
         <link rel="manifest" href="/manifest.json" />
       </head>
       <body
-        className={`${inter.variable} ${jetbrainsMono.variable} bg-background text-foreground min-h-screen font-sans antialiased`}
+        className={`${zenKaku.variable} ${delaGothic.variable} ${courierPrime.variable} bg-background text-foreground min-h-screen font-sans antialiased`}
       >
-        {children}
-        <Toaster position="top-center" richColors />
+        {/* Light by default: most people organizing a family or office exchange expect it. */}
+        <ThemeProvider
+          attribute="class"
+          defaultTheme="light"
+          enableSystem={false}
+          disableTransitionOnChange
+        >
+          {children}
+          <Toaster position="top-center" richColors />
+        </ThemeProvider>
       </body>
     </html>
   )

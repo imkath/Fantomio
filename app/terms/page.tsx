@@ -21,7 +21,7 @@ function Section({ title, children }: { title: string; children: React.ReactNode
 
 export default function TermsPage() {
   return (
-    <div className="flex min-h-screen flex-col bg-slate-50">
+    <div className="mx-auto flex min-h-screen w-full max-w-[1040px] flex-col px-4 md:px-8">
       <LandingHeader />
 
       <main className="container mx-auto max-w-3xl flex-1 px-4 py-8">
