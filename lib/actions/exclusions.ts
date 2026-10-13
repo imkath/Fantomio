@@ -1,7 +1,6 @@
-'use server'
+// Runs in the browser with the person's session; RLS decides what each call may do.
 
-import { createClient } from '@/lib/supabase-server'
-import { revalidatePath } from 'next/cache'
+import { createClient } from '@/lib/supabase'
 import { addExclusionSchema, removeExclusionSchema } from '@/lib/validations'
 
 interface ExclusionResult {
@@ -42,10 +41,13 @@ export async function addExclusion(
     return { success: false, error: validation.error.errors[0].message }
   }
 
-  const supabase = await createClient()
+  const supabase = createClient()
 
   // Get current user
-  const { data: { user }, error: userError } = await supabase.auth.getUser()
+  const {
+    data: { user },
+    error: userError,
+  } = await supabase.auth.getUser()
 
   if (userError || !user) {
     return { success: false, error: 'No autenticado' }
@@ -82,13 +84,11 @@ export async function addExclusion(
   }
 
   // Insert exclusion
-  const { error: insertError } = await supabase
-    .from('exclusions')
-    .insert({
-      group_id: groupId,
-      giver_id: giverId,
-      excluded_receiver_id: excludedReceiverId,
-    })
+  const { error: insertError } = await supabase.from('exclusions').insert({
+    group_id: groupId,
+    giver_id: giverId,
+    excluded_receiver_id: excludedReceiverId,
+  })
 
   if (insertError) {
     // Handle unique constraint violation
@@ -98,8 +98,6 @@ export async function addExclusion(
     console.error('Error inserting exclusion:', insertError)
     return { success: false, error: 'Error al crear la restricción' }
   }
-
-  revalidatePath(`/groups/${groupId}`)
 
   return { success: true }
 }
@@ -115,10 +113,13 @@ export async function removeExclusion(exclusionId: string): Promise<ExclusionRes
     return { success: false, error: validation.error.errors[0].message }
   }
 
-  const supabase = await createClient()
+  const supabase = createClient()
 
   // Get current user
-  const { data: { user }, error: userError } = await supabase.auth.getUser()
+  const {
+    data: { user },
+    error: userError,
+  } = await supabase.auth.getUser()
 
   if (userError || !user) {
     return { success: false, error: 'No autenticado' }
@@ -146,17 +147,12 @@ export async function removeExclusion(exclusionId: string): Promise<ExclusionRes
   }
 
   // Delete exclusion
-  const { error: deleteError } = await supabase
-    .from('exclusions')
-    .delete()
-    .eq('id', exclusionId)
+  const { error: deleteError } = await supabase.from('exclusions').delete().eq('id', exclusionId)
 
   if (deleteError) {
     console.error('Error deleting exclusion:', deleteError)
     return { success: false, error: 'Error al eliminar la restricción' }
   }
-
-  revalidatePath(`/groups/${exclusion.group_id}`)
 
   return { success: true }
 }
@@ -165,10 +161,13 @@ export async function removeExclusion(exclusionId: string): Promise<ExclusionRes
  * Get all exclusions for a group
  */
 export async function getExclusions(groupId: string): Promise<GetExclusionsResult> {
-  const supabase = await createClient()
+  const supabase = createClient()
 
   // Get current user
-  const { data: { user }, error: userError } = await supabase.auth.getUser()
+  const {
+    data: { user },
+    error: userError,
+  } = await supabase.auth.getUser()
 
   if (userError || !user) {
     return { success: false, error: 'No autenticado' }

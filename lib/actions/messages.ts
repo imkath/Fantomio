@@ -1,6 +1,6 @@
-'use server'
+// Runs in the browser with the person's session; RLS decides what each call may do.
 
-import { createClient } from '@/lib/supabase-server'
+import { createClient } from '@/lib/supabase'
 import { z } from 'zod'
 
 const sendMessageSchema = z.object({
@@ -24,7 +24,7 @@ export async function sendAnonymousMessage(
     return { success: false, error: parsed.error.errors[0].message }
   }
 
-  const supabase = await createClient()
+  const supabase = createClient()
 
   const {
     data: { user },
@@ -61,7 +61,7 @@ export async function getGiverMessages(matchId: string): Promise<{
   messages: Message[]
   error?: string
 }> {
-  const supabase = await createClient()
+  const supabase = createClient()
 
   const {
     data: { user },
@@ -100,7 +100,7 @@ export async function getReceiverMessages(groupId: string): Promise<{
   matchId: string | null
   error?: string
 }> {
-  const supabase = await createClient()
+  const supabase = createClient()
 
   const {
     data: { user },

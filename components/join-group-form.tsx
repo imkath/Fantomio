@@ -1,5 +1,6 @@
 'use client'
 
+import { groupPath } from '@/lib/routes'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { ArrowRight, Loader2 } from 'lucide-react'
@@ -80,7 +81,7 @@ export function JoinGroupForm({
           .eq('user_id', user.id)
           .maybeSingle()
         if (existing) {
-          router.push(`/groups/${group.id}`)
+          router.push(groupPath(group.id))
           return
         }
         if (group.status === 'DRAWN') {
@@ -108,7 +109,7 @@ export function JoinGroupForm({
         })
 
         setJoined(true)
-        setTimeout(() => router.push(`/groups/${group.id}`), 1200)
+        setTimeout(() => router.push(groupPath(group.id)), 1200)
       } catch {
         fail('No pudimos conectar. Revisa tu internet e intenta de nuevo.')
       }

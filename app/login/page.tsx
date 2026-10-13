@@ -7,11 +7,14 @@ import { useState, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase'
+import { safeRedirect } from '@/lib/routes'
+import { useSignedInRedirect } from '@/lib/use-signed-in-redirect'
 
 function LoginForm() {
   const router = useRouter()
   const searchParams = useSearchParams()
-  const redirectTo = searchParams.get('redirectTo') || '/dashboard'
+  const redirectTo = safeRedirect(searchParams.get('redirectTo'))
+  useSignedInRedirect(redirectTo)
   const verified = searchParams.get('verified') === 'true'
   const urlError = searchParams.get('error')
   const [email, setEmail] = useState('')

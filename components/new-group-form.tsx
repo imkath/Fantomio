@@ -1,5 +1,6 @@
 'use client'
 
+import { groupPath } from '@/lib/routes'
 import { useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Loader2, Plus } from 'lucide-react'
@@ -9,7 +10,7 @@ import { Notice } from '@/components/auth-shell'
 import { createClient, getSessionUser } from '@/lib/supabase'
 import { getUserFriendlyError } from '@/lib/errors'
 
-// Create a group. Used by the /groups/new page and by the "Crear grupo" modal in the dashboard.
+// Create a group, from the "Crear grupo" modal in the dashboard.
 
 const currencies = [
   { code: 'CLP', symbol: '$', name: 'Peso chileno', defaultBudget: '15000' },
@@ -102,7 +103,7 @@ export function NewGroupForm({
         message: `Grupo "${name}" creado`,
       })
 
-      router.push(`/groups/${group.id}`)
+      router.push(groupPath(group.id))
     } catch (err) {
       setError(getUserFriendlyError(err as { code?: string; message?: string }))
       setIsLoading(false)

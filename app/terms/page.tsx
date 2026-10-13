@@ -5,7 +5,8 @@ import { Footer } from '@/components/footer'
 import { LEGAL } from '@/lib/legal'
 
 export const metadata: Metadata = {
-  title: 'Términos del Servicio - GhostSwap',
+  alternates: { canonical: '/terms' },
+  title: 'Términos del servicio',
   description: 'Condiciones de uso de GhostSwap para organizar tu Amigo Secreto.',
 }
 

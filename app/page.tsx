@@ -1,3 +1,4 @@
+import type { Metadata } from 'next'
 import Link from 'next/link'
 import { LandingHeader } from '@/components/landing-header'
 import { Footer } from '@/components/footer'
@@ -7,6 +8,10 @@ import { HeroEyes } from '@/components/landing/hero-eyes'
 import { DrawDemo } from '@/components/landing/draw-demo'
 import { StepsStory } from '@/components/landing/steps-story'
 import s from '@/components/landing/landing.module.css'
+
+export const metadata: Metadata = {
+  alternates: { canonical: '/' },
+}
 
 const STEPS = [
   {

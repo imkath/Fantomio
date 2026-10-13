@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { Button } from '@/components/ui/button'
 import { Loader2, MessageCircle, Send } from 'lucide-react'
-import { sendAnonymousMessage, getGiverMessages, getReceiverMessages } from '@/app/actions/messages'
+import { sendAnonymousMessage, getGiverMessages, getReceiverMessages } from '@/lib/actions/messages'
 import { toast } from 'sonner'
 import { createClient } from '@/lib/supabase'
 

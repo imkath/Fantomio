@@ -5,7 +5,8 @@ import { Footer } from '@/components/footer'
 import { LEGAL } from '@/lib/legal'
 
 export const metadata: Metadata = {
-  title: 'Política de Privacidad - GhostSwap',
+  alternates: { canonical: '/privacy' },
+  title: 'Política de privacidad',
   description: 'Qué datos trata GhostSwap, para qué, quién los ve y cómo ejercer tus derechos.',
 }
 

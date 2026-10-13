@@ -101,3 +101,13 @@ describe('formatName', () => {
     expect(formatName(null)).toBe('')
   })
 })
+
+describe('safeRedirect', () => {
+  it('keeps paths inside the site and rejects other domains', async () => {
+    const { safeRedirect } = await import('../routes')
+    expect(safeRedirect('/groups?id=1')).toBe('/groups?id=1')
+    expect(safeRedirect('//evil.com')).toBe('/dashboard')
+    expect(safeRedirect('https://evil.com')).toBe('/dashboard')
+    expect(safeRedirect(null)).toBe('/dashboard')
+  })
+})

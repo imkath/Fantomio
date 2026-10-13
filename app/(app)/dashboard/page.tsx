@@ -1,5 +1,6 @@
 'use client'
 
+import { groupPath } from '@/lib/routes'
 import { Button, buttonVariants } from '@/components/ui/button'
 import {
   AlertDialog,
@@ -95,6 +96,14 @@ export default function DashboardPage() {
     setDirty(false)
     setConfirmClose(false)
   }
+
+  // Old /groups/new links land here as ?new=1 (public/_redirects): open the create modal.
+  useEffect(() => {
+    if (new URLSearchParams(window.location.search).get('new') === '1') {
+      setModal('new')
+      window.history.replaceState(null, '', '/dashboard')
+    }
+  }, [])
 
   useEffect(() => {
     const checkUser = async () => {
@@ -233,7 +242,7 @@ export default function DashboardPage() {
             {groups.map((group) => (
               <li key={group.id}>
                 <Link
-                  href={`/groups/${group.id}`}
+                  href={groupPath(group.id)}
                   className="border-rule bg-raised hover:border-ink group relative flex h-full flex-col rounded-[4px] border p-6 pt-8 transition-colors"
                 >
                   <h2 className="mb-5 text-xl leading-snug font-bold break-words">{group.name}</h2>

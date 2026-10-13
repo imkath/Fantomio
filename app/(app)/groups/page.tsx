@@ -1,5 +1,6 @@
 'use client'
 
+import { groupPath } from '@/lib/routes'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
@@ -25,19 +26,20 @@ import {
   Trash2,
   UserMinus,
 } from 'lucide-react'
-import { useParams, useRouter } from 'next/navigation'
-import { useEffect, useState, useCallback } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
+import { useEffect, useState, useCallback, Suspense } from 'react'
+import GroupLoading from './loading'
 import Link from 'next/link'
 import { BackLink } from '@/components/back-link'
 import { createClient, getSessionUser } from '@/lib/supabase'
-import { drawNames, resetDraw } from '@/app/actions/draw'
+import { drawNames, resetDraw } from '@/lib/actions/draw'
 import {
   updateGroup,
   deleteGroup,
   leaveGroup,
   getGroupActivities,
   removeMember,
-} from '@/app/actions/group'
+} from '@/lib/actions/group'
 import { GhostMark } from '@/components/ghost-mark'
 import { GhostAvatar } from '@/components/ghost-avatar'
 import { celebrate } from '@/lib/confetti'
@@ -85,10 +87,10 @@ interface Group {
   admin_id: string
 }
 
-export default function GroupPage() {
-  const params = useParams()
+function GroupPage() {
+  const params = useSearchParams()
   const router = useRouter()
-  const groupId = params.id as string
+  const groupId = params.get('id') ?? ''
 
   const [group, setGroup] = useState<Group | null>(null)
   const [members, setMembers] = useState<Member[]>([])
@@ -479,7 +481,7 @@ export default function GroupPage() {
               <Button
                 variant="outline"
                 onClick={() => {
-                  const groupUrl = `${window.location.origin}/groups/${group.id}`
+                  const groupUrl = `${window.location.origin}${groupPath(group.id)}`
                   const text = `Ya hicimos el sorteo de *${group.name}*.\n\nEntra para ver a quién le regalas:\n${groupUrl}`
                   window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank')
                 }}
@@ -999,5 +1001,14 @@ export default function GroupPage() {
         </DialogContent>
       </Dialog>
     </div>
+  )
+}
+
+// useSearchParams needs a Suspense boundary in a static export.
+export default function GroupPageWithId() {
+  return (
+    <Suspense fallback={<GroupLoading />}>
+      <GroupPage />
+    </Suspense>
   )
 }

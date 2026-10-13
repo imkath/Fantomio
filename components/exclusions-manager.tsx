@@ -17,7 +17,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { addExclusion, removeExclusion, getExclusions } from '@/app/actions/exclusions'
+import { addExclusion, removeExclusion, getExclusions } from '@/lib/actions/exclusions'
 import { toast } from 'sonner'
 import { Loader2, Plus, Trash2, UserX } from 'lucide-react'
 

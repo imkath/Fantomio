@@ -1,0 +1,7 @@
+# Google Search Console asks for this file at its exact path and fails on a redirect, while
+# the site's HTML handling would redirect /x.html to /x. A 200 proxy serves it in place.
+/google7fd3d25307db1a76.html /google-site-verification 200
+
+# Old links (emails already sent, WhatsApp, bookmarks) to the server-rendered routes.
+/groups/new /dashboard?new=1 302
+/groups/:id /groups?id=:id 301

@@ -121,9 +121,23 @@ export const AUTH_EMAILS = {
   },
 }
 
-// Sent by the database (see the notifications migration) through Brevo, so the app never
-// needs the asker's address. {{GROUP}}, {{NAME}} and {{URL}} are filled in, escaped, there.
+// Sent by the database (see the notifications and draw migrations) through Brevo, so the app
+// never needs anyone's address. {{GROUP}}, {{NAME}} and {{URL}} are filled in, escaped, there.
 export const NOTIFICATION_EMAILS = {
+  // {{NAME}} here is the recipient: the draw email never names their match.
+  draw: {
+    subject: 'Ya hicimos el sorteo de {{GROUP}}',
+    html: emailLayout({
+      label: '{{GROUP}}',
+      title: 'Ya hicimos el sorteo',
+      paragraphs: [
+        'Hola {{NAME}},',
+        'El sorteo de <strong style="color: #1b1b1a;">{{GROUP}}</strong> ya está hecho. Entra para ver a quién le regalas y qué le gustaría recibir.',
+      ],
+      cta: { text: 'Ver a quién me tocó', href: '{{URL}}' },
+      note: 'Solo tú puedes ver a quién te tocó. Si no esperabas este correo, puedes ignorarlo.',
+    }),
+  },
   question: {
     subject: 'Te hicieron una pregunta en {{GROUP}}',
     html: emailLayout({

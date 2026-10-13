@@ -1,5 +1,6 @@
 'use client'
 
+import { groupPath } from '@/lib/routes'
 import Link from 'next/link'
 import { useCallback, useEffect, useState } from 'react'
 import { Bell, ListChecks, MessageCircleQuestion, MessageCircleReply } from 'lucide-react'
@@ -108,7 +109,7 @@ export function NotificationBell({ userId }: { userId: string }) {
               return (
                 <li key={n.id}>
                   <Link
-                    href={`/groups/${n.group_id}`}
+                    href={groupPath(n.group_id)}
                     className="hover:bg-slip flex gap-3 px-4 py-3 transition-colors"
                   >
                     <span className="bg-slip text-ink grid size-9 shrink-0 place-items-center rounded-full">

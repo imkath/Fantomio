@@ -110,12 +110,7 @@ export const metadata: Metadata = {
     images: ['/og-image.png'],
     creator: '@ghostswap',
   },
-  alternates: {
-    canonical: 'https://ghostswap.nvrkth.com',
-    languages: {
-      es: 'https://ghostswap.nvrkth.com',
-    },
-  },
+  // Each page declares its own canonical URL; a canonical here would point every page home.
   category: 'technology',
   verification: {
     // google: 'tu-codigo-de-verificacion', // Agregar cuando tengas Google Search Console

@@ -57,11 +57,11 @@ jobs:
       # Las variables NEXT_PUBLIC_* se incrustan en el bundle durante el build,
       # no se leen en ejecucion. Si faltan aca, el sitio se publica sin poder
       # conectarse a Supabase, aunque esten configuradas en Cloudflare.
-      - name: Build for Cloudflare
+      - name: Build static site
         env:
           NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
-        run: npm run build:cloudflare
+        run: npm run build
 
       - name: Deploy to Cloudflare Workers
         uses: cloudflare/wrangler-action@v3
