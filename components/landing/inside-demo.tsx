@@ -30,8 +30,6 @@ export function InsideDemo() {
       <div className={styles.slip} aria-hidden="true">
         <b>Oficina 2026</b>
         sorteo n.º 0417
-        <br />
-        <span className={styles.slipFor}>p/ ti</span>
         <span className={styles.slipSeal}>
           SOLO
           <br />
