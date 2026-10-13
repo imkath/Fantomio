@@ -27,17 +27,7 @@ function JoinGroupContent() {
     })
   }, [code, router])
 
-  // The heading ships in the static HTML; only the form waits for the session check.
-  if (!ready) {
-    return (
-      <main className="mx-auto max-w-[520px] px-4 pt-8 pb-10 md:pb-16">
-        <h1 className="mt-6 mb-2 text-[34px] leading-tight font-light min-[1440px]:mt-0 md:text-[40px]">
-          Unirme a un grupo
-        </h1>
-        <Loader2 className="text-faint mt-6 h-8 w-8 animate-spin" />
-      </main>
-    )
-  }
+  if (!ready) return <JoinLoading />
 
   return (
     <div className="bg-paper text-ink min-h-[calc(100vh-69px)]">
@@ -53,15 +43,22 @@ function JoinGroupContent() {
   )
 }
 
+// What ships in the static HTML while the query and the session are read: the heading is
+// already there, only the form waits.
+function JoinLoading() {
+  return (
+    <main className="mx-auto max-w-[520px] px-4 pt-8 pb-10 md:pb-16">
+      <h1 className="mt-6 mb-2 text-[34px] leading-tight font-light min-[1440px]:mt-0 md:text-[40px]">
+        Unirme a un grupo
+      </h1>
+      <Loader2 className="text-faint mt-6 h-8 w-8 animate-spin" aria-label="Cargando" />
+    </main>
+  )
+}
+
 export default function JoinGroupPage() {
   return (
-    <Suspense
-      fallback={
-        <div className="bg-paper flex min-h-[calc(100vh-69px)] items-center justify-center">
-          <Loader2 className="text-faint h-8 w-8 animate-spin" />
-        </div>
-      }
-    >
+    <Suspense fallback={<JoinLoading />}>
       <JoinGroupContent />
     </Suspense>
   )
