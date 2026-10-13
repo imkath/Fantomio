@@ -51,29 +51,16 @@ export const viewport: Viewport = {
 
 export const metadata: Metadata = {
   metadataBase: new URL('https://ghostswap.nvrkth.com'),
+  // "Amigo secreto" is the term people use in 9 of the 10 Spanish-speaking countries
+  // measured (Google autocomplete, oct-2026); Spain says "amigo invisible".
   title: {
-    default: 'GhostSwap - Organiza tu Amigo Secreto Online Gratis',
+    default: 'Amigo Secreto online gratis, con lista de deseos | GhostSwap',
     template: '%s | GhostSwap',
   },
   description:
-    'Organiza tu Amigo Secreto o intercambio de regalos online gratis con GhostSwap. Sorteos automáticos, listas de deseos y compartir por WhatsApp. La mejor app para Secret Santa en español.',
-  keywords: [
-    'amigo secreto',
-    'amigo secreto online',
-    'sorteo amigo secreto',
-    'intercambio de regalos',
-    'secret santa',
-    'secret santa online',
-    'sorteo navidad',
-    'amigo invisible',
-    'intercambio navideño',
-    'sorteo de regalos',
-    'organizar amigo secreto',
-    'app amigo secreto gratis',
-  ],
-  authors: [{ name: 'GhostSwap' }],
-  creator: 'GhostSwap',
-  publisher: 'GhostSwap',
+    'Organiza tu Amigo Secreto online gratis. Crea el grupo, comparte el link por WhatsApp y cada persona ve solo a quién le regala, con su lista de deseos.',
+  applicationName: 'GhostSwap',
+  authors: [{ name: 'Kath', url: 'https://nvrkth.com' }],
   robots: {
     index: true,
     follow: true,
@@ -87,34 +74,29 @@ export const metadata: Metadata = {
   },
   openGraph: {
     type: 'website',
-    locale: 'es_ES',
+    locale: 'es_LA',
     url: 'https://ghostswap.nvrkth.com',
     siteName: 'GhostSwap',
-    title: 'GhostSwap - Organiza tu Amigo Secreto Online Gratis',
+    title: 'Amigo Secreto online gratis, con lista de deseos | GhostSwap',
     description:
-      'Organiza tu Amigo Secreto o intercambio de regalos online gratis. Sorteos automáticos, listas de deseos y comparte por WhatsApp.',
+      'Organiza tu Amigo Secreto online gratis. Crea el grupo, comparte el link por WhatsApp y cada persona ve solo a quién le regala, con su lista de deseos.',
     images: [
       {
         url: '/og-image.png',
         width: 1200,
         height: 630,
-        alt: 'GhostSwap - Amigo Secreto Online',
+        alt: 'GhostSwap, arma tu Amigo Secreto en un minuto',
       },
     ],
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'GhostSwap - Organiza tu Amigo Secreto Online Gratis',
+    title: 'Amigo Secreto online gratis, con lista de deseos | GhostSwap',
     description:
-      'Organiza tu Amigo Secreto o intercambio de regalos online gratis. Sorteos automáticos y listas de deseos.',
+      'Organiza tu Amigo Secreto online gratis. Crea el grupo, comparte el link por WhatsApp y cada persona ve solo a quién le regala, con su lista de deseos.',
     images: ['/og-image.png'],
-    creator: '@ghostswap',
   },
   // Each page declares its own canonical URL; a canonical here would point every page home.
-  category: 'technology',
-  verification: {
-    // google: 'tu-codigo-de-verificacion', // Agregar cuando tengas Google Search Console
-  },
 }
 
 export default function RootLayout({

@@ -203,7 +203,7 @@ describe('getUserFriendlyError', () => {
     it('uses code when both code and message are provided', () => {
       const result = getUserFriendlyError({
         code: 'invalid_credentials',
-        message: 'some other message'
+        message: 'some other message',
       })
       expect(result).toBe('Credenciales incorrectas. Verifica tu email y contraseña.')
     })

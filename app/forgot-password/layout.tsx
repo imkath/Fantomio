@@ -1,7 +1,9 @@
 import type { Metadata } from 'next'
 
 export const metadata: Metadata = {
-  title: 'Recuperar contraseña',
+  title: { absolute: 'Recuperar contraseña | GhostSwap' },
+  description:
+    'Escribe tu correo y te mandamos un enlace para elegir una contraseña nueva en GhostSwap.',
   alternates: { canonical: '/forgot-password' },
 }
 

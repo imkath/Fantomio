@@ -3,8 +3,12 @@
 import { useEffect, useState } from 'react'
 
 // Each word starts as a derangement of its letters (no letter in its own place, the
-// same rule as the draw) and settles one letter at a time. The final spelling is
-// laid out invisibly underneath, so the heading never changes size while it moves.
+// same rule as the draw) and settles one letter at a time.
+//
+// The real word is the only text in the HTML, so search engines and screen readers read
+// "Amigo Secreto" once. While it moves, the word turns transparent (keeping its width, so
+// the heading never changes size) and the shuffled letters are painted over it by
+// .scramble-word::after in globals.css, marked as decorative.
 function derange(letters: string[]): string[] {
   let order: number[]
   do {
@@ -14,7 +18,7 @@ function derange(letters: string[]): string[] {
 }
 
 function ScrambledWord({ word }: { word: string }) {
-  const [shown, setShown] = useState(word)
+  const [shown, setShown] = useState<string | null>(null)
 
   useEffect(() => {
     if (word.length < 2 || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return
@@ -26,16 +30,19 @@ function ScrambledWord({ word }: { word: string }) {
     const timer = setInterval(() => {
       const i = order[step]!
       current[i] = target[i]!
-      setShown(current.join(''))
-      if (++step >= order.length) clearInterval(timer)
+      if (++step >= order.length) {
+        clearInterval(timer)
+        setShown(null)
+      } else {
+        setShown(current.join(''))
+      }
     }, 90)
     return () => clearInterval(timer)
   }, [word])
 
   return (
-    <span className="relative inline-block whitespace-nowrap" aria-hidden="true">
-      <span className="invisible">{word}</span>
-      <span className="absolute top-0 left-0">{shown}</span>
+    <span className="scramble-word" data-shown={shown ?? undefined}>
+      {word}
     </span>
   )
 }
@@ -43,10 +50,7 @@ function ScrambledWord({ word }: { word: string }) {
 export function ScrambleTitle({ text = 'Amigo Secreto' }: { text?: string }) {
   const words = text.split(' ')
   return (
-    // aria-label isn't allowed on a plain span, so screen readers get the real words as
-    // hidden text and the scrambling letters are hidden from them.
     <span className="font-bold">
-      <span className="sr-only">{text}</span>
       {words.map((w, i) => (
         <span key={i}>
           <ScrambledWord word={w} />

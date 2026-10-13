@@ -59,18 +59,38 @@ const FAQ = [
   },
 ]
 
+// One graph: the site, who runs it and the app itself. Everything here is visible on the page.
 const jsonLd = {
   '@context': 'https://schema.org',
-  '@type': 'WebApplication',
-  name: 'GhostSwap',
-  description:
-    'Organiza tu Amigo Secreto o intercambio de regalos online gratis con sorteos automáticos y listas de deseos.',
-  url: 'https://ghostswap.nvrkth.com',
-  applicationCategory: 'EntertainmentApplication',
-  operatingSystem: 'Web',
-  offers: { '@type': 'Offer', price: '0', priceCurrency: 'USD' },
-  inLanguage: 'es',
-  keywords: 'amigo secreto, secret santa, intercambio de regalos, sorteo',
+  '@graph': [
+    {
+      '@type': 'WebSite',
+      '@id': 'https://ghostswap.nvrkth.com/#website',
+      name: 'GhostSwap',
+      url: 'https://ghostswap.nvrkth.com',
+      inLanguage: 'es',
+      publisher: { '@id': 'https://ghostswap.nvrkth.com/#organization' },
+    },
+    {
+      '@type': 'Organization',
+      '@id': 'https://ghostswap.nvrkth.com/#organization',
+      name: 'GhostSwap',
+      url: 'https://ghostswap.nvrkth.com',
+      logo: 'https://ghostswap.nvrkth.com/icon-512.png',
+    },
+    {
+      '@type': 'WebApplication',
+      name: 'GhostSwap',
+      description:
+        'Organiza tu Amigo Secreto online gratis, con sorteo automático, listas de deseos y mensajes anónimos con tu amigo secreto.',
+      url: 'https://ghostswap.nvrkth.com',
+      applicationCategory: 'LifestyleApplication',
+      operatingSystem: 'Web',
+      offers: { '@type': 'Offer', price: '0', priceCurrency: 'USD' },
+      inLanguage: 'es',
+      publisher: { '@id': 'https://ghostswap.nvrkth.com/#organization' },
+    },
+  ],
 }
 
 const faqJsonLd = {
@@ -102,7 +122,7 @@ export default function LandingPage() {
             <div>
               <p className={s.kicker}>Para la familia, los amigos o la oficina</p>
               <h1 className={s.h1}>
-                Arma tu <ScrambleTitle /> en un minuto.
+                Arma tu <ScrambleTitle /> online en un minuto.
               </h1>
               <p className={s.lede}>
                 Creas el grupo, mandas el link y GhostSwap hace el sorteo. Cada persona ve solo a

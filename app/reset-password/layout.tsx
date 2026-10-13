@@ -1,7 +1,8 @@
 import type { Metadata } from 'next'
 
 export const metadata: Metadata = {
-  title: 'Contraseña nueva',
+  title: { absolute: 'Contraseña nueva | GhostSwap' },
+  description: 'Elige una contraseña nueva para tu cuenta de GhostSwap.',
   alternates: { canonical: '/reset-password' },
 }
 

@@ -29,7 +29,7 @@ export interface Participant {
 }
 
 // Group types
-export type GroupStatus = "DRAFT" | "ACTIVE" | "COMPLETED"
+export type GroupStatus = 'DRAFT' | 'ACTIVE' | 'COMPLETED'
 
 export interface Group {
   id: string

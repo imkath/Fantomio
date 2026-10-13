@@ -3,45 +3,17 @@ export const dynamic = 'force-static'
 
 import { MetadataRoute } from 'next'
 
-export default function sitemap(): MetadataRoute.Sitemap {
-  const baseUrl = 'https://ghostswap.nvrkth.com'
+const baseUrl = 'https://ghostswap.nvrkth.com'
 
+// Public pages only (signed-in pages are noindex). lastModified is the date each page's
+// content really changed: Google ignores dates that move on every build. It also ignores
+// changeFrequency and priority, so they're left out.
+export default function sitemap(): MetadataRoute.Sitemap {
   return [
-    {
-      url: baseUrl,
-      lastModified: new Date(),
-      changeFrequency: 'weekly',
-      priority: 1,
-    },
-    {
-      url: `${baseUrl}/login`,
-      lastModified: new Date(),
-      changeFrequency: 'monthly',
-      priority: 0.8,
-    },
-    {
-      url: `${baseUrl}/register`,
-      lastModified: new Date(),
-      changeFrequency: 'monthly',
-      priority: 0.8,
-    },
-    {
-      url: `${baseUrl}/join`,
-      lastModified: new Date(),
-      changeFrequency: 'monthly',
-      priority: 0.7,
-    },
-    {
-      url: `${baseUrl}/privacy`,
-      lastModified: new Date(),
-      changeFrequency: 'yearly',
-      priority: 0.3,
-    },
-    {
-      url: `${baseUrl}/terms`,
-      lastModified: new Date(),
-      changeFrequency: 'yearly',
-      priority: 0.3,
-    },
+    { url: baseUrl, lastModified: '2026-10-13' },
+    { url: `${baseUrl}/login`, lastModified: '2026-10-13' },
+    { url: `${baseUrl}/register`, lastModified: '2026-10-13' },
+    { url: `${baseUrl}/privacy`, lastModified: '2026-10-12' },
+    { url: `${baseUrl}/terms`, lastModified: '2026-10-12' },
   ]
 }

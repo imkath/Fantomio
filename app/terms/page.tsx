@@ -4,6 +4,21 @@ import { LandingHeader } from '@/components/landing-header'
 import { Footer } from '@/components/footer'
 import { LEGAL } from '@/lib/legal'
 
+// Static JSON-LD for the breadcrumb shown above the title.
+const BREADCRUMB = JSON.stringify({
+  '@context': 'https://schema.org',
+  '@type': 'BreadcrumbList',
+  itemListElement: [
+    { '@type': 'ListItem', position: 1, name: 'Inicio', item: 'https://ghostswap.nvrkth.com/' },
+    {
+      '@type': 'ListItem',
+      position: 2,
+      name: 'Términos',
+      item: 'https://ghostswap.nvrkth.com/terms',
+    },
+  ],
+})
+
 export const metadata: Metadata = {
   alternates: { canonical: '/terms' },
   title: 'Términos del servicio',
@@ -26,7 +41,14 @@ export default function TermsPage() {
 
       <main className="text-ink w-full max-w-[720px] flex-1 py-10 md:py-16">
         <div>
-          <p className="text-graphite mb-2 text-[15px] font-medium">Legal</p>
+          <nav aria-label="Ruta" className="text-graphite mb-2 text-[15px] font-medium">
+            <Link href="/" className="hover:text-ink underline underline-offset-[3px]">
+              Inicio
+            </Link>
+            <span aria-hidden="true"> / </span>
+            <span aria-current="page">Términos</span>
+          </nav>
+          <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: BREADCRUMB }} />
           <h1 className="mb-2 text-[34px] leading-tight font-light md:text-[44px]">
             Términos del Servicio
           </h1>

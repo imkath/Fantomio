@@ -55,12 +55,12 @@ describe('generateDerangement - Propiedades Matemáticas', () => {
         // Crear un conjunto para contar cuántas veces aparece cada persona
         const receiverCount = new Map<string, number>()
 
-        result!.forEach(receiver => {
+        result!.forEach((receiver) => {
           receiverCount.set(receiver, (receiverCount.get(receiver) || 0) + 1)
         })
 
         // Cada persona debe aparecer exactamente 1 vez
-        participants.forEach(person => {
+        participants.forEach((person) => {
           expect(receiverCount.get(person)).toBe(1)
         })
 
@@ -78,11 +78,11 @@ describe('generateDerangement - Propiedades Matemáticas', () => {
 
         const receiverCount = new Map<string, number>()
 
-        result!.forEach(receiver => {
+        result!.forEach((receiver) => {
           receiverCount.set(receiver, (receiverCount.get(receiver) || 0) + 1)
         })
 
-        participants.forEach(person => {
+        participants.forEach((person) => {
           expect(receiverCount.get(person)).toBe(1)
         })
 
@@ -114,7 +114,7 @@ describe('generateDerangement - Propiedades Matemáticas', () => {
         expect(uniqueReceivers.size).toBe(receivers.length)
 
         // Verificar que es sobreyectiva (todos los participantes son receivers)
-        participants.forEach(person => {
+        participants.forEach((person) => {
           expect(receivers).toContain(person)
         })
       }
@@ -207,14 +207,14 @@ describe('generateDerangement - Propiedades Matemáticas', () => {
       // Cada par válido debería aparecer con probabilidad razonable
 
       // Verificar que los pares prohibidos (A->A, B->B, etc) nunca ocurren
-      participants.forEach(person => {
+      participants.forEach((person) => {
         const prohibitedPair = `${person}->${person}`
         expect(pairCounts.get(prohibitedPair) || 0).toBe(0)
       })
 
       // Verificar que todos los pares permitidos ocurren al menos una vez
-      participants.forEach(giver => {
-        participants.forEach(receiver => {
+      participants.forEach((giver) => {
+        participants.forEach((receiver) => {
           if (giver !== receiver) {
             const pair = `${giver}->${receiver}`
             const count = pairCounts.get(pair) || 0
@@ -263,11 +263,11 @@ describe('generateDerangement - Propiedades Matemáticas', () => {
 
         // Propiedad 2: Cada persona aparece exactamente una vez
         const receiverCount = new Map<string, number>()
-        result!.forEach(receiver => {
+        result!.forEach((receiver) => {
           receiverCount.set(receiver, (receiverCount.get(receiver) || 0) + 1)
         })
 
-        participants.forEach(person => {
+        participants.forEach((person) => {
           expect(receiverCount.get(person)).toBe(1)
         })
       }
@@ -291,7 +291,7 @@ describe('generateDerangement - Propiedades Matemáticas', () => {
         // Crear el mapeo de assignments
         const assignments = userIds.map((giverId, index) => ({
           giver: giverId,
-          receiver: result![index]
+          receiver: result![index],
         }))
 
         // Verificar que nadie se tiene a sí mismo
@@ -300,12 +300,12 @@ describe('generateDerangement - Propiedades Matemáticas', () => {
         })
 
         // Verificar que cada UUID aparece exactamente una vez como receiver
-        const receivers = assignments.map(a => a.receiver)
+        const receivers = assignments.map((a) => a.receiver)
         const uniqueReceivers = new Set(receivers)
         expect(uniqueReceivers.size).toBe(userIds.length)
 
         // Verificar que todos los receivers están en la lista original
-        receivers.forEach(receiver => {
+        receivers.forEach((receiver) => {
           expect(userIds).toContain(receiver)
         })
       }

@@ -1,0 +1,8 @@
+# GhostSwap
+
+> App web gratuita en español para organizar un Amigo Secreto (Amigo Invisible) online. Se crea un grupo, se comparte el link, cada persona anota su lista de deseos y la app hace el sorteo: nadie se saca a sí mismo, se pueden excluir parejas, y cada uno ve solo a quién le regala. Incluye mensajes anónimos con tu amigo secreto. Sin anuncios.
+
+- [Inicio](https://ghostswap.nvrkth.com/): cómo funciona, privacidad y preguntas frecuentes
+- [Crear cuenta](https://ghostswap.nvrkth.com/register)
+- [Política de privacidad](https://ghostswap.nvrkth.com/privacy)
+- [Términos del servicio](https://ghostswap.nvrkth.com/terms)
