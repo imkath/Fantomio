@@ -252,8 +252,9 @@ export function BlindListsNotice({ missing, isAdmin }: { missing: string[]; isAd
   }
   return (
     <p className="text-[15px]">
-      Para sortear a ciegas, todos tienen que anotar su lista. Faltan las de{' '}
-      <strong>{missing.join(', ')}</strong>.
+      Para sortear a ciegas, todos tienen que anotar su lista.{' '}
+      {missing.length === 1 ? 'Falta la de' : 'Faltan las de'} <strong>{missing.join(', ')}</strong>
+      .
     </p>
   )
 }

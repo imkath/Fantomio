@@ -138,6 +138,7 @@ function GroupPage() {
   const [showDrawConfirm, setShowDrawConfirm] = useState(false)
   const [avoidPrevious, setAvoidPrevious] = useState(true)
   const [missingLists, setMissingLists] = useState<string[]>([])
+  const [showMissingLists, setShowMissingLists] = useState(false)
   const [listCount, setListCount] = useState<{ with_list: number; total: number } | null>(null)
   const wasHidden = useRef<boolean | null>(null)
   const [showRepeat, setShowRepeat] = useState(false)
@@ -602,14 +603,12 @@ function GroupPage() {
               </Button>
             )}
             {isAdmin && !drawn && members.length >= 3 && (
+              // Never a silently disabled button: if lists are missing, tapping explains why.
               <Button
-                onClick={() => setShowDrawConfirm(true)}
-                disabled={isDrawing || blindBlocked}
-                title={
-                  blindBlocked
-                    ? 'Todos tienen que anotar su lista antes del sorteo a ciegas'
-                    : undefined
+                onClick={() =>
+                  blindBlocked ? setShowMissingLists(true) : setShowDrawConfirm(true)
                 }
+                disabled={isDrawing}
               >
                 {isDrawing ? (
                   <Loader2 className="animate-spin" aria-hidden="true" />
@@ -776,6 +775,15 @@ function GroupPage() {
 
             {currentMember && (
               <section className="border-rule rounded-[4px] border p-6 md:p-8">
+                {blind && !drawn && !archived && myWishlist.length === 0 && (
+                  <div className="mb-6">
+                    <Notice tone="ok">
+                      Este es un sorteo a ciegas: quien te regale solo va a tener tu lista como
+                      pista. Anota al menos una cosa, porque sin las listas de todos no se puede
+                      sortear.
+                    </Notice>
+                  </div>
+                )}
                 {archived ? (
                   <div>
                     <h2 className="text-xl font-bold">Tu lista</h2>
@@ -1025,6 +1033,47 @@ function GroupPage() {
       </Dialog>
 
       <RepeatGroupDialog group={group} open={showRepeat} onOpenChange={setShowRepeat} />
+
+      {/* Blind draw blocked: say why and help fix it */}
+      <Dialog open={showMissingLists} onOpenChange={setShowMissingLists}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Todavía falta que anoten su lista</DialogTitle>
+            <DialogDescription>
+              En el sorteo a ciegas, la lista es la única pista de quien regala, así que se puede
+              sortear cuando todos hayan anotado al menos una cosa.
+            </DialogDescription>
+          </DialogHeader>
+          <div>
+            <p className="text-graphite mb-2 text-[15px]">
+              {missingLists.length === 1
+                ? 'Falta 1 persona'
+                : `Faltan ${missingLists.length} personas`}
+            </p>
+            <ul className="divide-rule divide-y">
+              {missingLists.map((name) => (
+                <li key={name} className="py-2.5">
+                  {name}
+                </li>
+              ))}
+            </ul>
+          </div>
+          <DialogFooter className="gap-2">
+            <Button
+              variant="outline"
+              onClick={() => {
+                const url = `${window.location.origin}${groupPath(group.id)}`
+                const text = `Para el amigo secreto a ciegas de *${group.name}* falta que anotes tu lista de deseos. Sin ella no podemos sortear:\n${url}`
+                window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank')
+              }}
+            >
+              <MessageCircle aria-hidden="true" />
+              Avisarles por WhatsApp
+            </Button>
+            <Button onClick={() => setShowMissingLists(false)}>Entendido</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Edit group */}
       <Dialog open={showEditDialog} onOpenChange={setShowEditDialog}>
