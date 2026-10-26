@@ -400,6 +400,16 @@ AS $function$
 $function$
 ;
 
+CREATE OR REPLACE FUNCTION public.group_is_open(p_group uuid)
+ RETURNS boolean
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public'
+AS $function$
+  SELECT EXISTS (SELECT 1 FROM groups WHERE id = p_group AND status = 'PLANNING');
+$function$
+;
+
 CREATE OR REPLACE FUNCTION public.guard_group_status()
  RETURNS trigger
  LANGUAGE plpgsql
@@ -720,24 +730,6 @@ CREATE POLICY "Members can view group exclusions" ON exclusions
    FROM members
   WHERE ((members.group_id = exclusions.group_id) AND (members.user_id = auth.uid())))));
 
-CREATE POLICY "Admins can delete their groups" ON groups
-  FOR DELETE
-  USING ((auth.uid() = admin_id));
-
-CREATE POLICY "Admins can update their groups" ON groups
-  FOR UPDATE
-  USING ((auth.uid() = admin_id));
-
-CREATE POLICY "Users can create groups" ON groups
-  FOR INSERT
-  WITH CHECK ((auth.uid() = admin_id));
-
-CREATE POLICY "Users can view groups they are members of" ON groups
-  FOR SELECT
-  USING ((EXISTS ( SELECT 1
-   FROM members
-  WHERE ((members.group_id = groups.id) AND (members.user_id = auth.uid())))));
-
 CREATE POLICY "groups_delete" ON groups
   FOR DELETE
   USING ((auth.uid() = admin_id));
@@ -752,15 +744,12 @@ CREATE POLICY "groups_select" ON groups
 
 CREATE POLICY "groups_update" ON groups
   FOR UPDATE
-  USING ((auth.uid() = admin_id));
+  USING ((auth.uid() = admin_id))
+  WITH CHECK ((auth.uid() = admin_id));
 
 CREATE POLICY "Users can only view their own match" ON matches
   FOR SELECT
   USING ((auth.uid() = giver_id));
-
-CREATE POLICY "Users can view members in their groups" ON members
-  FOR SELECT
-  USING (user_is_member_of_group(group_id));
 
 CREATE POLICY "members_delete" ON members
   FOR DELETE
@@ -768,15 +757,11 @@ CREATE POLICY "members_delete" ON members
 
 CREATE POLICY "members_insert" ON members
   FOR INSERT
-  WITH CHECK (((user_id = auth.uid()) OR (group_id IN ( SELECT auth_user_admin_group_ids() AS auth_user_admin_group_ids))));
+  WITH CHECK (((user_id = auth.uid()) AND group_is_open(group_id)));
 
 CREATE POLICY "members_select" ON members
   FOR SELECT
   USING (((user_id = auth.uid()) OR (group_id IN ( SELECT auth_user_group_ids() AS auth_user_group_ids))));
-
-CREATE POLICY "members_update" ON members
-  FOR UPDATE
-  USING ((user_id = auth.uid()));
 
 CREATE POLICY "Users mark their own notifications as read" ON notifications
   FOR UPDATE
