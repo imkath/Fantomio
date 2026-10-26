@@ -6,8 +6,9 @@
   X-Frame-Options: DENY
   # Scripts, styles and fonts only from this site; data only to our Supabase project; avatars
   # from Google. A static export inlines Next's bootstrap scripts, so script-src needs
-  # 'unsafe-inline' (no server to add nonces); everything external is still blocked.
-  Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://lh3.googleusercontent.com; font-src 'self'; connect-src 'self' https://ocgmlgldrmdemdjphcrv.supabase.co wss://ocgmlgldrmdemdjphcrv.supabase.co; manifest-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; upgrade-insecure-requests
+  # 'unsafe-inline' (no server to add nonces); everything external is still blocked. The reveal
+  # confetti draws in a Web Worker built from a blob: URL, hence worker-src.
+  Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://lh3.googleusercontent.com; font-src 'self'; worker-src 'self' blob:; connect-src 'self' https://ocgmlgldrmdemdjphcrv.supabase.co wss://ocgmlgldrmdemdjphcrv.supabase.co; manifest-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; upgrade-insecure-requests
   Strict-Transport-Security: max-age=31536000; includeSubDomains
   # The app uses no camera, microphone or location.
   Permissions-Policy: camera=(), microphone=(), geolocation=(), interest-cohort=()
