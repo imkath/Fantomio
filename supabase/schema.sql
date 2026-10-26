@@ -586,6 +586,43 @@ END;
 $function$
 ;
 
+CREATE OR REPLACE FUNCTION public.transfer_group(p_group_id uuid, p_new_admin uuid)
+ RETURNS void
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public'
+AS $function$
+DECLARE
+  g groups%ROWTYPE;
+  old_name TEXT;
+  new_name TEXT;
+BEGIN
+  SELECT * INTO g FROM groups WHERE id = p_group_id FOR UPDATE;
+  IF g.id IS NULL THEN
+    RAISE EXCEPTION 'Grupo no encontrado';
+  END IF;
+  IF g.admin_id IS DISTINCT FROM auth.uid() THEN
+    RAISE EXCEPTION 'Solo quien organiza puede pasar la organización';
+  END IF;
+  IF p_new_admin IS NULL OR p_new_admin = g.admin_id THEN
+    RAISE EXCEPTION 'Elige a otra persona del grupo';
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM members WHERE group_id = p_group_id AND user_id = p_new_admin) THEN
+    RAISE EXCEPTION 'Esa persona no está en el grupo';
+  END IF;
+
+  UPDATE groups SET admin_id = p_new_admin WHERE id = p_group_id;
+  UPDATE members SET is_admin = (user_id = p_new_admin) WHERE group_id = p_group_id;
+
+  SELECT initcap(lower(coalesce(full_name, 'Alguien'))) INTO old_name FROM profiles WHERE id = auth.uid();
+  SELECT initcap(lower(coalesce(full_name, 'otra persona'))) INTO new_name FROM profiles WHERE id = p_new_admin;
+  INSERT INTO activities (group_id, user_id, type, message)
+  VALUES (p_group_id, auth.uid(), 'ADMIN_TRANSFERRED',
+          coalesce(old_name, 'Alguien') || ' le pasó la organización a ' || coalesce(new_name, 'otra persona'));
+END;
+$function$
+;
+
 CREATE OR REPLACE FUNCTION public.update_updated_at()
  RETURNS trigger
  LANGUAGE plpgsql
@@ -735,11 +772,11 @@ CREATE POLICY "Users can only view their own match" ON matches
 
 CREATE POLICY "members_delete" ON members
   FOR DELETE
-  USING (((user_id = auth.uid()) OR (group_id IN ( SELECT auth_user_admin_group_ids() AS auth_user_admin_group_ids))));
+  USING ((group_is_open(group_id) AND (((user_id = auth.uid()) AND (NOT (group_id IN ( SELECT auth_user_admin_group_ids() AS auth_user_admin_group_ids)))) OR ((user_id <> auth.uid()) AND (group_id IN ( SELECT auth_user_admin_group_ids() AS auth_user_admin_group_ids))))));
 
 CREATE POLICY "members_insert" ON members
   FOR INSERT
-  WITH CHECK (((user_id = auth.uid()) AND group_is_open(group_id)));
+  WITH CHECK (((user_id = auth.uid()) AND group_is_open(group_id) AND (is_admin = (group_id IN ( SELECT auth_user_admin_group_ids() AS auth_user_admin_group_ids)))));
 
 CREATE POLICY "members_select" ON members
   FOR SELECT
@@ -806,6 +843,8 @@ REVOKE EXECUTE ON FUNCTION push_notification(p_user uuid, p_group uuid, p_type t
 REVOKE EXECUTE ON FUNCTION reset_group_draw(p_group_id uuid) FROM PUBLIC, anon;
 
 REVOKE EXECUTE ON FUNCTION shares_group_with(target uuid) FROM PUBLIC, anon;
+
+REVOKE EXECUTE ON FUNCTION transfer_group(p_group_id uuid, p_new_admin uuid) FROM PUBLIC, anon;
 
 REVOKE EXECUTE ON FUNCTION user_is_member_of_group(gid uuid) FROM PUBLIC, anon;
 

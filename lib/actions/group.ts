@@ -87,11 +87,7 @@ export async function deleteGroup(groupId: string) {
     return { success: false, error: 'No tienes permisos para eliminar este grupo' }
   }
 
-  // Delete in order: activities, matches, members, group
-  await supabase.from('activities').delete().eq('group_id', groupId)
-  await supabase.from('matches').delete().eq('group_id', groupId)
-  await supabase.from('members').delete().eq('group_id', groupId)
-
+  // Members, matches, exclusions, lists and activity go with it (ON DELETE CASCADE).
   const { error } = await supabase.from('groups').delete().eq('id', groupId)
 
   if (error) {
@@ -132,7 +128,7 @@ export async function leaveGroup(groupId: string) {
     return {
       success: false,
       error:
-        'El administrador no puede abandonar el grupo. Debes eliminarlo o transferir la administración.',
+        'Quien organiza no puede salir del grupo. Primero pasa la organización a otra persona o elimina el grupo.',
     }
   }
 
@@ -148,14 +144,19 @@ export async function leaveGroup(groupId: string) {
     .single()
 
   // Delete member
-  const { error } = await supabase
+  // RLS turns a forbidden delete into "0 rows", not an error, so check that it happened.
+  const { data: left, error } = await supabase
     .from('members')
     .delete()
     .eq('group_id', groupId)
     .eq('user_id', user.id)
+    .select('id')
 
   if (error) {
     return { success: false, error: error.message }
+  }
+  if (!left?.length) {
+    return { success: false, error: 'No puedes salir de este grupo' }
   }
 
   // Log activity
@@ -231,10 +232,17 @@ export async function removeMember(groupId: string, memberId: string) {
   }
 
   // Delete member
-  const { error } = await supabase.from('members').delete().eq('id', memberId)
+  const { data: removed, error } = await supabase
+    .from('members')
+    .delete()
+    .eq('id', memberId)
+    .select('id')
 
   if (error) {
     return { success: false, error: error.message }
+  }
+  if (!removed?.length) {
+    return { success: false, error: 'No se pudo quitar a esta persona' }
   }
 
   // Log activity
@@ -305,4 +313,23 @@ export async function getGroupActivities(groupId: string) {
   }
 
   return { success: true, activities: activities || [] }
+}
+
+// Hands the group to another member. The checks (only the current organizer, only to someone
+// in the group) and the activity entry happen in the database, in one step (transfer_group).
+export async function transferGroup(groupId: string, newAdminId: string) {
+  const groupIdResult = groupIdSchema.safeParse(groupId)
+  if (!groupIdResult.success) {
+    return { success: false, error: groupIdResult.error.errors[0].message }
+  }
+  const newAdminResult = groupIdSchema.safeParse(newAdminId)
+  if (!newAdminResult.success) {
+    return { success: false, error: 'Persona no válida' }
+  }
+
+  const { error } = await createClient().rpc('transfer_group', {
+    p_group_id: groupId,
+    p_new_admin: newAdminId,
+  })
+  return error ? { success: false, error: error.message } : { success: true }
 }

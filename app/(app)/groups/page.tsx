@@ -12,6 +12,7 @@ import {
 } from '@/components/ui/dialog'
 import {
   Check,
+  Crown,
   ExternalLink,
   Eye,
   EyeOff,
@@ -39,6 +40,7 @@ import {
   leaveGroup,
   getGroupActivities,
   removeMember,
+  transferGroup,
 } from '@/lib/actions/group'
 import { GhostMark } from '@/components/ghost-mark'
 import { GhostAvatar } from '@/components/ghost-avatar'
@@ -135,6 +137,8 @@ function GroupPage() {
   const [removingMemberId, setRemovingMemberId] = useState<string | null>(null)
   const [memberToRemove, setMemberToRemove] = useState<{ id: string; name: string } | null>(null)
   const [showRemoveMemberDialog, setShowRemoveMemberDialog] = useState(false)
+  const [newOrganizer, setNewOrganizer] = useState<{ userId: string; name: string } | null>(null)
+  const [isTransferring, setIsTransferring] = useState(false)
   const [showResetDialog, setShowResetDialog] = useState(false)
   const [isResetting, setIsResetting] = useState(false)
 
@@ -404,6 +408,23 @@ function GroupPage() {
     }
 
     setRemovingMemberId(null)
+  }
+
+  const handleTransfer = async () => {
+    if (!newOrganizer) return
+    setIsTransferring(true)
+
+    const result = await transferGroup(groupId, newOrganizer.userId)
+
+    if (result.success) {
+      toast.success(`Ahora organiza ${newOrganizer.name}`)
+      setNewOrganizer(null)
+      await fetchGroupData()
+    } else {
+      toast.error(result.error || 'No pudimos pasar la organización')
+    }
+
+    setIsTransferring(false)
   }
 
   const handleRevealMatch = () => {
@@ -687,6 +708,22 @@ function GroupPage() {
                         ) : (
                           <span className="text-graphite text-[15px]">Sin lista</span>
                         )}
+                        {isAdmin && !me && (
+                          <Button
+                            variant="outline"
+                            size="icon-sm"
+                            onClick={() =>
+                              setNewOrganizer({
+                                userId: member.user_id,
+                                name: member.profile.full_name || member.profile.email,
+                              })
+                            }
+                            aria-label={`Pasarle la organización a ${name}`}
+                            title={`Pasarle la organización a ${name}`}
+                          >
+                            <Crown aria-hidden="true" />
+                          </Button>
+                        )}
                         {isAdmin && !drawn && !me && (
                           <Button
                             variant="danger"
@@ -945,6 +982,28 @@ function GroupPage() {
                 <UserMinus aria-hidden="true" />
               )}
               Quitar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Hand the group over */}
+      <Dialog open={!!newOrganizer} onOpenChange={(open) => !open && setNewOrganizer(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>¿Pasarle la organización a {newOrganizer?.name}?</DialogTitle>
+            <DialogDescription>
+              Podrá editar el grupo, hacer o reiniciar el sorteo y quitar personas. Tú sigues en el
+              grupo como participante, y para recuperar la organización tendría que devolvértela.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="gap-2">
+            <Button variant="outline" onClick={() => setNewOrganizer(null)}>
+              Cancelar
+            </Button>
+            <Button onClick={handleTransfer} disabled={isTransferring}>
+              {isTransferring ? <Loader2 className="animate-spin" /> : <Crown aria-hidden="true" />}
+              Pasar la organización
             </Button>
           </DialogFooter>
         </DialogContent>
