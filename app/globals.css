@@ -34,7 +34,7 @@
   --destructive-foreground: #ffffff;
   --border: var(--rule);
   --input: var(--rule);
-  --ring: var(--hanko);
+  --ring: var(--ink);
 
   --chart-1: #d93b26;
   --chart-2: #1b1b1a;
@@ -49,7 +49,7 @@
   --sidebar-accent: var(--rule);
   --sidebar-accent-foreground: var(--ink);
   --sidebar-border: var(--rule);
-  --sidebar-ring: var(--hanko);
+  --sidebar-ring: var(--ink);
 }
 
 .dark {
@@ -136,8 +136,10 @@
     font-size: 18px;
     line-height: 1.65;
   }
+  /* Keyboard focus in ink, not the stamp red: red is kept for what's yours and reads as an
+     error anywhere else. */
   :focus-visible {
-    outline: 2px solid var(--hanko);
+    outline: 2px solid var(--ink);
     outline-offset: 3px;
   }
 }
