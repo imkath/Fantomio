@@ -92,6 +92,32 @@ function AccountPage() {
     load()
   }, [load])
 
+  // The side index marks the section you're reading: the last one whose top has passed a
+  // line a third of the way down the screen, or the last section once you hit the bottom.
+  const [active, setActive] = useState(SECTIONS[0].id)
+  const loaded = !!account
+  useEffect(() => {
+    if (!loaded) return
+    const update = () => {
+      const line = window.innerHeight / 3
+      let current = SECTIONS[0].id
+      for (const { id } of SECTIONS) {
+        const el = document.getElementById(id)
+        if (el && el.getBoundingClientRect().top <= line) current = id
+      }
+      const atBottom =
+        window.innerHeight + window.scrollY >= document.documentElement.scrollHeight - 4
+      setActive(atBottom ? SECTIONS[SECTIONS.length - 1].id : current)
+    }
+    update()
+    window.addEventListener('scroll', update, { passive: true })
+    window.addEventListener('resize', update)
+    return () => {
+      window.removeEventListener('scroll', update)
+      window.removeEventListener('resize', update)
+    }
+  }, [loaded])
+
   return (
     <div className="bg-paper text-ink min-h-[calc(100vh-69px)]">
       <main className="mx-auto max-w-[1040px] px-4 pt-8 pb-16 md:px-8">
@@ -112,7 +138,10 @@ function AccountPage() {
                   <li key={s.id}>
                     <a
                       href={`#${s.id}`}
-                      className="text-graphite hover:text-ink inline-flex min-h-11 items-center underline-offset-4 hover:underline"
+                      aria-current={active === s.id ? 'location' : undefined}
+                      className={`hover:text-ink inline-flex min-h-11 items-center underline-offset-4 transition-colors hover:underline ${
+                        active === s.id ? 'text-ink font-bold' : 'text-graphite'
+                      }`}
                     >
                       {s.label}
                     </a>
