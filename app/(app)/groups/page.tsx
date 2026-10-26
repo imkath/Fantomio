@@ -56,7 +56,7 @@ import { toast } from 'sonner'
 interface Member {
   id: string
   user_id: string
-  wishlist: Array<{ description: string; url?: string }>
+  hasList: boolean
   is_admin: boolean
   profile: {
     full_name: string | null
@@ -96,6 +96,7 @@ function GroupPage() {
   const [members, setMembers] = useState<Member[]>([])
   const [currentUserId, setCurrentUserId] = useState<string | null>(null)
   const [currentMember, setCurrentMember] = useState<Member | null>(null)
+  const [myWishlist, setMyWishlist] = useState<Array<{ description: string; url?: string }>>([])
   const [isAdmin, setIsAdmin] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState('')
@@ -148,15 +149,15 @@ function GroupPage() {
       }
       setCurrentUserId(user.id)
 
-      // One round trip: group, members and (if any) my match load in parallel.
-      // The match query simply returns nothing until the group is drawn.
-      const [groupRes, membersRes, matchRes] = await Promise.all([
+      // One round trip: group, members, lists and (if any) my match load in parallel.
+      // The match query simply returns nothing until the group is drawn. Wishlists come back
+      // filtered by the database: mine and, after the draw, the one of the person I give to.
+      // For everyone else we only learn whether they wrote one (wishlist_status).
+      const [groupRes, membersRes, matchRes, listsRes, statusRes] = await Promise.all([
         supabase.from('groups').select('*').eq('id', groupId).single(),
         supabase
           .from('members')
-          .select(
-            'id, user_id, wishlist, is_admin, profiles:user_id (full_name, email, avatar_url)'
-          )
+          .select('id, user_id, is_admin, profiles:user_id (full_name, email, avatar_url)')
           .eq('group_id', groupId),
         supabase
           .from('matches')
@@ -164,6 +165,8 @@ function GroupPage() {
           .eq('group_id', groupId)
           .eq('giver_id', user.id)
           .maybeSingle(),
+        supabase.from('wishlists').select('user_id, items').eq('group_id', groupId),
+        supabase.rpc('wishlist_status', { p_group_id: groupId }),
       ])
 
       const groupData = groupRes.data
@@ -175,10 +178,21 @@ function GroupPage() {
       setGroup(groupData)
       setIsAdmin(groupData.admin_id === user.id)
 
+      type Items = Array<{ description: string; url?: string }>
+      const lists = new Map<string, Items>(
+        (listsRes.data ?? []).map((w) => [w.user_id as string, (w.items ?? []) as Items])
+      )
+      const withList = new Set(
+        ((statusRes.data ?? []) as Array<{ user_id: string; has_items: boolean }>)
+          .filter((s) => s.has_items)
+          .map((s) => s.user_id)
+      )
+      setMyWishlist(lists.get(user.id) ?? [])
+
       const formattedMembers = (membersRes.data ?? []).map((m) => ({
         id: m.id,
         user_id: m.user_id,
-        wishlist: m.wishlist || [],
+        hasList: withList.has(m.user_id),
         is_admin: m.is_admin,
         profile: (() => {
           const p = Array.isArray(m.profiles) ? m.profiles[0] : m.profiles
@@ -190,8 +204,6 @@ function GroupPage() {
 
       const matchData = groupData.status === 'DRAWN' ? matchRes.data : null
       if (matchData) {
-        // The receiver's wishlist already came with the members.
-        const receiverMember = formattedMembers.find((m) => m.user_id === matchData.receiver_id)
         setMatch({
           id: matchData.id,
           receiver_id: matchData.receiver_id,
@@ -203,10 +215,7 @@ function GroupPage() {
             }
             return { ...r, full_name: formatName(r.full_name) || null }
           })(),
-          receiver_wishlist: (receiverMember?.wishlist ?? []) as Array<{
-            description: string
-            url?: string
-          }>,
+          receiver_wishlist: lists.get(matchData.receiver_id) ?? [],
         })
       } else {
         setMatch(null)
@@ -620,8 +629,8 @@ function GroupPage() {
               <section className="border-rule rounded-[4px] border p-6 md:p-8">
                 <WishlistEditor
                   groupId={groupId}
-                  memberId={currentMember.id}
-                  initialItems={currentMember.wishlist}
+                  userId={currentMember.user_id}
+                  initialItems={myWishlist}
                   onSave={fetchGroupData}
                 />
               </section>
@@ -670,7 +679,7 @@ function GroupPage() {
                         </span>
                       </span>
                       <span className="flex shrink-0 items-center gap-3">
-                        {member.wishlist.length > 0 ? (
+                        {member.hasList ? (
                           <span className="text-ink" title="Ya anotó su lista">
                             <span aria-hidden="true">✓</span>
                             <span className="sr-only">Ya anotó su lista</span>

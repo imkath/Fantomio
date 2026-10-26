@@ -137,8 +137,13 @@ export default function PrivacyPage() {
             <Section title="5. Quién ve tus datos">
               <List>
                 <li>
-                  <strong>Los miembros de tus grupos</strong> ven tu nombre, correo, foto y lista de
-                  deseos, y las exclusiones del grupo.
+                  <strong>Los miembros de tus grupos</strong> ven tu nombre, correo y foto, si ya
+                  anotaste tu lista de deseos (no su contenido) y las exclusiones del grupo.
+                </li>
+                <li>
+                  <strong>Tu lista de deseos</strong> solo la ves tú y, después del sorteo, la
+                  persona que te regala. Nadie más del grupo puede leerla, tampoco quien lo
+                  organiza.
                 </li>
                 <li>
                   <strong>Tu amigo secreto</strong> puede leer los mensajes que le envíes, sin saber

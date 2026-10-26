@@ -20,7 +20,7 @@ import { toast } from 'sonner'
 
 interface WishlistEditorProps {
   groupId: string
-  memberId: string
+  userId: string
   initialItems?: Array<{ description: string; url?: string }>
   onSave?: () => void
 }
@@ -48,7 +48,12 @@ const PLACEHOLDERS = [
 const MAX_WISHLIST_ITEMS = 10
 const DEFAULT_VISIBLE_ITEMS = 5
 
-export function WishlistEditor({ memberId, initialItems = [], onSave }: WishlistEditorProps) {
+export function WishlistEditor({
+  groupId,
+  userId,
+  initialItems = [],
+  onSave,
+}: WishlistEditorProps) {
   const [items, setItems] = useState<LocalWishlistItem[]>([])
   const [visibleCount, setVisibleCount] = useState(DEFAULT_VISIBLE_ITEMS)
   const [isSaving, setIsSaving] = useState(false)
@@ -151,10 +156,10 @@ export function WishlistEditor({ memberId, initialItems = [], onSave }: Wishlist
           url: item.url.trim() || undefined,
         }))
 
+      // Lists live in their own table: only you and, after the draw, your giver can read them.
       const { error: updateError } = await supabase
-        .from('members')
-        .update({ wishlist: wishlistData })
-        .eq('id', memberId)
+        .from('wishlists')
+        .upsert({ group_id: groupId, user_id: userId, items: wishlistData })
 
       if (updateError) {
         setError(updateError.message)

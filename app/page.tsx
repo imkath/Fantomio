@@ -229,7 +229,7 @@ export default function LandingPage() {
                     anónimos.
                   </dd>
                   <dt>Tu grupo ve</dt>
-                  <dd>Que estás dentro y tu lista de deseos.</dd>
+                  <dd>Que estás dentro y si ya anotaste tu lista, pero no lo que pusiste.</dd>
                   <dt>Quien organiza</dt>
                   <dd>Que el sorteo ya se hizo.</dd>
                   <dt>Nosotros</dt>
