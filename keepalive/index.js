@@ -46,9 +46,26 @@ async function heartbeat(env) {
   if (!res.ok) throw new Error(`latido de Brevo fallo: HTTP ${res.status} ${await res.text()}`)
 }
 
+// Los correos de cuenta (confirmar registro, recuperar contrasena, cambiar correo) salen por
+// el SMTP de Brevo configurado en Supabase Auth, con otra clave que tambien muere a los 90
+// dias sin uso. Pedir una recuperacion para la cuenta tecnica hello@nvrkth.com (sin grupos)
+// la mantiene viva, y el correo "Cambia tu contrasena" que llega cada mes confirma que el
+// SMTP sigue funcionando.
+async function smtpHeartbeat(env) {
+  const res = await fetch(`${env.SUPABASE_URL}/auth/v1/recover`, {
+    method: 'POST',
+    headers: { apikey: env.SUPABASE_ANON_KEY, 'content-type': 'application/json' },
+    body: JSON.stringify({ email: 'hello@nvrkth.com' }),
+  })
+  if (!res.ok) throw new Error(`latido SMTP fallo: HTTP ${res.status} ${await res.text()}`)
+}
+
 export default {
   async scheduled(event, env) {
-    if (event.cron === HEARTBEAT_CRON) return heartbeat(env)
+    if (event.cron === HEARTBEAT_CRON) {
+      await heartbeat(env)
+      return smtpHeartbeat(env)
+    }
     const r = await ping(env)
     if (!r.ok) throw new Error(`keep-alive fallo: HTTP ${r.status} ${r.body}`)
   },

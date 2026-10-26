@@ -87,8 +87,12 @@ npm run dev
    actual completo; el historial de cambios está en `supabase/migrations/`.
 2. Carga las plantillas de correo: [supabase/templates/notification-emails.sql](supabase/templates/notification-emails.sql)
    (se generan con `scripts/build-auth-emails.ts`).
-3. Para que salgan correos, guarda la clave de Brevo en Vault con el nombre `brevo_api_key`.
-   Sin ella la app funciona igual, solo que sin correos.
+3. Para que salgan los avisos (sorteo, preguntas, listas), guarda la clave API de Brevo en Vault
+   con el nombre `brevo_api_key`. Sin ella la app funciona igual, solo que sin avisos.
+4. Los correos de cuenta (confirmar registro, recuperar contraseña, cambiar correo) los manda
+   Supabase Auth y necesitan un SMTP propio: el que trae Supabase solo entrega a los miembros del
+   equipo del proyecto, 2 por hora. Aquí se usa el SMTP de Brevo (`smtp-relay.brevo.com:587`,
+   remitente `hello@nvrkth.com`), con las plantillas de `supabase/templates/*.html`.
 
 ---
 
@@ -127,9 +131,12 @@ GitHub deshabilita los workflows programados tras **60 días sin actividad en el
 no puede ser la única capa. GhostSwap es un producto **estacional** (se usa en diciembre), así que
 la ventana de baja actividad es larga y previsible.
 
-El mismo Worker manda **un correo el día 1 de cada mes** a hello@nvrkth.com. Brevo desactiva toda
-clave que pase 90 días sin un envío exitoso, y en octubre de 2026 la clave anterior ya había muerto
-así. Si un mes ese correo no llega, hay que revisar la clave en app.brevo.com.
+El mismo Worker manda **dos correos el día 1 de cada mes** a hello@nvrkth.com. Brevo desactiva
+toda clave que pase 90 días sin un envío exitoso, y en octubre de 2026 tanto la clave SMTP como la
+de la API ya habían muerto así. El primero ("el correo sigue funcionando") usa la clave API; el
+segundo es una recuperación de contraseña para una cuenta técnica con ese correo, que sale por el
+SMTP de Supabase Auth. Si un mes falta alguno de los dos, hay que revisar esa clave en
+app.brevo.com.
 
 ---
 
