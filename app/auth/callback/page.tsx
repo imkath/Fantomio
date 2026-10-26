@@ -23,6 +23,14 @@ function Callback() {
       return
     }
 
+    // Changing the email takes two confirmations (old and new address). After the first one
+    // Supabase comes back with a message and no session change.
+    const hash = new URLSearchParams(window.location.hash.slice(1))
+    if ((params.get('message') || hash.get('message')) && !params.get('code')) {
+      router.replace('/account?correo=pendiente')
+      return
+    }
+
     const supabase = createClient()
     const finish = async () => {
       const tokenHash = params.get('token_hash') || params.get('token')
@@ -30,10 +38,16 @@ function Callback() {
       if (tokenHash && type) {
         const { error } = await supabase.auth.verifyOtp({
           token_hash: tokenHash,
-          type: type as 'signup' | 'email' | 'recovery' | 'invite',
+          type: type as 'signup' | 'email' | 'recovery' | 'invite' | 'email_change',
         })
         if (!error) {
-          router.replace(type === 'recovery' ? '/reset-password' : '/login?verified=true')
+          router.replace(
+            type === 'recovery'
+              ? '/reset-password'
+              : type === 'email_change'
+                ? next
+                : '/login?verified=true'
+          )
           return
         }
       }

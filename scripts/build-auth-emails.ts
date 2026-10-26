@@ -1,5 +1,5 @@
 // Writes the email templates kept outside the app from lib/email-layout.ts:
-// - supabase/templates/{confirmation,recovery}.html for Supabase Auth (upload them in
+// - supabase/templates/{confirmation,recovery,email_change}.html for Supabase Auth (upload them in
 //   Auth > Email Templates or through the Management API)
 // - supabase/templates/notification-emails.sql, the upsert for the emails the database sends
 // Run: node --experimental-strip-types scripts/build-auth-emails.ts

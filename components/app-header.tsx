@@ -3,6 +3,7 @@
 import { GhostAvatar } from '@/components/ghost-avatar'
 import { Button } from '@/components/ui/button'
 import { LogOut } from 'lucide-react'
+import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import { createClient, getSessionUser } from '@/lib/supabase'
@@ -73,8 +74,17 @@ export function AppHeader() {
           {user ? (
             <>
               <NotificationBell userId={user.id} />
-              <span className="text-graphite hidden text-[15px] md:block">{user.name}</span>
-              <GhostAvatar seed={user.id} src={user.avatar_url} size={36} />
+              <Link
+                href="/account"
+                className="flex items-center gap-3 rounded-full"
+                aria-label="Mi cuenta"
+                title="Mi cuenta"
+              >
+                <span className="text-graphite hover:text-ink hidden text-[15px] md:block">
+                  {user.name}
+                </span>
+                <GhostAvatar seed={user.id} src={user.avatar_url} size={36} />
+              </Link>
             </>
           ) : (
             <span className="bg-slip size-9 rounded-full" aria-hidden="true" />

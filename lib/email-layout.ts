@@ -92,7 +92,8 @@ export function emailLayout({ title, label, paragraphs, cta, note }: LayoutParam
 </html>`
 }
 
-// Supabase fills {{ .ConfirmationURL }} itself; these are pasted into its auth settings.
+// Supabase fills {{ .ConfirmationURL }}, {{ .Email }} and {{ .NewEmail }} itself; these are
+// uploaded to its auth settings.
 export const AUTH_EMAILS = {
   confirmation: {
     subject: 'Confirma tu cuenta de GhostSwap',
@@ -117,6 +118,20 @@ export const AUTH_EMAILS = {
       ],
       cta: { text: 'Elegir contraseña nueva', href: '{{ .ConfirmationURL }}' },
       note: 'Si no lo pediste, ignora este correo. Tu contraseña sigue igual.',
+    }),
+  },
+  // Supabase sends this one to both the old and the new address; each has to be confirmed.
+  email_change: {
+    subject: 'Confirma el cambio de correo en GhostSwap',
+    html: emailLayout({
+      label: 'Tu cuenta',
+      title: 'Confirma el cambio de correo',
+      paragraphs: [
+        'Se pidió cambiar el correo de tu cuenta de GhostSwap de <strong style="color: #1b1b1a;">{{ .Email }}</strong> a <strong style="color: #1b1b1a;">{{ .NewEmail }}</strong>.',
+        'Este aviso llega a los dos correos, y el cambio se aplica cuando se confirma en ambos.',
+      ],
+      cta: { text: 'Confirmar el cambio', href: '{{ .ConfirmationURL }}' },
+      note: 'Si no lo pediste, no confirmes nada y tu correo seguirá igual. Te conviene cambiar tu contraseña.',
     }),
   },
 }

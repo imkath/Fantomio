@@ -9,6 +9,8 @@ export function getUserFriendlyError(error: { code?: string; message?: string } 
     invalid_credentials: 'Credenciales incorrectas. Verifica tu email y contraseña.',
     user_not_found: 'No encontramos una cuenta con ese email.',
     email_taken: 'Ya existe una cuenta con ese email.',
+    email_exists: 'Ese correo ya tiene una cuenta en GhostSwap.',
+    same_email: 'Ese ya es tu correo.',
     weak_password: 'La contraseña debe tener al menos 8 caracteres.',
     invalid_email: 'El formato del email no es válido.',
     email_not_confirmed: 'Debes confirmar tu email antes de iniciar sesión.',
