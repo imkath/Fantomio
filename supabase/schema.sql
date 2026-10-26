@@ -374,6 +374,20 @@ END;
 $function$
 ;
 
+CREATE OR REPLACE FUNCTION public.cap_name_pattern(p_word text)
+ RETURNS text
+ LANGUAGE sql
+ IMMUTABLE
+AS $function$
+  SELECT CASE left(w, 1)
+           WHEN 'a' THEN '[AÁÀÂÄ]' WHEN 'e' THEN '[EÉÈÊË]' WHEN 'i' THEN '[IÍÌÎÏ]'
+           WHEN 'o' THEN '[OÓÒÔÖ]' WHEN 'u' THEN '[UÚÙÛÜ]' WHEN 'n' THEN '[NÑ]'
+           ELSE upper(left(w, 1)) END
+         || name_pattern(substr(w, 2))
+  FROM (SELECT translate(lower(p_word), 'áàâäéèêëíìîïóòôöúùûüñ', 'aaaaeeeeiiiioooouuuun') AS w) x;
+$function$
+;
+
 CREATE OR REPLACE FUNCTION public.censor_blind_message()
  RETURNS trigger
  LANGUAGE plpgsql
@@ -382,18 +396,70 @@ CREATE OR REPLACE FUNCTION public.censor_blind_message()
 AS $function$
 DECLARE
   gid UUID;
-  pattern TEXT;
 BEGIN
   SELECT group_id INTO gid FROM matches WHERE id = NEW.match_id;
-  IF NOT blind_hidden(gid) THEN
-    RETURN NEW;
-  END IF;
-  pattern := group_name_regex(gid);
-  IF pattern IS NOT NULL THEN
-    NEW.content := regexp_replace(NEW.content, pattern, '•••', 'gi');
+  IF blind_hidden(gid) THEN
+    NEW.content := censor_names(gid, NEW.content);
   END IF;
   RETURN NEW;
 END;
+$function$
+;
+
+CREATE OR REPLACE FUNCTION public.censor_names(p_group uuid, p_text text)
+ RETURNS text
+ LANGUAGE plpgsql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public'
+AS $function$
+DECLARE
+  sure TEXT;
+  maybe TEXT;
+  maybe_cap TEXT;
+  cues CONSTANT TEXT := '(?:soy|eres|sea|es|era|llamo|llamas|llama|hola|chao|holi|querid[ao]|t[ií][ao]|prim[ao]|herman[ao]|amig[ao]|doña|don|señora|señor|sra|sr)';
+  t TEXT := p_text;
+BEGIN
+  SELECT string_agg(name_pattern(word), '|' ORDER BY length(word) DESC) FILTER (WHERE NOT ambiguous),
+         string_agg(name_pattern(word), '|' ORDER BY length(word) DESC) FILTER (WHERE ambiguous),
+         string_agg(cap_name_pattern(word), '|' ORDER BY length(word) DESC) FILTER (WHERE ambiguous)
+  INTO sure, maybe, maybe_cap
+  FROM group_name_words(p_group);
+
+  IF sure IS NOT NULL THEN
+    t := regexp_replace(t, '\m(' || sure || ')\M', '•••', 'gi');
+  END IF;
+  IF maybe IS NOT NULL THEN
+    -- after a cue: "soy rosa", "¿eres luz?", "tía rosa"
+    t := regexp_replace(t, '(\m' || cues || '\s+)(' || maybe || ')\M', '\1•••', 'gi');
+    -- next to another masked name: "rosa •••", "••• luz"
+    t := regexp_replace(t, '\m(' || maybe || ')\M(\s+•••)', '•••\2', 'gi');
+    t := regexp_replace(t, '(•••\s+)(' || maybe || ')\M', '\1•••', 'gi');
+    -- alone as a question or exclamation: "¿Rosa?", "luz!"
+    t := regexp_replace(t, '(^|[¿¡.,;:]\s*)(' || maybe || ')(\s*[?!])', '\1•••\3', 'gi');
+    -- calling someone with a colon: "Rosa: ¿qué talla usas?"
+    t := regexp_replace(t, '(^|[.!?¿¡]\s*)(' || maybe || ')(\s*:)', '\1•••\3', 'gi');
+    -- capitalized mid-sentence (case-sensitive): "creo que es Rosa", "le gusta Luz"
+    t := regexp_replace(t, '([^\s.!?¿¡]\s+)(' || maybe_cap || ')\M', '\1•••', 'g');
+  END IF;
+  RETURN t;
+END;
+$function$
+;
+
+CREATE OR REPLACE FUNCTION public.common_word_names()
+ RETURNS text[]
+ LANGUAGE sql
+ IMMUTABLE
+AS $function$
+  SELECT ARRAY[
+    'rosa', 'rosas', 'luz', 'paz', 'sol', 'mar', 'flor', 'flores', 'pilar', 'blanca', 'cruz',
+    'alba', 'aurora', 'esperanza', 'consuelo', 'dolores', 'mercedes', 'amparo', 'socorro',
+    'rocio', 'victoria', 'angeles', 'gloria', 'pura', 'soledad', 'estrella', 'cielo', 'perla',
+    'violeta', 'margarita', 'azucena', 'jazmin', 'alegria', 'clemente', 'franco', 'justo',
+    'santos', 'rey', 'leon', 'oro', 'plata', 'nieves', 'prado', 'vega', 'rio', 'rios', 'campos',
+    'castillo', 'torres', 'montes', 'mora', 'rivera', 'calle', 'bosque', 'fuentes', 'reyes',
+    'vidal', 'leal', 'bravo', 'blanco', 'moreno', 'rubio', 'delgado', 'alegre', 'caro', 'salas'
+  ];
 $function$
 ;
 
@@ -854,24 +920,22 @@ AS $function$
 $function$
 ;
 
-CREATE OR REPLACE FUNCTION public.group_name_regex(p_group uuid)
- RETURNS text
+CREATE OR REPLACE FUNCTION public.group_name_words(p_group uuid)
+ RETURNS TABLE(word text, ambiguous boolean)
  LANGUAGE sql
  STABLE SECURITY DEFINER
  SET search_path TO 'public'
 AS $function$
-  WITH words AS (
-    SELECT DISTINCT translate(lower(w), 'áàâäéèêëíìîïóòôöúùûüñ', 'aaaaeeeeiiiioooouuuun') AS word
+  SELECT DISTINCT w2, w2 = ANY (common_word_names())
+  FROM (
+    SELECT translate(lower(w), 'áàâäéèêëíìîïóòôöúùûüñ', 'aaaaeeeeiiiioooouuuun') AS w2
     FROM members m JOIN profiles p ON p.id = m.user_id,
          regexp_split_to_table(coalesce(p.full_name, '') || ' ' ||
                                regexp_replace(split_part(coalesce(p.email, ''), '@', 1), '[._+0-9-]+', ' ', 'g'),
                                '[^[:alpha:]]+') AS w
     WHERE m.group_id = p_group
-  )
-  SELECT '\m(' || string_agg(name_pattern(word), '|' ORDER BY length(word) DESC) || ')\M'
-  FROM words
-  WHERE length(word) >= 3 AND word ~ '^[a-z]+$'
-    AND word NOT IN ('del', 'las', 'los', 'van', 'von', 'des', 'der');
+  ) x
+  WHERE length(w2) >= 3 AND w2 ~ '^[a-z]+$' AND w2 NOT IN ('del', 'las', 'los', 'van', 'von', 'des', 'der');
 $function$
 ;
 
@@ -1836,7 +1900,13 @@ REVOKE EXECUTE ON FUNCTION blind_results(p_group_id uuid) FROM PUBLIC, anon;
 
 REVOKE EXECUTE ON FUNCTION cancel_invitation(p_group_id uuid, p_user uuid) FROM PUBLIC, anon;
 
+REVOKE EXECUTE ON FUNCTION cap_name_pattern(p_word text) FROM PUBLIC, anon;
+
 REVOKE EXECUTE ON FUNCTION censor_blind_message() FROM PUBLIC, anon;
+
+REVOKE EXECUTE ON FUNCTION censor_names(p_group uuid, p_text text) FROM PUBLIC, anon;
+
+REVOKE EXECUTE ON FUNCTION common_word_names() FROM PUBLIC, anon;
 
 REVOKE EXECUTE ON FUNCTION confirm_merge(p_code text) FROM PUBLIC, anon;
 
@@ -1862,7 +1932,7 @@ REVOKE EXECUTE ON FUNCTION group_history(p_group_id uuid) FROM PUBLIC, anon;
 
 REVOKE EXECUTE ON FUNCTION group_is_open(p_group uuid) FROM PUBLIC, anon;
 
-REVOKE EXECUTE ON FUNCTION group_name_regex(p_group uuid) FROM PUBLIC, anon;
+REVOKE EXECUTE ON FUNCTION group_name_words(p_group uuid) FROM PUBLIC, anon;
 
 REVOKE EXECUTE ON FUNCTION group_pending_invitations(p_group_id uuid) FROM PUBLIC, anon;
 
