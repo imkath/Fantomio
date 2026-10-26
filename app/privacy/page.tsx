@@ -157,6 +157,13 @@ export default function PrivacyPage() {
                   fuiste tú. Nadie más del grupo se entera.
                 </li>
                 <li>
+                  <strong>En un sorteo a ciegas</strong>, hasta la revelación quien te regala ve tu
+                  lista sin tu nombre, y el grupo solo ve cuántas personas anotaron su lista. Para
+                  que el juego funcione, al guardar cada mensaje del chat anónimo tapamos
+                  automáticamente los nombres de los participantes. Tu apuesta de quién es tu
+                  persona solo la ves tú; al revelar, el grupo ve cuántos acertaron, no quién.
+                </li>
+                <li>
                   <strong>Si quien organiza repite un grupo</strong>, las personas del grupo nuevo
                   ven tu nombre y tu foto como invitada o invitado, y si dijiste que esta vez no
                   participas. Solo entras al grupo nuevo si aceptas.

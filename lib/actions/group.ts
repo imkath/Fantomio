@@ -11,6 +11,8 @@ export async function updateGroup(
     budget?: number | null
     currency?: string
     exchange_date?: string | null
+    mode?: 'classic' | 'blind'
+    reveal_at?: string | null
   }
 ) {
   // Validate inputs

@@ -29,10 +29,12 @@ import {
   UserMinus,
 } from 'lucide-react'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { useEffect, useState, useCallback, Suspense } from 'react'
+import { useEffect, useRef, useState, useCallback, Suspense } from 'react'
 import GroupLoading from './loading'
 import Link from 'next/link'
 import { Breadcrumbs } from '@/components/breadcrumbs'
+import { ModePicker, type GroupMode } from '@/components/group/mode-picker'
+import { BlindAssignment, BlindListsNotice, BlindResults } from '@/components/group/blind'
 import {
   ArchiveButton,
   ArchivedNotice,
@@ -69,7 +71,8 @@ import { toast } from 'sonner'
 interface Member {
   id: string
   user_id: string
-  hasList: boolean
+  // null: hidden (a blind group shows only your own and the total)
+  hasList: boolean | null
   is_admin: boolean
   hidden: boolean
   profile: {
@@ -102,6 +105,15 @@ interface Group {
   admin_id: string
   archived_at: string | null
   previous_group_id: string | null
+  mode: GroupMode
+  reveal_at: string | null
+  revealed_at: string | null
+}
+
+// "2026-12-24T20:00" for <input type="datetime-local">, in the viewer's time zone.
+const toLocalInput = (iso: string) => {
+  const d = new Date(iso)
+  return new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 16)
 }
 
 function GroupPage() {
@@ -125,6 +137,9 @@ function GroupPage() {
   const [showMatch, setShowMatch] = useState(false)
   const [showDrawConfirm, setShowDrawConfirm] = useState(false)
   const [avoidPrevious, setAvoidPrevious] = useState(true)
+  const [missingLists, setMissingLists] = useState<string[]>([])
+  const [listCount, setListCount] = useState<{ with_list: number; total: number } | null>(null)
+  const wasHidden = useRef<boolean | null>(null)
   const [showRepeat, setShowRepeat] = useState(false)
 
   // Group management dialogs
@@ -148,6 +163,8 @@ function GroupPage() {
   const [editBudget, setEditBudget] = useState('')
   const [editCurrency, setEditCurrency] = useState('CLP')
   const [editDate, setEditDate] = useState('')
+  const [editMode, setEditMode] = useState<GroupMode>('classic')
+  const [editRevealAt, setEditRevealAt] = useState('')
   const [isSaving, setIsSaving] = useState(false)
   const [isDeleting, setIsDeleting] = useState(false)
   const [isLeaving, setIsLeaving] = useState(false)
@@ -201,14 +218,35 @@ function GroupPage() {
         return
       }
       setGroup(groupData)
+      if (groupData.mode === 'blind') {
+        const [missingRes, countRes] = await Promise.all([
+          groupData.status === 'PLANNING'
+            ? supabase.rpc('blind_missing_lists', { p_group_id: groupId })
+            : Promise.resolve({ data: [] }),
+          supabase.rpc('wishlist_count', { p_group_id: groupId }),
+        ])
+        setMissingLists((missingRes.data ?? []) as string[])
+        setListCount(countRes.data as { with_list: number; total: number })
+        // Confetti for everyone watching when the blind draw is revealed.
+        const hidden = !groupData.revealed_at
+        if (wasHidden.current === true && !hidden) celebrate()
+        wasHidden.current = hidden
+        // After a blind reveal there's nothing left to uncover: show the person right away.
+        if (!hidden && groupData.status === 'DRAWN') setShowMatch(true)
+      }
       setIsAdmin(groupData.admin_id === user.id)
 
       type Items = Array<{ description: string; url?: string }>
       const lists = new Map<string, Items>(
         (listsRes.data ?? []).map((w) => [w.user_id as string, (w.items ?? []) as Items])
       )
+      const listStatus = new Map(
+        ((statusRes.data ?? []) as Array<{ user_id: string; has_items: boolean | null }>).map(
+          (s) => [s.user_id, s.has_items] as const
+        )
+      )
       const withList = new Set(
-        ((statusRes.data ?? []) as Array<{ user_id: string; has_items: boolean }>)
+        ((statusRes.data ?? []) as Array<{ user_id: string; has_items: boolean | null }>)
           .filter((s) => s.has_items)
           .map((s) => s.user_id)
       )
@@ -217,7 +255,7 @@ function GroupPage() {
       const formattedMembers = (membersRes.data ?? []).map((m) => ({
         id: m.id,
         user_id: m.user_id,
-        hasList: withList.has(m.user_id),
+        hasList: listStatus.get(m.user_id) ?? (withList.has(m.user_id) ? true : null),
         is_admin: m.is_admin,
         hidden: !!m.hidden_at,
         profile: (() => {
@@ -276,10 +314,12 @@ function GroupPage() {
         (payload) => {
           // When group is updated (e.g., status changed to DRAWN), refresh data
           const newGroup = payload.new as Group
-          if (newGroup.status !== group?.status) {
+          if (newGroup.status !== group?.status || newGroup.revealed_at !== group?.revealed_at) {
             fetchGroupData()
-            if (newGroup.status === 'DRAWN') {
-              toast.success('¡El sorteo ha sido realizado!')
+            if (newGroup.status === 'DRAWN' && group?.status !== 'DRAWN') {
+              toast.success('Ya se hizo el sorteo')
+            } else if (newGroup.revealed_at && !group?.revealed_at) {
+              toast.success('¡Se reveló el sorteo!')
             }
           }
         }
@@ -291,7 +331,7 @@ function GroupPage() {
     }
     // fetchGroupData es estable mientras no cambie el grupo, así que incluirla
     // no provoca resuscripciones extra al canal de realtime.
-  }, [groupId, group?.status, fetchGroupData])
+  }, [groupId, group?.status, group?.revealed_at, fetchGroupData])
 
   const handleDraw = async () => {
     if (!group) return
@@ -344,6 +384,8 @@ function GroupPage() {
       setEditBudget(group.budget?.toString() || '')
       setEditCurrency(group.currency || 'CLP')
       setEditDate(group.exchange_date || '')
+      setEditMode(group.mode)
+      setEditRevealAt(group.reveal_at ? toLocalInput(group.reveal_at) : '')
       setShowEditDialog(true)
     }
   }
@@ -357,6 +399,14 @@ function GroupPage() {
       budget: editBudget ? parseFloat(editBudget) : null,
       currency: editCurrency,
       exchange_date: editDate || null,
+      // The mode is locked once there is a draw (the database refuses it too).
+      ...(group.status === 'PLANNING' ? { mode: editMode } : {}),
+      ...(group.revealed_at
+        ? {}
+        : {
+            reveal_at:
+              editMode === 'blind' && editRevealAt ? new Date(editRevealAt).toISOString() : null,
+          }),
     })
 
     if (result.success) {
@@ -505,6 +555,9 @@ function GroupPage() {
   const archived = !!group.archived_at
   const today = new Date().toISOString().slice(0, 10)
   const exchangeDone = archived || (!!group.exchange_date && group.exchange_date <= today)
+  const blind = group.mode === 'blind'
+  const blindHidden = blind && !group.revealed_at
+  const blindBlocked = blind && missingLists.length > 0
 
   return (
     <div className="bg-paper text-ink min-h-[calc(100vh-69px)] pb-16">
@@ -521,6 +574,7 @@ function GroupPage() {
         <div className="mt-6 mb-10 flex flex-col justify-between gap-6 min-[1440px]:mt-0 md:flex-row md:items-end">
           <div className="min-w-0">
             <p className="text-graphite mb-2 text-[15px]">
+              {blind && 'A ciegas · '}
               {archived ? 'Archivado' : drawn ? 'Sorteado' : 'Sin sortear'} · {members.length}{' '}
               {members.length === 1 ? 'persona' : 'personas'}
             </p>
@@ -548,7 +602,15 @@ function GroupPage() {
               </Button>
             )}
             {isAdmin && !drawn && members.length >= 3 && (
-              <Button onClick={() => setShowDrawConfirm(true)} disabled={isDrawing}>
+              <Button
+                onClick={() => setShowDrawConfirm(true)}
+                disabled={isDrawing || blindBlocked}
+                title={
+                  blindBlocked
+                    ? 'Todos tienen que anotar su lista antes del sorteo a ciegas'
+                    : undefined
+                }
+              >
                 {isDrawing ? (
                   <Loader2 className="animate-spin" aria-hidden="true" />
                 ) : (
@@ -581,10 +643,31 @@ function GroupPage() {
                           : 'Cuando estén todos, aprieta "Hacer el sorteo". A cada quien le aparecerá aquí su persona.'
                         : 'Cuando estén todos, quien organiza hará el sorteo y aquí verás a quién le regalas.'}
                     </p>
+                    {blind && (
+                      <div className="mt-3">
+                        <BlindListsNotice missing={missingLists} isAdmin={isAdmin} />
+                      </div>
+                    )}
                   </div>
                 </div>
               </section>
             )}
+
+            {drawn && blindHidden && (
+              <BlindAssignment
+                groupId={groupId}
+                people={members
+                  .filter((m) => m.user_id !== currentUserId)
+                  .map((m) => ({
+                    id: m.user_id,
+                    name: m.profile.full_name || m.profile.email,
+                  }))}
+                revealAt={group.reveal_at}
+                isAdmin={isAdmin}
+                onRevealed={fetchGroupData}
+              />
+            )}
+            {drawn && blind && !blindHidden && <BlindResults groupId={groupId} />}
 
             {drawn && match && (
               <section className="border-rule bg-raised relative rounded-[4px] border p-6 md:p-8">
@@ -741,7 +824,16 @@ function GroupPage() {
                 <span className="text-graphite text-[15px]">{members.length}</span>
               </div>
               <p className="text-graphite mb-4 text-[15px]">
-                <span aria-hidden="true">✓</span> Ya anotó su lista
+                {blind && listCount ? (
+                  // Per person would let a giver guess an empty list by elimination.
+                  <>
+                    {listCount.with_list} de {listCount.total} ya anotaron su lista
+                  </>
+                ) : (
+                  <>
+                    <span aria-hidden="true">✓</span> Ya anotó su lista
+                  </>
+                )}
               </p>
               <ul className="divide-rule divide-y">
                 {members.map((member) => {
@@ -765,7 +857,7 @@ function GroupPage() {
                         </span>
                       </span>
                       <span className="flex shrink-0 items-center gap-3">
-                        {member.hasList ? (
+                        {member.hasList === null ? null : member.hasList ? (
                           <span className="text-ink" title="Ya anotó su lista">
                             <span aria-hidden="true">✓</span>
                             <span className="sr-only">Ya anotó su lista</span>
@@ -897,6 +989,11 @@ function GroupPage() {
                   <li>ya no se puede sumar gente al grupo</li>
                   <li>si algo sale mal, puedes reiniciarlo, pero todos pierden lo que vieron</li>
                   <li>quien no haya respondido la invitación queda fuera de esta vuelta</li>
+                  {blind && (
+                    <li>
+                      es a ciegas: cada uno verá solo una lista, sin nombre, hasta que la reveles
+                    </li>
+                  )}
                 </ul>
               </div>
             </DialogDescription>
@@ -989,6 +1086,28 @@ function GroupPage() {
                 onChange={(e) => setEditDate(e.target.value)}
               />
             </div>
+            <ModePicker
+              value={editMode}
+              onChange={setEditMode}
+              disabled={group.status === 'DRAWN'}
+            />
+            {editMode === 'blind' && !group.revealed_at && (
+              <div className="grid gap-1.5">
+                <label htmlFor="edit-reveal" className="text-[15px] font-medium">
+                  Hora de revelación (opcional)
+                </label>
+                <Input
+                  id="edit-reveal"
+                  type="datetime-local"
+                  value={editRevealAt}
+                  onChange={(e) => setEditRevealAt(e.target.value)}
+                />
+                <p className="text-graphite text-sm">
+                  Lo normal es que toques &quot;Revelar ahora&quot; cuando estén todos juntos. Si a
+                  esta hora nadie lo ha hecho, se revela solo.
+                </p>
+              </div>
+            )}
           </div>
           <DialogFooter className="flex-col gap-2 sm:flex-row">
             <Button

@@ -3,6 +3,6 @@
 export const LEGAL = {
   responsable: 'Katherine Castillo, persona natural con domicilio en Chile',
   contacto: 'privacidad@nvrkth.com',
-  version: '2.3',
+  version: '2.4',
   fecha: '26 de octubre de 2026',
 }

@@ -17,6 +17,9 @@
 - 👥 **Grupos ilimitados**, con invitación por link o código
 - 🎁 **Lista de deseos** de hasta 10 cosas por persona, con links. Solo la ves tú y, después del sorteo, quien te regala
 - 🚫 **Exclusiones** (por ejemplo, parejas que no se regalan entre sí)
+- 🙈 **Sorteo a ciegas**: cada persona recibe una lista sin nombre, apuesta de quién es y se revela
+  todo junto (botón de quien organiza o una hora fija). Hasta la revelación la base no entrega el
+  nombre por ninguna vía, y el chat tapa los nombres de todos los participantes
 - 🔁 **Repetir con las mismas personas**: un grupo nuevo con el mismo presupuesto y exclusiones,
   invitando a los de antes (cada uno acepta o no), con opción de no repetir las parejas del año
   anterior y un historial de ediciones donde cada persona ve solo a quién le regaló

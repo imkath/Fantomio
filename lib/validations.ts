@@ -19,6 +19,9 @@ export const updateGroupSchema = z.object({
     .nullable()
     .optional()
     .transform((val) => (val === '' ? null : val)),
+  mode: z.enum(['classic', 'blind']).optional(),
+  // Backup time for a blind reveal (ISO with offset); null clears it.
+  reveal_at: z.string().datetime({ offset: true }).nullable().optional(),
 })
 
 export const groupIdSchema = z.string().uuid('ID de grupo inválido')

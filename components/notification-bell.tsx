@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { useCallback, useEffect, useState } from 'react'
 import {
   Bell,
+  Eye,
   Gift,
   ListChecks,
   MailPlus,
@@ -21,7 +22,7 @@ import { createClient } from '@/lib/supabase'
 interface Notification {
   id: string
   group_id: string
-  type: 'question' | 'reply' | 'wishlist' | 'draw' | 'invitation' | 'reveal'
+  type: 'question' | 'reply' | 'wishlist' | 'draw' | 'invitation' | 'reveal' | 'unveil'
   body: string
   read_at: string | null
   created_at: string
@@ -34,6 +35,7 @@ const ICONS = {
   draw: Shuffle,
   invitation: MailPlus,
   reveal: Gift,
+  unveil: Eye,
 }
 
 const relative = new Intl.RelativeTimeFormat('es', { numeric: 'auto' })

@@ -204,6 +204,20 @@ export const NOTIFICATION_EMAILS = {
       note: 'Si no respondes antes del sorteo, quedas fuera de esta vuelta.',
     }),
   },
+  // Blind draw revealed. {{NAME}} is the recipient; the email never names their person.
+  unveil: {
+    subject: 'Llegó la hora en {{GROUP}}',
+    html: emailLayout({
+      label: '{{GROUP}}',
+      title: 'Ya puedes ver a quién le regalas',
+      paragraphs: [
+        'Hola {{NAME}},',
+        'Se reveló el sorteo a ciegas de <strong style="color: #1b1b1a;">{{GROUP}}</strong>. Entra para ver de quién era la lista que te tocó y si acertaste.',
+      ],
+      cta: { text: 'Ver a quién le regalo', href: '{{URL}}' },
+      note: 'Solo tú ves a quién le regalas.',
+    }),
+  },
   // {{NAME}} is the person who gave to the recipient and chose to say so.
   reveal: {
     subject: '{{NAME}} fue tu amigo secreto en {{GROUP}}',

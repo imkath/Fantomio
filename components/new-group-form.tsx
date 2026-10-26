@@ -1,6 +1,7 @@
 'use client'
 
 import { groupPath } from '@/lib/routes'
+import { ModePicker, type GroupMode } from '@/components/group/mode-picker'
 import { useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Loader2, Plus } from 'lucide-react'
@@ -36,6 +37,7 @@ export function NewGroupForm({
   const [budget, setBudget] = useState('')
   const [currency, setCurrency] = useState('CLP')
   const [eventDate, setEventDate] = useState('')
+  const [mode, setMode] = useState<GroupMode>('classic')
   const [error, setError] = useState('')
   const [isLoading, setIsLoading] = useState(false)
 
@@ -72,6 +74,7 @@ export function NewGroupForm({
           budget: budget ? parseFloat(budget) : null,
           currency,
           exchange_date: eventDate || null,
+          mode,
         })
         .select()
         .single()
@@ -173,6 +176,8 @@ export function NewGroupForm({
           min={new Date().toISOString().split('T')[0]}
         />
       </div>
+
+      <ModePicker value={mode} onChange={setMode} />
 
       <Button type="submit" size="lg" className="w-full" disabled={isLoading || !name.trim()}>
         {isLoading ? (

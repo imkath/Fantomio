@@ -51,10 +51,14 @@ CREATE TABLE groups (
   previous_group_id uuid,
   archived_at timestamp with time zone,
   auto_archive boolean NOT NULL DEFAULT true,
+  mode text NOT NULL DEFAULT 'classic'::text,
+  reveal_at timestamp with time zone,
+  revealed_at timestamp with time zone,
   CONSTRAINT groups_invite_code_key UNIQUE (invite_code),
   CONSTRAINT groups_pkey PRIMARY KEY (id),
   CONSTRAINT groups_admin_id_fkey FOREIGN KEY (admin_id) REFERENCES profiles(id) ON DELETE CASCADE,
-  CONSTRAINT groups_previous_group_id_fkey FOREIGN KEY (previous_group_id) REFERENCES groups(id) ON DELETE SET NULL
+  CONSTRAINT groups_previous_group_id_fkey FOREIGN KEY (previous_group_id) REFERENCES groups(id) ON DELETE SET NULL,
+  CONSTRAINT groups_mode_check CHECK ((mode = ANY (ARRAY['classic'::text, 'blind'::text])))
 );
 
 CREATE TABLE members (
@@ -143,7 +147,7 @@ CREATE TABLE notifications (
   CONSTRAINT notifications_pkey PRIMARY KEY (id),
   CONSTRAINT notifications_group_id_fkey FOREIGN KEY (group_id) REFERENCES groups(id) ON DELETE CASCADE,
   CONSTRAINT notifications_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE,
-  CONSTRAINT notifications_type_check CHECK ((type = ANY (ARRAY['question'::text, 'reply'::text, 'wishlist'::text, 'draw'::text, 'invitation'::text, 'reveal'::text])))
+  CONSTRAINT notifications_type_check CHECK ((type = ANY (ARRAY['question'::text, 'reply'::text, 'wishlist'::text, 'draw'::text, 'invitation'::text, 'reveal'::text, 'unveil'::text])))
 );
 
 CREATE TABLE email_templates (
@@ -171,6 +175,18 @@ CREATE TABLE group_invitations (
   CONSTRAINT group_invitations_group_id_fkey FOREIGN KEY (group_id) REFERENCES groups(id) ON DELETE CASCADE,
   CONSTRAINT group_invitations_invited_by_fkey FOREIGN KEY (invited_by) REFERENCES profiles(id) ON DELETE SET NULL,
   CONSTRAINT group_invitations_user_id_fkey FOREIGN KEY (user_id) REFERENCES profiles(id) ON DELETE CASCADE
+);
+
+CREATE TABLE blind_guesses (
+  group_id uuid NOT NULL,
+  user_id uuid NOT NULL,
+  guessed_user_id uuid NOT NULL,
+  updated_at timestamp with time zone NOT NULL DEFAULT now(),
+  CONSTRAINT blind_guesses_pkey PRIMARY KEY (group_id, user_id),
+  CONSTRAINT blind_guesses_group_id_fkey FOREIGN KEY (group_id) REFERENCES groups(id) ON DELETE CASCADE,
+  CONSTRAINT blind_guesses_guessed_user_id_fkey FOREIGN KEY (guessed_user_id) REFERENCES profiles(id) ON DELETE CASCADE,
+  CONSTRAINT blind_guesses_user_id_fkey FOREIGN KEY (user_id) REFERENCES profiles(id) ON DELETE CASCADE,
+  CONSTRAINT blind_guesses_check CHECK ((user_id <> guessed_user_id))
 );
 
 -- ==========================================================================================
@@ -252,19 +268,22 @@ CREATE OR REPLACE FUNCTION public.archive_due_groups()
  SET search_path TO 'public'
 AS $function$
 DECLARE
-  n INTEGER;
+  gid UUID;
+  n INTEGER := 0;
 BEGIN
-  WITH due AS (
-    UPDATE groups g SET archived_at = NOW()
+  FOR gid IN
+    SELECT g.id FROM groups g
     WHERE g.archived_at IS NULL AND g.auto_archive AND (
       (g.exchange_date IS NOT NULL AND g.exchange_date + 7 < CURRENT_DATE)
       OR (g.exchange_date IS NULL AND g.status = 'DRAWN' AND coalesce(
             (SELECT max(created_at) FROM activities a WHERE a.group_id = g.id AND a.type = 'DRAW'),
             g.created_at) < NOW() - INTERVAL '3 months')
     )
-    RETURNING g.id
-  )
-  SELECT count(*) INTO n FROM due;
+  LOOP
+    PERFORM do_reveal(gid);
+    UPDATE groups SET archived_at = NOW() WHERE id = gid;
+    n := n + 1;
+  END LOOP;
   DELETE FROM group_invitations WHERE group_id IN (SELECT id FROM groups WHERE archived_at IS NOT NULL);
   RETURN n;
 END;
@@ -291,6 +310,54 @@ AS $function$
 $function$
 ;
 
+CREATE OR REPLACE FUNCTION public.blind_hidden(p_group uuid)
+ RETURNS boolean
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public'
+AS $function$
+  SELECT coalesce((SELECT mode = 'blind' AND revealed_at IS NULL FROM groups WHERE id = p_group), FALSE);
+$function$
+;
+
+CREATE OR REPLACE FUNCTION public.blind_missing_lists(p_group_id uuid)
+ RETURNS text[]
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public'
+AS $function$
+  SELECT coalesce(array_agg(initcap(lower(coalesce(p.full_name, split_part(p.email, '@', 1)))) ORDER BY p.full_name), '{}')
+  FROM members m JOIN profiles p ON p.id = m.user_id
+  LEFT JOIN wishlists w ON w.group_id = m.group_id AND w.user_id = m.user_id
+  WHERE m.group_id = p_group_id AND coalesce(jsonb_array_length(w.items), 0) = 0
+    AND user_is_member_of_group(p_group_id)
+    AND (SELECT status FROM groups WHERE id = p_group_id) = 'PLANNING';
+$function$
+;
+
+CREATE OR REPLACE FUNCTION public.blind_results(p_group_id uuid)
+ RETURNS jsonb
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public'
+AS $function$
+  SELECT jsonb_build_object(
+    'my_guess', (SELECT initcap(lower(p.full_name)) FROM blind_guesses b JOIN profiles p ON p.id = b.guessed_user_id
+                 WHERE b.group_id = p_group_id AND b.user_id = auth.uid()),
+    'correct', (SELECT b.guessed_user_id = x.receiver_id FROM blind_guesses b
+                JOIN matches x ON x.group_id = b.group_id AND x.giver_id = b.user_id
+                WHERE b.group_id = p_group_id AND b.user_id = auth.uid()),
+    'correct_count', (SELECT count(*) FROM blind_guesses b
+                      JOIN matches x ON x.group_id = b.group_id AND x.giver_id = b.user_id
+                      WHERE b.group_id = p_group_id AND b.guessed_user_id = x.receiver_id),
+    'guess_count', (SELECT count(*) FROM blind_guesses WHERE group_id = p_group_id),
+    'total', (SELECT count(*) FROM members WHERE group_id = p_group_id)
+  )
+  WHERE user_is_member_of_group(p_group_id) AND NOT blind_hidden(p_group_id)
+    AND (SELECT mode FROM groups WHERE id = p_group_id) = 'blind';
+$function$
+;
+
 CREATE OR REPLACE FUNCTION public.cancel_invitation(p_group_id uuid, p_user uuid)
  RETURNS void
  LANGUAGE plpgsql
@@ -303,6 +370,29 @@ BEGIN
   END IF;
   DELETE FROM group_invitations WHERE group_id = p_group_id AND user_id = p_user;
   DELETE FROM notifications WHERE group_id = p_group_id AND user_id = p_user AND type = 'invitation';
+END;
+$function$
+;
+
+CREATE OR REPLACE FUNCTION public.censor_blind_message()
+ RETURNS trigger
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public'
+AS $function$
+DECLARE
+  gid UUID;
+  pattern TEXT;
+BEGIN
+  SELECT group_id INTO gid FROM matches WHERE id = NEW.match_id;
+  IF NOT blind_hidden(gid) THEN
+    RETURN NEW;
+  END IF;
+  pattern := group_name_regex(gid);
+  IF pattern IS NOT NULL THEN
+    NEW.content := regexp_replace(NEW.content, pattern, '•••', 'gi');
+  END IF;
+  RETURN NEW;
 END;
 $function$
 ;
@@ -345,6 +435,8 @@ BEGIN
   UPDATE exclusions SET excluded_receiver_id = dst WHERE excluded_receiver_id = src;
   UPDATE activities SET user_id = dst WHERE user_id = src;
   UPDATE notifications SET user_id = dst WHERE user_id = src;
+  UPDATE blind_guesses SET user_id = dst WHERE user_id = src;
+  UPDATE blind_guesses SET guessed_user_id = dst WHERE guessed_user_id = src;
   -- Google (and any other provider) moves over; the other account's password does not.
   UPDATE auth.identities SET user_id = dst, updated_at = NOW()
   WHERE user_id = src AND provider <> 'email';
@@ -387,6 +479,28 @@ END;
 $function$
 ;
 
+CREATE OR REPLACE FUNCTION public.do_reveal(p_group_id uuid)
+ RETURNS void
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public'
+AS $function$
+DECLARE
+  g groups%ROWTYPE;
+BEGIN
+  SELECT * INTO g FROM groups WHERE id = p_group_id FOR UPDATE;
+  IF g.mode <> 'blind' OR g.status <> 'DRAWN' OR g.revealed_at IS NOT NULL THEN
+    RETURN;
+  END IF;
+  PERFORM set_config('ghostswap.reveal', 'on', true);
+  UPDATE groups SET revealed_at = NOW() WHERE id = p_group_id;
+  INSERT INTO notifications (user_id, group_id, type, body)
+  SELECT m.user_id, p_group_id, 'unveil', 'Llegó la hora: ya puedes ver a quién le regalas en ' || g.name
+  FROM members m WHERE m.group_id = p_group_id;
+END;
+$function$
+;
+
 CREATE OR REPLACE FUNCTION public.draw_group(p_group_id uuid, p_avoid_previous boolean DEFAULT false)
  RETURNS void
  LANGUAGE plpgsql
@@ -400,6 +514,7 @@ DECLARE
   excluded TEXT[];
   n INT;
   ok BOOLEAN := FALSE;
+  missing TEXT;
 BEGIN
   SELECT * INTO g FROM groups WHERE id = p_group_id FOR UPDATE;
   IF g.id IS NULL THEN
@@ -419,6 +534,17 @@ BEGIN
   n := coalesce(array_length(givers, 1), 0);
   IF n < 3 THEN
     RAISE EXCEPTION 'Hacen falta al menos 3 personas para sortear';
+  END IF;
+  -- A blind draw only gives a wishlist to go on: everyone needs one first.
+  IF g.mode = 'blind' THEN
+    SELECT string_agg(initcap(lower(coalesce(p.full_name, split_part(p.email, '@', 1)))), ', ' ORDER BY p.full_name)
+    INTO missing
+    FROM members m JOIN profiles p ON p.id = m.user_id
+    LEFT JOIN wishlists w ON w.group_id = m.group_id AND w.user_id = m.user_id
+    WHERE m.group_id = p_group_id AND coalesce(jsonb_array_length(w.items), 0) = 0;
+    IF missing IS NOT NULL THEN
+      RAISE EXCEPTION 'En el sorteo a ciegas todos tienen que anotar su lista antes de sortear. Falta: %', missing;
+    END IF;
   END IF;
 
   excluded := ARRAY(
@@ -513,7 +639,7 @@ BEGIN
   END IF;
 
   SELECT name INTO group_name FROM groups WHERE id = NEW.group_id;
-  IF NEW.type = 'draw' THEN
+  IF NEW.type IN ('draw', 'unveil') THEN
     -- The draw email greets the recipient; it never names their match.
     SELECT initcap(lower(full_name)) INTO other_name FROM profiles WHERE id = NEW.user_id;
   ELSIF NEW.type = 'invitation' THEN
@@ -525,6 +651,8 @@ BEGIN
     SELECT initcap(lower(p.full_name)) INTO other_name
     FROM matches mt JOIN profiles p ON p.id = mt.giver_id
     WHERE mt.group_id = NEW.group_id AND mt.receiver_id = NEW.user_id AND mt.revealed_at IS NOT NULL;
+  ELSIF blind_hidden(NEW.group_id) THEN
+    other_name := 'Tu amigo secreto';
   ELSE
     -- For replies and wishlist changes, the other person is the recipient's own receiver.
     SELECT initcap(lower(p.full_name)) INTO other_name
@@ -610,12 +738,15 @@ AS $function$
       FROM wishlists w JOIN groups g ON g.id = w.group_id, me WHERE w.user_id = me.id), '[]'::jsonb),
     'a_quien_le_regalas', coalesce((SELECT jsonb_agg(jsonb_build_object('grupo', g.name, 'persona', p.full_name))
       FROM matches x JOIN groups g ON g.id = x.group_id JOIN profiles p ON p.id = x.receiver_id, me
-      WHERE x.giver_id = me.id), '[]'::jsonb),
+      WHERE x.giver_id = me.id AND NOT blind_hidden(x.group_id)), '[]'::jsonb),
     'mensajes_que_enviaste', coalesce((SELECT jsonb_agg(jsonb_build_object(
       'grupo', g.name, 'como', CASE a.sender_role WHEN 'giver' THEN 'quien regala' ELSE 'quien recibe' END,
       'mensaje', a.content, 'fecha', a.created_at) ORDER BY a.created_at)
       FROM anonymous_messages a JOIN matches x ON x.id = a.match_id JOIN groups g ON g.id = x.group_id, me
       WHERE (a.sender_role = 'giver' AND x.giver_id = me.id) OR (a.sender_role = 'receiver' AND x.receiver_id = me.id)), '[]'::jsonb),
+    'apuestas', coalesce((SELECT jsonb_agg(jsonb_build_object('grupo', g.name, 'creias_que_era', p.full_name))
+      FROM blind_guesses b JOIN groups g ON g.id = b.group_id JOIN profiles p ON p.id = b.guessed_user_id, me
+      WHERE b.user_id = me.id), '[]'::jsonb),
     'avisos', coalesce((SELECT jsonb_agg(jsonb_build_object('tipo', n.type, 'texto', n.body, 'fecha', n.created_at) ORDER BY n.created_at)
       FROM notifications n, me WHERE n.user_id = me.id), '[]'::jsonb)
   );
@@ -672,7 +803,7 @@ CREATE OR REPLACE FUNCTION public.gives_to(p_group uuid, p_user uuid)
  STABLE SECURITY DEFINER
  SET search_path TO 'public'
 AS $function$
-  SELECT EXISTS (
+  SELECT NOT blind_hidden(p_group) AND EXISTS (
     SELECT 1 FROM matches
     WHERE group_id = p_group AND receiver_id = p_user AND giver_id = auth.uid()
   );
@@ -706,7 +837,7 @@ AS $function$
                FROM members m JOIN profiles p ON p.id = m.user_id
                WHERE m.group_id = g.id ORDER BY p.full_name),
          (SELECT initcap(lower(p.full_name)) FROM matches x JOIN profiles p ON p.id = x.receiver_id
-          WHERE x.group_id = g.id AND x.giver_id = auth.uid())
+          WHERE x.group_id = g.id AND x.giver_id = auth.uid() AND NOT blind_hidden(g.id))
   FROM chain c JOIN groups g ON g.id = c.id
   WHERE EXISTS (SELECT 1 FROM members m WHERE m.group_id = g.id AND m.user_id = auth.uid())
   ORDER BY c.depth;
@@ -723,6 +854,27 @@ AS $function$
 $function$
 ;
 
+CREATE OR REPLACE FUNCTION public.group_name_regex(p_group uuid)
+ RETURNS text
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public'
+AS $function$
+  WITH words AS (
+    SELECT DISTINCT translate(lower(w), 'áàâäéèêëíìîïóòôöúùûüñ', 'aaaaeeeeiiiioooouuuun') AS word
+    FROM members m JOIN profiles p ON p.id = m.user_id,
+         regexp_split_to_table(coalesce(p.full_name, '') || ' ' ||
+                               regexp_replace(split_part(coalesce(p.email, ''), '@', 1), '[._+0-9-]+', ' ', 'g'),
+                               '[^[:alpha:]]+') AS w
+    WHERE m.group_id = p_group
+  )
+  SELECT '\m(' || string_agg(name_pattern(word), '|' ORDER BY length(word) DESC) || ')\M'
+  FROM words
+  WHERE length(word) >= 3 AND word ~ '^[a-z]+$'
+    AND word NOT IN ('del', 'las', 'los', 'van', 'von', 'des', 'der');
+$function$
+;
+
 CREATE OR REPLACE FUNCTION public.group_pending_invitations(p_group_id uuid)
  RETURNS TABLE(user_id uuid, name text, avatar_url text, invited_at timestamp with time zone, declined boolean)
  LANGUAGE sql
@@ -736,6 +888,24 @@ AS $function$
     -- Someone who declined and then joined with the link is simply a member now.
     AND NOT EXISTS (SELECT 1 FROM members m WHERE m.group_id = i.group_id AND m.user_id = i.user_id)
   ORDER BY p.full_name;
+$function$
+;
+
+CREATE OR REPLACE FUNCTION public.guard_group_mode()
+ RETURNS trigger
+ LANGUAGE plpgsql
+ SET search_path TO 'public'
+AS $function$
+BEGIN
+  IF NEW.mode IS DISTINCT FROM OLD.mode AND OLD.status = 'DRAWN' THEN
+    RAISE EXCEPTION 'El tipo de sorteo no se puede cambiar después de sortear';
+  END IF;
+  IF NEW.revealed_at IS DISTINCT FROM OLD.revealed_at
+     AND coalesce(current_setting('ghostswap.reveal', true), '') <> 'on' THEN
+    RAISE EXCEPTION 'La revelación solo se hace desde el botón o a la hora fijada';
+  END IF;
+  RETURN NEW;
+END;
 $function$
 ;
 
@@ -783,6 +953,16 @@ AS $function$
 $function$
 ;
 
+CREATE OR REPLACE FUNCTION public.is_match_giver(p_match_id uuid)
+ RETURNS boolean
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public'
+AS $function$
+  SELECT EXISTS (SELECT 1 FROM matches WHERE id = p_match_id AND giver_id = auth.uid());
+$function$
+;
+
 CREATE OR REPLACE FUNCTION public.is_match_receiver(p_match_id uuid)
  RETURNS boolean
  LANGUAGE sql
@@ -827,6 +1007,23 @@ BEGIN
          coalesce(initcap(lower(p.full_name)), 'Alguien') || ' se unió al grupo'
   FROM profiles p WHERE p.id = auth.uid();
   RETURN g.id;
+END;
+$function$
+;
+
+CREATE OR REPLACE FUNCTION public.keep_blind_lists()
+ RETURNS trigger
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public'
+AS $function$
+BEGIN
+  IF EXISTS (SELECT 1 FROM groups WHERE id = OLD.group_id AND status = 'DRAWN') AND blind_hidden(OLD.group_id) THEN
+    IF TG_OP = 'DELETE' OR coalesce(jsonb_array_length(NEW.items), 0) = 0 THEN
+      RAISE EXCEPTION 'En el sorteo a ciegas tu lista es la única pista de quien te regala: puedes cambiarla, pero no dejarla vacía.';
+    END IF;
+  END IF;
+  RETURN CASE WHEN TG_OP = 'DELETE' THEN OLD ELSE NEW END;
 END;
 $function$
 ;
@@ -888,6 +1085,31 @@ AS $function$
 $function$
 ;
 
+CREATE OR REPLACE FUNCTION public.my_blind_assignment(p_group_id uuid)
+ RETURNS jsonb
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public'
+AS $function$
+  SELECT jsonb_build_object(
+    'match_id', x.id,
+    'items', coalesce((SELECT w.items FROM wishlists w WHERE w.group_id = x.group_id AND w.user_id = x.receiver_id), '[]'::jsonb)
+  )
+  FROM matches x
+  WHERE x.group_id = p_group_id AND x.giver_id = auth.uid() AND blind_hidden(p_group_id);
+$function$
+;
+
+CREATE OR REPLACE FUNCTION public.my_guess(p_group_id uuid)
+ RETURNS uuid
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public'
+AS $function$
+  SELECT guessed_user_id FROM blind_guesses WHERE group_id = p_group_id AND user_id = auth.uid();
+$function$
+;
+
 CREATE OR REPLACE FUNCTION public.my_invitations()
  RETURNS TABLE(group_id uuid, name text, organizer text, exchange_date date, budget numeric, currency text, invited_at timestamp with time zone)
  LANGUAGE sql
@@ -914,6 +1136,17 @@ AS $function$
 $function$
 ;
 
+CREATE OR REPLACE FUNCTION public.name_pattern(p_word text)
+ RETURNS text
+ LANGUAGE sql
+ IMMUTABLE
+AS $function$
+  SELECT replace(replace(replace(replace(replace(replace(
+    translate(lower(p_word), 'áàâäéèêëíìîïóòôöúùûüñ', 'aaaaeeeeiiiioooouuuun'),
+    'a', '[aáàâä]'), 'e', '[eéèêë]'), 'i', '[iíìîï]'), 'o', '[oóòôö]'), 'u', '[uúùûü]'), 'n', '[nñ]');
+$function$
+;
+
 CREATE OR REPLACE FUNCTION public.notify_anonymous_message()
  RETURNS trigger
  LANGUAGE plpgsql
@@ -932,7 +1165,9 @@ BEGIN
     PERFORM push_notification(m.receiver_id, m.group_id, 'question',
       'Quien te regala te hizo una pregunta en ' || group_name);
   ELSE
-    SELECT initcap(lower(full_name)) INTO receiver_name FROM profiles WHERE id = m.receiver_id;
+    IF NOT blind_hidden(m.group_id) THEN
+      SELECT initcap(lower(full_name)) INTO receiver_name FROM profiles WHERE id = m.receiver_id;
+    END IF;
     PERFORM push_notification(m.giver_id, m.group_id, 'reply',
       coalesce(receiver_name, 'Tu amigo secreto') || ' respondió tu pregunta en ' || group_name);
   END IF;
@@ -965,11 +1200,61 @@ BEGIN
     RETURN NEW;
   END IF;
 
-  SELECT initcap(lower(full_name)) INTO person FROM profiles WHERE id = NEW.user_id;
+  IF NOT blind_hidden(NEW.group_id) THEN
+    SELECT initcap(lower(full_name)) INTO person FROM profiles WHERE id = NEW.user_id;
+  END IF;
   SELECT name INTO group_name FROM groups WHERE id = NEW.group_id;
   PERFORM push_notification(giver, NEW.group_id, 'wishlist',
     coalesce(person, 'Tu amigo secreto') || ' actualizó su lista en ' || group_name);
   RETURN NEW;
+END;
+$function$
+;
+
+CREATE OR REPLACE FUNCTION public.place_guess(p_group_id uuid, p_guessed uuid)
+ RETURNS void
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public'
+AS $function$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM groups WHERE id = p_group_id AND mode = 'blind' AND status = 'DRAWN') THEN
+    RAISE EXCEPTION 'Solo se apuesta en un sorteo a ciegas ya hecho';
+  END IF;
+  IF NOT blind_hidden(p_group_id) THEN
+    RAISE EXCEPTION 'Ya se reveló: las apuestas están cerradas';
+  END IF;
+  IF NOT user_is_member_of_group(p_group_id) THEN
+    RAISE EXCEPTION 'No estás en este grupo';
+  END IF;
+  IF p_guessed = auth.uid()
+     OR NOT EXISTS (SELECT 1 FROM members WHERE group_id = p_group_id AND user_id = p_guessed) THEN
+    RAISE EXCEPTION 'Elige a otra persona del grupo';
+  END IF;
+  INSERT INTO blind_guesses (group_id, user_id, guessed_user_id) VALUES (p_group_id, auth.uid(), p_guessed)
+  ON CONFLICT (group_id, user_id) DO UPDATE SET guessed_user_id = EXCLUDED.guessed_user_id, updated_at = NOW();
+END;
+$function$
+;
+
+CREATE OR REPLACE FUNCTION public.process_scheduled_reveals()
+ RETURNS integer
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public'
+AS $function$
+DECLARE
+  gid UUID;
+  n INTEGER := 0;
+BEGIN
+  FOR gid IN
+    SELECT id FROM groups
+    WHERE mode = 'blind' AND status = 'DRAWN' AND revealed_at IS NULL AND reveal_at <= NOW()
+  LOOP
+    PERFORM do_reveal(gid);
+    n := n + 1;
+  END LOOP;
+  RETURN n;
 END;
 $function$
 ;
@@ -1042,8 +1327,8 @@ BEGIN
     RAISE EXCEPTION 'Ponle un nombre al grupo nuevo';
   END IF;
 
-  INSERT INTO groups (name, budget, currency, exchange_date, admin_id, previous_group_id)
-  VALUES (trim(p_name), p_budget, src.currency, p_exchange_date, auth.uid(), src.id)
+  INSERT INTO groups (name, budget, currency, exchange_date, admin_id, previous_group_id, mode)
+  VALUES (trim(p_name), p_budget, src.currency, p_exchange_date, auth.uid(), src.id, src.mode)
   RETURNING id INTO new_id;
   INSERT INTO members (group_id, user_id, is_admin) VALUES (new_id, auth.uid(), TRUE);
 
@@ -1097,11 +1382,34 @@ BEGIN
 
   DELETE FROM matches WHERE group_id = p_group_id;
   PERFORM set_config('ghostswap.status_change', 'on', true);
-  UPDATE groups SET status = 'PLANNING' WHERE id = p_group_id;
+  PERFORM set_config('ghostswap.reveal', 'on', true);
+  UPDATE groups SET status = 'PLANNING', revealed_at = NULL WHERE id = p_group_id;
+  DELETE FROM blind_guesses WHERE group_id = p_group_id;
 
   INSERT INTO activities (group_id, user_id, type, message)
   VALUES (p_group_id, auth.uid(), 'DRAW_RESET', 'Se reinició el sorteo de "' || g.name || '"');
   RETURN TRUE;
+END;
+$function$
+;
+
+CREATE OR REPLACE FUNCTION public.reveal_blind(p_group_id uuid)
+ RETURNS void
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public'
+AS $function$
+DECLARE
+  g groups%ROWTYPE;
+BEGIN
+  SELECT * INTO g FROM groups WHERE id = p_group_id;
+  IF g.admin_id IS DISTINCT FROM auth.uid() THEN
+    RAISE EXCEPTION 'Solo quien organiza puede revelar';
+  END IF;
+  IF g.mode <> 'blind' OR g.status <> 'DRAWN' THEN
+    RAISE EXCEPTION 'No hay un sorteo a ciegas que revelar';
+  END IF;
+  PERFORM do_reveal(p_group_id);
 END;
 $function$
 ;
@@ -1121,6 +1429,9 @@ BEGIN
   SELECT * INTO mt FROM matches WHERE group_id = p_group_id AND giver_id = auth.uid();
   IF mt.id IS NULL THEN
     RAISE EXCEPTION 'No tienes a quién revelarte en este grupo';
+  END IF;
+  IF blind_hidden(p_group_id) THEN
+    RAISE EXCEPTION 'Primero tiene que revelarse el sorteo a ciegas';
   END IF;
   IF g.archived_at IS NULL AND (g.exchange_date IS NULL OR g.exchange_date > CURRENT_DATE) THEN
     RAISE EXCEPTION 'Podrás revelarte después del intercambio';
@@ -1145,6 +1456,9 @@ AS $function$
 BEGIN
   IF NOT EXISTS (SELECT 1 FROM groups WHERE id = p_group_id AND admin_id = auth.uid()) THEN
     RAISE EXCEPTION 'Solo quien organiza puede archivar o restaurar el grupo';
+  END IF;
+  IF p_archived THEN
+    PERFORM do_reveal(p_group_id);
   END IF;
   -- Restoring turns automatic archiving off for this group, or it would archive again tonight.
   UPDATE groups
@@ -1295,13 +1609,31 @@ AS $function$
 $function$
 ;
 
+CREATE OR REPLACE FUNCTION public.wishlist_count(p_group_id uuid)
+ RETURNS jsonb
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public'
+AS $function$
+  SELECT jsonb_build_object(
+    'with_list', count(*) FILTER (WHERE coalesce(jsonb_array_length(w.items), 0) > 0),
+    'total', count(*))
+  FROM members m
+  LEFT JOIN wishlists w ON w.group_id = m.group_id AND w.user_id = m.user_id
+  WHERE m.group_id = p_group_id AND user_is_member_of_group(p_group_id);
+$function$
+;
+
 CREATE OR REPLACE FUNCTION public.wishlist_status(p_group_id uuid)
  RETURNS TABLE(user_id uuid, has_items boolean)
  LANGUAGE sql
  STABLE SECURITY DEFINER
  SET search_path TO 'public'
 AS $function$
-  SELECT m.user_id, coalesce(jsonb_array_length(w.items) > 0, FALSE)
+  SELECT m.user_id,
+         CASE WHEN m.user_id = auth.uid() OR NOT blind_hidden(p_group_id)
+                OR (SELECT mode FROM groups WHERE id = p_group_id) = 'classic'
+              THEN coalesce(jsonb_array_length(w.items) > 0, FALSE) END
   FROM members m
   LEFT JOIN wishlists w ON w.group_id = m.group_id AND w.user_id = m.user_id
   WHERE m.group_id = p_group_id
@@ -1313,7 +1645,11 @@ $function$
 -- Triggers
 -- ==========================================================================================
 
+CREATE TRIGGER censor_blind_message BEFORE INSERT ON public.anonymous_messages FOR EACH ROW EXECUTE FUNCTION censor_blind_message();
+
 CREATE TRIGGER on_anonymous_message AFTER INSERT ON public.anonymous_messages FOR EACH ROW EXECUTE FUNCTION notify_anonymous_message();
+
+CREATE TRIGGER guard_group_mode BEFORE UPDATE ON public.groups FOR EACH ROW EXECUTE FUNCTION guard_group_mode();
 
 CREATE TRIGGER guard_group_status BEFORE UPDATE OF status ON public.groups FOR EACH ROW EXECUTE FUNCTION guard_group_status();
 
@@ -1329,6 +1665,8 @@ CREATE TRIGGER on_auth_user_created AFTER INSERT ON auth.users FOR EACH ROW EXEC
 
 CREATE TRIGGER on_auth_user_email_changed AFTER UPDATE OF email ON auth.users FOR EACH ROW WHEN (((old.email)::text IS DISTINCT FROM (new.email)::text)) EXECUTE FUNCTION sync_profile_email();
 
+CREATE TRIGGER keep_blind_lists BEFORE DELETE OR UPDATE ON public.wishlists FOR EACH ROW WHEN ((pg_trigger_depth() = 0)) EXECUTE FUNCTION keep_blind_lists();
+
 CREATE TRIGGER on_wishlist_change AFTER INSERT OR UPDATE OF items ON public.wishlists FOR EACH ROW EXECUTE FUNCTION notify_wishlist_change();
 
 CREATE TRIGGER touch_wishlist BEFORE UPDATE ON public.wishlists FOR EACH ROW EXECUTE FUNCTION touch_wishlist();
@@ -1340,6 +1678,8 @@ CREATE TRIGGER touch_wishlist BEFORE UPDATE ON public.wishlists FOR EACH ROW EXE
 ALTER TABLE activities ENABLE ROW LEVEL SECURITY;
 
 ALTER TABLE anonymous_messages ENABLE ROW LEVEL SECURITY;
+
+ALTER TABLE blind_guesses ENABLE ROW LEVEL SECURITY;
 
 ALTER TABLE email_templates ENABLE ROW LEVEL SECURITY;
 
@@ -1379,15 +1719,11 @@ CREATE POLICY "Match participants can send messages" ON anonymous_messages
   FOR INSERT
   WITH CHECK (((NOT group_archived(( SELECT matches.group_id
    FROM matches
-  WHERE (matches.id = anonymous_messages.match_id)))) AND (((sender_role = 'giver'::text) AND (EXISTS ( SELECT 1
-   FROM matches
-  WHERE ((matches.id = anonymous_messages.match_id) AND (matches.giver_id = auth.uid()))))) OR ((sender_role = 'receiver'::text) AND is_match_receiver(match_id)))));
+  WHERE (matches.id = anonymous_messages.match_id)))) AND (((sender_role = 'giver'::text) AND is_match_giver(match_id)) OR ((sender_role = 'receiver'::text) AND is_match_receiver(match_id)))));
 
 CREATE POLICY "Match participants can view messages" ON anonymous_messages
   FOR SELECT
-  USING (((EXISTS ( SELECT 1
-   FROM matches
-  WHERE ((matches.id = anonymous_messages.match_id) AND (matches.giver_id = auth.uid())))) OR is_match_receiver(match_id)));
+  USING ((is_match_giver(match_id) OR is_match_receiver(match_id)));
 
 CREATE POLICY "Admin can delete exclusions" ON exclusions
   FOR DELETE
@@ -1430,7 +1766,7 @@ CREATE POLICY "groups_update" ON groups
 
 CREATE POLICY "Users can only view their own match" ON matches
   FOR SELECT
-  USING ((auth.uid() = giver_id));
+  USING (((auth.uid() = giver_id) AND (NOT blind_hidden(group_id))));
 
 CREATE POLICY "members_delete" ON members
   FOR DELETE
@@ -1492,11 +1828,21 @@ REVOKE EXECUTE ON FUNCTION auth_user_admin_group_ids() FROM PUBLIC, anon;
 
 REVOKE EXECUTE ON FUNCTION auth_user_group_ids() FROM PUBLIC, anon;
 
+REVOKE EXECUTE ON FUNCTION blind_hidden(p_group uuid) FROM PUBLIC, anon;
+
+REVOKE EXECUTE ON FUNCTION blind_missing_lists(p_group_id uuid) FROM PUBLIC, anon;
+
+REVOKE EXECUTE ON FUNCTION blind_results(p_group_id uuid) FROM PUBLIC, anon;
+
 REVOKE EXECUTE ON FUNCTION cancel_invitation(p_group_id uuid, p_user uuid) FROM PUBLIC, anon;
+
+REVOKE EXECUTE ON FUNCTION censor_blind_message() FROM PUBLIC, anon;
 
 REVOKE EXECUTE ON FUNCTION confirm_merge(p_code text) FROM PUBLIC, anon;
 
 REVOKE EXECUTE ON FUNCTION delete_my_account() FROM PUBLIC, anon;
+
+REVOKE EXECUTE ON FUNCTION do_reveal(p_group_id uuid) FROM PUBLIC, anon;
 
 REVOKE EXECUTE ON FUNCTION draw_group(p_group_id uuid, p_avoid_previous boolean) FROM PUBLIC, anon;
 
@@ -1516,21 +1862,39 @@ REVOKE EXECUTE ON FUNCTION group_history(p_group_id uuid) FROM PUBLIC, anon;
 
 REVOKE EXECUTE ON FUNCTION group_is_open(p_group uuid) FROM PUBLIC, anon;
 
+REVOKE EXECUTE ON FUNCTION group_name_regex(p_group uuid) FROM PUBLIC, anon;
+
 REVOKE EXECUTE ON FUNCTION group_pending_invitations(p_group_id uuid) FROM PUBLIC, anon;
 
+REVOKE EXECUTE ON FUNCTION guard_group_mode() FROM PUBLIC, anon;
+
 REVOKE EXECUTE ON FUNCTION html_escape(t text) FROM PUBLIC, anon;
+
+REVOKE EXECUTE ON FUNCTION is_match_giver(p_match_id uuid) FROM PUBLIC, anon;
 
 REVOKE EXECUTE ON FUNCTION is_match_receiver(p_match_id uuid) FROM PUBLIC, anon;
 
 REVOKE EXECUTE ON FUNCTION join_group(p_code text) FROM PUBLIC, anon;
 
+REVOKE EXECUTE ON FUNCTION keep_blind_lists() FROM PUBLIC, anon;
+
 REVOKE EXECUTE ON FUNCTION log_member_left() FROM PUBLIC, anon;
 
 REVOKE EXECUTE ON FUNCTION merge_preview(p_code text) FROM PUBLIC, anon;
 
+REVOKE EXECUTE ON FUNCTION my_blind_assignment(p_group_id uuid) FROM PUBLIC, anon;
+
+REVOKE EXECUTE ON FUNCTION my_guess(p_group_id uuid) FROM PUBLIC, anon;
+
 REVOKE EXECUTE ON FUNCTION my_invitations() FROM PUBLIC, anon;
 
 REVOKE EXECUTE ON FUNCTION my_revealed_giver(p_group_id uuid) FROM PUBLIC, anon;
+
+REVOKE EXECUTE ON FUNCTION name_pattern(p_word text) FROM PUBLIC, anon;
+
+REVOKE EXECUTE ON FUNCTION place_guess(p_group_id uuid, p_guessed uuid) FROM PUBLIC, anon;
+
+REVOKE EXECUTE ON FUNCTION process_scheduled_reveals() FROM PUBLIC, anon;
 
 REVOKE EXECUTE ON FUNCTION push_notification(p_user uuid, p_group uuid, p_type text, p_body text) FROM PUBLIC, anon;
 
@@ -1539,6 +1903,8 @@ REVOKE EXECUTE ON FUNCTION reinvite(p_group_id uuid, p_user uuid) FROM PUBLIC, a
 REVOKE EXECUTE ON FUNCTION repeat_group(p_group_id uuid, p_name text, p_exchange_date date, p_budget numeric) FROM PUBLIC, anon;
 
 REVOKE EXECUTE ON FUNCTION reset_group_draw(p_group_id uuid) FROM PUBLIC, anon;
+
+REVOKE EXECUTE ON FUNCTION reveal_blind(p_group_id uuid) FROM PUBLIC, anon;
 
 REVOKE EXECUTE ON FUNCTION reveal_myself(p_group_id uuid) FROM PUBLIC, anon;
 
@@ -1555,6 +1921,8 @@ REVOKE EXECUTE ON FUNCTION sync_profile_email() FROM PUBLIC, anon;
 REVOKE EXECUTE ON FUNCTION transfer_group(p_group_id uuid, p_new_admin uuid) FROM PUBLIC, anon;
 
 REVOKE EXECUTE ON FUNCTION user_is_member_of_group(gid uuid) FROM PUBLIC, anon;
+
+REVOKE EXECUTE ON FUNCTION wishlist_count(p_group_id uuid) FROM PUBLIC, anon;
 
 REVOKE EXECUTE ON FUNCTION wishlist_status(p_group_id uuid) FROM PUBLIC, anon;
 
