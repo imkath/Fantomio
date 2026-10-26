@@ -17,6 +17,13 @@
 - 👥 **Grupos ilimitados**, con invitación por link o código
 - 🎁 **Lista de deseos** de hasta 10 cosas por persona, con links. Solo la ves tú y, después del sorteo, quien te regala
 - 🚫 **Exclusiones** (por ejemplo, parejas que no se regalan entre sí)
+- 🔁 **Repetir con las mismas personas**: un grupo nuevo con el mismo presupuesto y exclusiones,
+  invitando a los de antes (cada uno acepta o no), con opción de no repetir las parejas del año
+  anterior y un historial de ediciones donde cada persona ve solo a quién le regaló
+- 🗄️ **Archivado** automático 7 días después del intercambio (o manual), de solo lectura y
+  restaurable; cada persona puede además ocultar un grupo de su lista
+- 🎁 **Revelación voluntaria**: después del intercambio, quien regaló puede contarle a su amigo
+  secreto que fue
 - 💬 **Mensajes anónimos** para preguntarle cosas a tu amigo secreto sin que sepa que eres tú
 - 🔔 **Avisos** en la app y por correo: sorteo hecho, preguntas, respuestas y cambios en la lista de tu amigo secreto
 - 💰 **9 monedas** (CLP, USD, EUR, MXN, ARS, COP, PEN, BRL, GBP) y fecha del intercambio

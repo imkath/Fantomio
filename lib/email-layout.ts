@@ -190,4 +190,31 @@ export const NOTIFICATION_EMAILS = {
       note: 'Te avisamos como máximo una vez cada 12 horas por grupo.',
     }),
   },
+  // {{NAME}} is the organizer of the new edition.
+  invitation: {
+    subject: '{{NAME}} te invitó a {{GROUP}}',
+    html: emailLayout({
+      label: '{{GROUP}}',
+      title: 'Te invitaron a un nuevo amigo secreto',
+      paragraphs: [
+        '<strong style="color: #1b1b1a;">{{NAME}}</strong> armó <strong style="color: #1b1b1a;">{{GROUP}}</strong> con las mismas personas de la vez anterior y te invitó.',
+        'Entra para decir si participas. Si esta vez no puedes, también puedes decirlo ahí.',
+      ],
+      cta: { text: 'Ver la invitación', href: '{{URL}}' },
+      note: 'Si no respondes antes del sorteo, quedas fuera de esta vuelta.',
+    }),
+  },
+  // {{NAME}} is the person who gave to the recipient and chose to say so.
+  reveal: {
+    subject: '{{NAME}} fue tu amigo secreto en {{GROUP}}',
+    html: emailLayout({
+      label: '{{GROUP}}',
+      title: 'Tu amigo secreto se reveló',
+      paragraphs: [
+        'Ya pasó el intercambio de <strong style="color: #1b1b1a;">{{GROUP}}</strong> y quien te regaló quiso contarte que fue <strong style="color: #1b1b1a;">{{NAME}}</strong>.',
+      ],
+      cta: { text: 'Ver el grupo', href: '{{URL}}' },
+      note: 'Solo tú ves quién te regaló, y solo porque esa persona lo decidió.',
+    }),
+  },
 }

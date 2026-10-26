@@ -14,7 +14,7 @@ import {
 } from '@/components/ui/alert-dialog'
 import { Input } from '@/components/ui/input'
 import { Notice } from '@/components/auth-shell'
-import { Check, ExternalLink, Loader2, Plus, Trash2 } from 'lucide-react'
+import { Check, Copy, ExternalLink, Loader2, Plus, Trash2 } from 'lucide-react'
 import { createClient } from '@/lib/supabase'
 import { getUserFriendlyError } from '@/lib/errors'
 import { toast } from 'sonner'
@@ -23,6 +23,8 @@ interface WishlistEditorProps {
   groupId: string
   userId: string
   initialItems?: Array<{ description: string; url?: string }>
+  // Earlier edition of this group: offers to bring over the list written there.
+  previousGroupId?: string | null
   onSave?: () => void
 }
 
@@ -53,8 +55,37 @@ export function WishlistEditor({
   groupId,
   userId,
   initialItems = [],
+  previousGroupId = null,
   onSave,
 }: WishlistEditorProps) {
+  const [previousItems, setPreviousItems] = useState<Array<{ description: string; url?: string }>>(
+    []
+  )
+  useEffect(() => {
+    if (!previousGroupId || initialItems.length > 0) return
+    createClient()
+      .from('wishlists')
+      .select('items')
+      .eq('group_id', previousGroupId)
+      .eq('user_id', userId)
+      .maybeSingle()
+      .then(({ data }) => setPreviousItems((data?.items ?? []) as typeof previousItems))
+  }, [previousGroupId, userId, initialItems.length])
+
+  // Fills the form with last time's list; nothing is saved until "Guardar".
+  const copyPrevious = () => {
+    const copied = previousItems.slice(0, MAX_WISHLIST_ITEMS).map((item, index) => ({
+      id: `prev-${index}`,
+      description: item.description || '',
+      url: item.url || '',
+    }))
+    while (copied.length < DEFAULT_VISIBLE_ITEMS)
+      copied.push({ id: `new-${copied.length}`, description: '', url: '' })
+    setItems(copied)
+    setVisibleCount(Math.max(DEFAULT_VISIBLE_ITEMS, previousItems.length))
+    setPreviousItems([])
+    toast.success('Copiamos tu lista anterior. Revísala y guárdala.')
+  }
   const [items, setItems] = useState<LocalWishlistItem[]>([])
   const [visibleCount, setVisibleCount] = useState(DEFAULT_VISIBLE_ITEMS)
   const [isSaving, setIsSaving] = useState(false)
@@ -218,6 +249,19 @@ export function WishlistEditor({
       </div>
 
       {error && <Notice>{error}</Notice>}
+
+      {previousItems.length > 0 && filledItemsCount === 0 && (
+        <div className="bg-slip flex flex-col gap-3 rounded-[3px] px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+          <p className="text-[15px]">
+            La vez anterior anotaste {previousItems.length}{' '}
+            {previousItems.length === 1 ? 'cosa' : 'cosas'}. ¿Partes desde esa lista?
+          </p>
+          <Button type="button" variant="outline" size="sm" onClick={copyPrevious}>
+            <Copy aria-hidden="true" />
+            Copiar mi lista anterior
+          </Button>
+        </div>
+      )}
 
       <ol className="space-y-4">
         {items.slice(0, visibleCount).map((item, index) => (

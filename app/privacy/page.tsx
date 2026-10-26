@@ -153,7 +153,13 @@ export default function PrivacyPage() {
                 </li>
                 <li>
                   <strong>Tu amigo secreto</strong> puede leer los mensajes que le envíes, sin saber
-                  que son tuyos.
+                  que son tuyos. Después del intercambio, solo si tú lo decides, le contamos que
+                  fuiste tú. Nadie más del grupo se entera.
+                </li>
+                <li>
+                  <strong>Si quien organiza repite un grupo</strong>, las personas del grupo nuevo
+                  ven tu nombre y tu foto como invitada o invitado, y si dijiste que esta vez no
+                  participas. Solo entras al grupo nuevo si aceptas.
                 </li>
                 <li>
                   <strong>Proveedores que operan el servicio por nuestra cuenta:</strong> Supabase
@@ -182,10 +188,12 @@ export default function PrivacyPage() {
             <Section title="7. Cuánto tiempo los guardamos">
               <p>
                 Mientras tu cuenta exista. Los datos de un grupo se mantienen hasta que el
-                administrador lo elimina. Si eliminas tu cuenta desde Mi cuenta, en ese momento se
-                borran tu perfil, tu foto, tus membresías, tus listas, tus asignaciones y tus
-                mensajes. Si lo pides por correo, lo hacemos dentro del plazo indicado más abajo.
-                Los registros técnicos se conservan por el período que define cada proveedor.
+                administrador lo elimina. Siete días después de la fecha del intercambio el grupo se
+                archiva: deja de poder modificarse, pero no se borra, y queda como recuerdo para sus
+                participantes. Si eliminas tu cuenta desde Mi cuenta, en ese momento se borran tu
+                perfil, tu foto, tus membresías, tus listas, tus asignaciones y tus mensajes. Si lo
+                pides por correo, lo hacemos dentro del plazo indicado más abajo. Los registros
+                técnicos se conservan por el período que define cada proveedor.
               </p>
             </Section>
 

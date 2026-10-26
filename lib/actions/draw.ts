@@ -10,14 +10,20 @@ interface DrawResult {
   error?: string
 }
 
-async function call(fn: 'draw_group' | 'reset_group_draw', groupId: string): Promise<DrawResult> {
+async function call(
+  fn: 'draw_group' | 'reset_group_draw',
+  groupId: string,
+  extra: Record<string, unknown> = {}
+): Promise<DrawResult> {
   const parsed = groupIdSchema.safeParse(groupId)
   if (!parsed.success) return { success: false, error: parsed.error.errors[0].message }
 
-  const { error } = await createClient().rpc(fn, { p_group_id: groupId })
+  const { error } = await createClient().rpc(fn, { p_group_id: groupId, ...extra })
   // The functions raise readable Spanish messages (not enough people, exclusions, etc.).
   return error ? { success: false, error: getUserFriendlyError(error) } : { success: true }
 }
 
-export const drawNames = (groupId: string) => call('draw_group', groupId)
+// avoidPrevious: don't repeat last edition's pairs (the database reads them, nobody sees them).
+export const drawNames = (groupId: string, avoidPrevious = false) =>
+  call('draw_group', groupId, { p_avoid_previous: avoidPrevious })
 export const resetDraw = (groupId: string) => call('reset_group_draw', groupId)

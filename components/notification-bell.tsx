@@ -3,7 +3,15 @@
 import { groupPath } from '@/lib/routes'
 import Link from 'next/link'
 import { useCallback, useEffect, useState } from 'react'
-import { Bell, ListChecks, MessageCircleQuestion, MessageCircleReply } from 'lucide-react'
+import {
+  Bell,
+  Gift,
+  ListChecks,
+  MailPlus,
+  MessageCircleQuestion,
+  MessageCircleReply,
+  Shuffle,
+} from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { createClient } from '@/lib/supabase'
@@ -13,7 +21,7 @@ import { createClient } from '@/lib/supabase'
 interface Notification {
   id: string
   group_id: string
-  type: 'question' | 'reply' | 'wishlist'
+  type: 'question' | 'reply' | 'wishlist' | 'draw' | 'invitation' | 'reveal'
   body: string
   read_at: string | null
   created_at: string
@@ -23,6 +31,9 @@ const ICONS = {
   question: MessageCircleQuestion,
   reply: MessageCircleReply,
   wishlist: ListChecks,
+  draw: Shuffle,
+  invitation: MailPlus,
+  reveal: Gift,
 }
 
 const relative = new Intl.RelativeTimeFormat('es', { numeric: 'auto' })
@@ -98,8 +109,8 @@ export function NotificationBell({ userId }: { userId: string }) {
         <p className="border-rule border-b px-4 py-3 font-bold">Avisos</p>
         {items.length === 0 ? (
           <p className="text-graphite px-4 py-6 text-[15px]">
-            Aquí te avisamos cuando te hagan una pregunta, te respondan o tu amigo secreto cambie su
-            lista.
+            Aquí te avisamos cuando te inviten a un grupo, se haga un sorteo, te hagan una pregunta,
+            te respondan o tu amigo secreto cambie su lista.
           </p>
         ) : (
           <ul className="divide-rule max-h-[60vh] divide-y overflow-y-auto">
@@ -108,7 +119,8 @@ export function NotificationBell({ userId }: { userId: string }) {
               return (
                 <li key={n.id}>
                   <Link
-                    href={groupPath(n.group_id)}
+                    // Invitations are answered from Mis grupos: you aren't in the group yet.
+                    href={n.type === 'invitation' ? '/dashboard' : groupPath(n.group_id)}
                     className="hover:bg-slip flex gap-3 px-4 py-3 transition-colors"
                   >
                     <span className="bg-slip text-ink grid size-9 shrink-0 place-items-center rounded-full">

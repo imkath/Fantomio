@@ -221,5 +221,116 @@ INSERT INTO email_templates (name, subject, html) VALUES
     </tr>
   </table>
 </body>
+</html>$tpl$),
+  ($tpl$invitation$tpl$, $tpl${{NAME}} te invitó a {{GROUP}}$tpl$, $tpl$<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="color-scheme" content="light">
+  <meta name="supported-color-schemes" content="light">
+  <title>Te invitaron a un nuevo amigo secreto</title>
+</head>
+<body style="margin: 0; padding: 0; background-color: #ffffff; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif; color: #1b1b1a;">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse: collapse; background-color: #ffffff;">
+    <tr>
+      <td align="center" style="padding: 40px 20px;">
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width: 480px; border-collapse: collapse;">
+          <tr>
+            <td style="padding-bottom: 36px;">
+              <a href="https://ghostswap.nvrkth.com" style="text-decoration: none;">
+                <img src="https://ghostswap.nvrkth.com/email-logo.png" width="175" height="30" alt="ghostswap" style="display: block; border: 0;">
+              </a>
+            </td>
+          </tr>
+          <tr>
+            <td style="border: 1px solid #e7e7e3; border-radius: 4px; padding: 32px 28px;">
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse: collapse;">
+                <tr>
+                  <td valign="top">
+                    <p style="margin: 0 0 10px; font-size: 15px; font-weight: 600; color: #4f4f49;">{{GROUP}}</p>
+                    <h1 style="margin: 0 0 20px; font-size: 26px; line-height: 32px; font-weight: 400; color: #1b1b1a;">Te invitaron a un nuevo amigo secreto</h1>
+                  </td>
+                </tr>
+              </table>
+              <p style="margin: 0 0 14px; font-size: 17px; line-height: 26px; color: #4f4f49;"><strong style="color: #1b1b1a;">{{NAME}}</strong> armó <strong style="color: #1b1b1a;">{{GROUP}}</strong> con las mismas personas de la vez anterior y te invitó.</p>
+                <p style="margin: 0 0 14px; font-size: 17px; line-height: 26px; color: #4f4f49;">Entra para decir si participas. Si esta vez no puedes, también puedes decirlo ahí.</p>
+              <table role="presentation" cellpadding="0" cellspacing="0" style="border-collapse: collapse; margin: 12px 0 4px;">
+                <tr>
+                  <td style="background-color: #1b1b1a; border-radius: 2px;">
+                    <a href="{{URL}}" style="display: inline-block; padding: 15px 28px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif; font-size: 17px; font-weight: 600; color: #ffffff; text-decoration: none;">Ver la invitación</a>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding: 20px 4px 0;">
+              <p style="margin: 0 0 24px; font-size: 14px; line-height: 21px; color: #7d7d76;">Si no respondes antes del sorteo, quedas fuera de esta vuelta.</p>
+              <p style="margin: 0; font-size: 14px; color: #7d7d76;">
+                GhostSwap &middot; <a href="https://ghostswap.nvrkth.com" style="color: #7d7d76;">ghostswap.nvrkth.com</a>
+              </p>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>$tpl$),
+  ($tpl$reveal$tpl$, $tpl${{NAME}} fue tu amigo secreto en {{GROUP}}$tpl$, $tpl$<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="color-scheme" content="light">
+  <meta name="supported-color-schemes" content="light">
+  <title>Tu amigo secreto se reveló</title>
+</head>
+<body style="margin: 0; padding: 0; background-color: #ffffff; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif; color: #1b1b1a;">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse: collapse; background-color: #ffffff;">
+    <tr>
+      <td align="center" style="padding: 40px 20px;">
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width: 480px; border-collapse: collapse;">
+          <tr>
+            <td style="padding-bottom: 36px;">
+              <a href="https://ghostswap.nvrkth.com" style="text-decoration: none;">
+                <img src="https://ghostswap.nvrkth.com/email-logo.png" width="175" height="30" alt="ghostswap" style="display: block; border: 0;">
+              </a>
+            </td>
+          </tr>
+          <tr>
+            <td style="border: 1px solid #e7e7e3; border-radius: 4px; padding: 32px 28px;">
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse: collapse;">
+                <tr>
+                  <td valign="top">
+                    <p style="margin: 0 0 10px; font-size: 15px; font-weight: 600; color: #4f4f49;">{{GROUP}}</p>
+                    <h1 style="margin: 0 0 20px; font-size: 26px; line-height: 32px; font-weight: 400; color: #1b1b1a;">Tu amigo secreto se reveló</h1>
+                  </td>
+                </tr>
+              </table>
+              <p style="margin: 0 0 14px; font-size: 17px; line-height: 26px; color: #4f4f49;">Ya pasó el intercambio de <strong style="color: #1b1b1a;">{{GROUP}}</strong> y quien te regaló quiso contarte que fue <strong style="color: #1b1b1a;">{{NAME}}</strong>.</p>
+              <table role="presentation" cellpadding="0" cellspacing="0" style="border-collapse: collapse; margin: 12px 0 4px;">
+                <tr>
+                  <td style="background-color: #1b1b1a; border-radius: 2px;">
+                    <a href="{{URL}}" style="display: inline-block; padding: 15px 28px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif; font-size: 17px; font-weight: 600; color: #ffffff; text-decoration: none;">Ver el grupo</a>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding: 20px 4px 0;">
+              <p style="margin: 0 0 24px; font-size: 14px; line-height: 21px; color: #7d7d76;">Solo tú ves quién te regaló, y solo porque esa persona lo decidió.</p>
+              <p style="margin: 0; font-size: 14px; color: #7d7d76;">
+                GhostSwap &middot; <a href="https://ghostswap.nvrkth.com" style="color: #7d7d76;">ghostswap.nvrkth.com</a>
+              </p>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
 </html>$tpl$)
 ON CONFLICT (name) DO UPDATE SET subject = EXCLUDED.subject, html = EXCLUDED.html;

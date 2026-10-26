@@ -16,6 +16,7 @@ import { GhostMark } from '@/components/ghost-mark'
 import {
   ArrowRight,
   Banknote,
+  Check,
   CalendarDays,
   KeyRound,
   Plus,
@@ -34,6 +35,7 @@ import {
 } from '@/components/ui/dialog'
 import { JoinGroupForm } from '@/components/join-group-form'
 import { NewGroupForm } from '@/components/new-group-form'
+import { toast } from 'sonner'
 
 // On phones the modal takes the whole screen, like its own view; on wider screens it's a dialog.
 const sheet =
@@ -51,7 +53,21 @@ interface Group {
   status: 'PLANNING' | 'DRAWN'
   member_count: number
   is_admin: boolean
+  archived: boolean
+  hidden: boolean
 }
+
+interface Invitation {
+  group_id: string
+  name: string
+  organizer: string | null
+  exchange_date: string | null
+}
+
+const shortDate = (iso: string) =>
+  parseLocalDate(iso)
+    .toLocaleDateString('es-CL', { day: 'numeric', month: 'short', year: 'numeric' })
+    .replace('.', '')
 
 // One line of a group card: icon in a soft circle, then the value. The label is for screen
 // readers; the icon carries it visually.
@@ -78,6 +94,57 @@ function Meta({
   )
 }
 
+function GroupCard({ group }: { group: Group }) {
+  const badge = group.archived
+    ? 'Archivado'
+    : group.hidden
+      ? 'Oculto'
+      : group.status === 'DRAWN'
+        ? 'Sorteado'
+        : 'Sin sortear'
+  return (
+    <Link
+      href={groupPath(group.id)}
+      className={`border-rule bg-raised hover:border-ink group relative flex h-full flex-col rounded-[4px] border p-6 pt-8 transition-colors ${
+        group.archived || group.hidden ? 'opacity-80' : ''
+      }`}
+    >
+      <h2 className="mb-5 text-xl leading-snug font-bold break-words">{group.name}</h2>
+      {/* Sits on the card's top edge so the title gets the full width. */}
+      <span
+        className={`absolute -top-3.5 left-5 rounded-full px-3 py-1.5 text-[15px] leading-none font-medium ${
+          badge === 'Sorteado' ? 'bg-ink text-paper' : 'border-rule bg-paper text-graphite border'
+        }`}
+      >
+        {badge}
+      </span>
+      <ul className="grid gap-2.5 text-[17px]">
+        <Meta icon={Users} label="Personas">
+          {group.member_count} {group.member_count === 1 ? 'persona' : 'personas'}
+        </Meta>
+        {group.exchange_date && (
+          <Meta icon={CalendarDays} label="Intercambio">
+            {shortDate(group.exchange_date)}
+          </Meta>
+        )}
+        {group.budget != null && (
+          <Meta icon={Banknote} label="Presupuesto">
+            ${group.budget.toLocaleString('es-CL')}
+          </Meta>
+        )}
+      </ul>
+      <div className="mt-auto flex items-center justify-between pt-6">
+        {/* The whole card is the link; this only looks like a button. */}
+        <span className="btn-paper btn-single text-ink group-hover:text-paper inline-flex h-10 items-center gap-2 rounded-[10px] px-3.5 text-[15px] font-medium transition-colors [--edge:var(--ink)] [--face:var(--paper)] group-hover:[--face:var(--ink)]">
+          Abrir grupo
+          <ArrowRight className="h-4 w-4" aria-hidden="true" />
+        </span>
+        {group.is_admin && <span className="text-graphite text-[15px]">Lo organizas tú</span>}
+      </div>
+    </Link>
+  )
+}
+
 // Groups from the last visit in this tab, shown instantly when coming back to the dashboard
 // while the fresh list loads. ponytail: in memory only, a reload starts empty.
 let lastGroups: { userId: string; groups: Group[] } | null = null
@@ -85,6 +152,8 @@ let lastGroups: { userId: string; groups: Group[] } | null = null
 export default function DashboardPage() {
   const router = useRouter()
   const [groups, setGroups] = useState<Group[]>([])
+  const [invitations, setInvitations] = useState<Invitation[]>([])
+  const [answering, setAnswering] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [user, setUser] = useState<{ id: string; email: string } | null>(null)
   const [modal, setModal] = useState<'join' | 'new' | null>(null)
@@ -127,13 +196,15 @@ export default function DashboardPage() {
     const supabase = createClient()
 
     try {
-      // Get groups where user is a member
-      const { data: memberGroups, error } = await supabase
-        .from('members')
-        .select(
-          `
+      // Groups you're in, and invitations to new editions, in one round trip.
+      const [{ data: memberGroups, error }, invitationsRes] = await Promise.all([
+        supabase
+          .from('members')
+          .select(
+            `
           group_id,
           is_admin,
+          hidden_at,
           groups (
             id,
             name,
@@ -141,11 +212,15 @@ export default function DashboardPage() {
             exchange_date,
             status,
             admin_id,
+            archived_at,
             members (count)
           )
         `
-        )
-        .eq('user_id', userId)
+          )
+          .eq('user_id', userId),
+        supabase.rpc('my_invitations'),
+      ])
+      setInvitations((invitationsRes.data ?? []) as Invitation[])
 
       if (error) throw error
 
@@ -160,6 +235,7 @@ export default function DashboardPage() {
               exchange_date: string | null
               status: 'PLANNING' | 'DRAWN'
               admin_id: string
+              archived_at: string | null
               members: Array<{ count: number }>
             }
             return {
@@ -170,6 +246,8 @@ export default function DashboardPage() {
               status: group.status,
               member_count: group.members[0]?.count ?? 0,
               is_admin: mg.is_admin as boolean,
+              archived: !!group.archived_at,
+              hidden: !!mg.hidden_at,
             }
           })
 
@@ -185,6 +263,29 @@ export default function DashboardPage() {
       setIsLoading(false)
     }
   }
+
+  const answer = async (groupId: string, accept: boolean) => {
+    setAnswering(groupId)
+    const { error } = await createClient().rpc('answer_invitation', {
+      p_group_id: groupId,
+      p_accept: accept,
+    })
+    setAnswering(null)
+    if (error) {
+      toast.error(getUserFriendlyError(error))
+      if (user) fetchGroups(user.id)
+      return
+    }
+    if (accept) {
+      router.push(groupPath(groupId))
+    } else {
+      toast.success('Listo, avisamos que esta vez no participas')
+      setInvitations((list) => list.filter((i) => i.group_id !== groupId))
+    }
+  }
+
+  const active = groups.filter((g) => !g.archived && !g.hidden)
+  const past = groups.filter((g) => g.archived || g.hidden)
 
   if (isLoading) {
     return (
@@ -219,6 +320,48 @@ export default function DashboardPage() {
           </div>
         </div>
 
+        {invitations.length > 0 && (
+          <section aria-labelledby="invitaciones" className="mb-12">
+            <h2 id="invitaciones" className="mb-5 text-2xl font-light">
+              Te invitaron
+            </h2>
+            <ul className="grid gap-4">
+              {invitations.map((inv) => (
+                <li
+                  key={inv.group_id}
+                  className="border-ink flex flex-col gap-4 rounded-[4px] border p-5 sm:flex-row sm:items-center sm:justify-between"
+                >
+                  <div className="min-w-0">
+                    <p className="text-lg font-bold break-words">{inv.name}</p>
+                    <p className="text-graphite text-[15px]">
+                      {inv.organizer
+                        ? `${inv.organizer} lo repitió con las mismas personas`
+                        : 'Un amigo secreto con las mismas personas'}
+                      {inv.exchange_date && ` · intercambio ${shortDate(inv.exchange_date)}`}
+                    </p>
+                  </div>
+                  <div className="flex shrink-0 gap-2">
+                    <Button
+                      disabled={answering === inv.group_id}
+                      onClick={() => answer(inv.group_id, true)}
+                    >
+                      <Check aria-hidden="true" />
+                      Unirme
+                    </Button>
+                    <Button
+                      variant="outline"
+                      disabled={answering === inv.group_id}
+                      onClick={() => answer(inv.group_id, false)}
+                    >
+                      Esta vez no
+                    </Button>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          </section>
+        )}
+
         {groups.length === 0 ? (
           <div className="border-rule bg-slip grid justify-items-center gap-4 rounded-[4px] border px-6 py-16 text-center">
             <GhostMark className="text-ink h-[64px] w-[56px]" />
@@ -238,69 +381,43 @@ export default function DashboardPage() {
             </div>
           </div>
         ) : (
-          <ul className="grid gap-5 md:grid-cols-2 lg:grid-cols-3">
-            {groups.map((group) => (
-              <li key={group.id}>
-                <Link
-                  href={groupPath(group.id)}
-                  className="border-rule bg-raised hover:border-ink group relative flex h-full flex-col rounded-[4px] border p-6 pt-8 transition-colors"
+          <div className="space-y-12">
+            <ul className="grid gap-5 md:grid-cols-2 lg:grid-cols-3">
+              {active.map((group) => (
+                <li key={group.id}>
+                  <GroupCard group={group} />
+                </li>
+              ))}
+              <li>
+                <button
+                  type="button"
+                  onClick={() => setModal('new')}
+                  className="border-rule text-graphite hover:border-ink hover:text-ink bg-slip flex h-full min-h-[200px] w-full flex-col items-center justify-center gap-2 rounded-[4px] border transition-colors"
                 >
-                  <h2 className="mb-5 text-xl leading-snug font-bold break-words">{group.name}</h2>
-                  {/* Sits on the card's top edge so the title gets the full width. */}
-                  <span
-                    className={`absolute -top-3.5 left-5 rounded-full px-3 py-1.5 text-[15px] leading-none font-medium ${
-                      group.status === 'DRAWN'
-                        ? 'bg-ink text-paper'
-                        : 'border-rule bg-paper text-graphite border'
-                    }`}
-                  >
-                    {group.status === 'DRAWN' ? 'Sorteado' : 'Sin sortear'}
-                  </span>
-                  <ul className="grid gap-2.5 text-[17px]">
-                    <Meta icon={Users} label="Personas">
-                      {group.member_count} {group.member_count === 1 ? 'persona' : 'personas'}
-                    </Meta>
-                    {group.exchange_date && (
-                      <Meta icon={CalendarDays} label="Intercambio">
-                        {parseLocalDate(group.exchange_date)
-                          .toLocaleDateString('es-CL', {
-                            day: 'numeric',
-                            month: 'short',
-                            year: 'numeric',
-                          })
-                          .replace('.', '')}
-                      </Meta>
-                    )}
-                    {group.budget != null && (
-                      <Meta icon={Banknote} label="Presupuesto">
-                        ${group.budget.toLocaleString('es-CL')}
-                      </Meta>
-                    )}
-                  </ul>
-                  <div className="mt-auto flex items-center justify-between pt-6">
-                    {/* The whole card is the link; this only looks like a button. */}
-                    <span className="btn-paper btn-single text-ink group-hover:text-paper inline-flex h-10 items-center gap-2 rounded-[10px] px-3.5 text-[15px] font-medium transition-colors [--edge:var(--ink)] [--face:var(--paper)] group-hover:[--face:var(--ink)]">
-                      Abrir grupo
-                      <ArrowRight className="h-4 w-4" aria-hidden="true" />
-                    </span>
-                    {group.is_admin && (
-                      <span className="text-graphite text-[15px]">Lo organizas tú</span>
-                    )}
-                  </div>
-                </Link>
+                  <Plus className="h-7 w-7" strokeWidth={1.5} aria-hidden="true" />
+                  <span className="text-[17px]">Crear otro grupo</span>
+                </button>
               </li>
-            ))}
-            <li>
-              <button
-                type="button"
-                onClick={() => setModal('new')}
-                className="border-rule text-graphite hover:border-ink hover:text-ink bg-slip flex h-full min-h-[200px] w-full flex-col items-center justify-center gap-2 rounded-[4px] border transition-colors"
-              >
-                <Plus className="h-7 w-7" strokeWidth={1.5} aria-hidden="true" />
-                <span className="text-[17px]">Crear otro grupo</span>
-              </button>
-            </li>
-          </ul>
+            </ul>
+
+            {past.length > 0 && (
+              <section aria-labelledby="anteriores">
+                <h2 id="anteriores" className="mb-2 text-2xl font-light">
+                  Anteriores
+                </h2>
+                <p className="text-graphite mb-6">
+                  Grupos que ya terminaron o que ocultaste. Se pueden mirar como recuerdo.
+                </p>
+                <ul className="grid gap-5 md:grid-cols-2 lg:grid-cols-3">
+                  {past.map((group) => (
+                    <li key={group.id}>
+                      <GroupCard group={group} />
+                    </li>
+                  ))}
+                </ul>
+              </section>
+            )}
+          </div>
         )}
       </main>
 

@@ -22,6 +22,7 @@ import {
   LogOut,
   MessageCircle,
   Pencil,
+  Repeat,
   RotateCcw,
   Shuffle,
   Trash2,
@@ -32,6 +33,16 @@ import { useEffect, useState, useCallback, Suspense } from 'react'
 import GroupLoading from './loading'
 import Link from 'next/link'
 import { Breadcrumbs } from '@/components/breadcrumbs'
+import {
+  ArchiveButton,
+  ArchivedNotice,
+  EditionHistory,
+  HideButton,
+  PendingInvitations,
+  RepeatGroupDialog,
+  RevealedGiver,
+  RevealYourself,
+} from '@/components/group/editions'
 import { createClient, getSessionUser } from '@/lib/supabase'
 import { drawNames, resetDraw } from '@/lib/actions/draw'
 import {
@@ -60,6 +71,7 @@ interface Member {
   user_id: string
   hasList: boolean
   is_admin: boolean
+  hidden: boolean
   profile: {
     full_name: string | null
     email: string
@@ -76,6 +88,7 @@ interface Match {
     avatar_url: string | null
   }
   receiver_wishlist: Array<{ description: string; url?: string }>
+  revealed: boolean
 }
 
 interface Group {
@@ -87,6 +100,8 @@ interface Group {
   status: 'PLANNING' | 'DRAWN'
   invite_code: string
   admin_id: string
+  archived_at: string | null
+  previous_group_id: string | null
 }
 
 function GroupPage() {
@@ -109,6 +124,8 @@ function GroupPage() {
   const [match, setMatch] = useState<Match | null>(null)
   const [showMatch, setShowMatch] = useState(false)
   const [showDrawConfirm, setShowDrawConfirm] = useState(false)
+  const [avoidPrevious, setAvoidPrevious] = useState(true)
+  const [showRepeat, setShowRepeat] = useState(false)
 
   // Group management dialogs
   const [showEditDialog, setShowEditDialog] = useState(false)
@@ -161,11 +178,15 @@ function GroupPage() {
         supabase.from('groups').select('*').eq('id', groupId).single(),
         supabase
           .from('members')
-          .select('id, user_id, is_admin, profiles:user_id (full_name, email, avatar_url)')
+          .select(
+            'id, user_id, is_admin, hidden_at, profiles:user_id (full_name, email, avatar_url)'
+          )
           .eq('group_id', groupId),
         supabase
           .from('matches')
-          .select('id, receiver_id, receiver:receiver_id (full_name, email, avatar_url)')
+          .select(
+            'id, receiver_id, revealed_at, receiver:receiver_id (full_name, email, avatar_url)'
+          )
           .eq('group_id', groupId)
           .eq('giver_id', user.id)
           .maybeSingle(),
@@ -198,6 +219,7 @@ function GroupPage() {
         user_id: m.user_id,
         hasList: withList.has(m.user_id),
         is_admin: m.is_admin,
+        hidden: !!m.hidden_at,
         profile: (() => {
           const p = Array.isArray(m.profiles) ? m.profiles[0] : m.profiles
           return { ...p, full_name: formatName(p?.full_name) || null }
@@ -220,6 +242,7 @@ function GroupPage() {
             return { ...r, full_name: formatName(r.full_name) || null }
           })(),
           receiver_wishlist: lists.get(matchData.receiver_id) ?? [],
+          revealed: !!matchData.revealed_at,
         })
       } else {
         setMatch(null)
@@ -276,7 +299,7 @@ function GroupPage() {
     setIsDrawing(true)
     setError('')
 
-    const result = await drawNames(group.id)
+    const result = await drawNames(group.id, !!group.previous_group_id && avoidPrevious)
 
     if (!result.success) {
       setError(result.error || 'Error al realizar el sorteo')
@@ -478,6 +501,10 @@ function GroupPage() {
   if (!group) return null
 
   const drawn = group.status === 'DRAWN'
+  // A keepsake: everything shows, nothing changes (the database enforces it too).
+  const archived = !!group.archived_at
+  const today = new Date().toISOString().slice(0, 10)
+  const exchangeDone = archived || (!!group.exchange_date && group.exchange_date <= today)
 
   return (
     <div className="bg-paper text-ink min-h-[calc(100vh-69px)] pb-16">
@@ -494,7 +521,7 @@ function GroupPage() {
         <div className="mt-6 mb-10 flex flex-col justify-between gap-6 min-[1440px]:mt-0 md:flex-row md:items-end">
           <div className="min-w-0">
             <p className="text-graphite mb-2 text-[15px]">
-              {drawn ? 'Sorteado' : 'Sin sortear'} · {members.length}{' '}
+              {archived ? 'Archivado' : drawn ? 'Sorteado' : 'Sin sortear'} · {members.length}{' '}
               {members.length === 1 ? 'persona' : 'personas'}
             </p>
             <h1 className="text-[34px] leading-tight font-light break-words md:text-[44px]">
@@ -502,7 +529,7 @@ function GroupPage() {
             </h1>
           </div>
 
-          <div className="flex flex-wrap items-center gap-3">
+          <div className={`flex flex-wrap items-center gap-3 ${archived ? 'hidden' : ''}`}>
             <Button variant="outline" onClick={handleShare}>
               {copied ? <Check aria-hidden="true" /> : <Link2 aria-hidden="true" />}
               {copied ? 'Link copiado' : 'Copiar link de invitación'}
@@ -533,7 +560,11 @@ function GroupPage() {
           </div>
         </div>
 
-        <div className="grid gap-8 lg:grid-cols-[1.6fr_1fr]">
+        {archived && (
+          <ArchivedNotice groupId={group.id} isAdmin={isAdmin} onChange={fetchGroupData} />
+        )}
+
+        <div className="mt-8 grid gap-8 lg:grid-cols-[1.6fr_1fr]">
           {/* Main column */}
           <div className="min-w-0 space-y-8">
             {!drawn && (
@@ -632,30 +663,64 @@ function GroupPage() {
                       )}
                     </div>
 
-                    <AnonymousChat
-                      matchId={match.id}
-                      groupId={groupId}
-                      role="giver"
-                      receiverName={match.receiver.full_name || undefined}
-                    />
+                    {exchangeDone && (
+                      <RevealYourself
+                        groupId={groupId}
+                        receiverName={match.receiver.full_name || match.receiver.email}
+                        revealed={match.revealed}
+                        onChange={fetchGroupData}
+                      />
+                    )}
+
+                    {!archived && (
+                      <AnonymousChat
+                        matchId={match.id}
+                        groupId={groupId}
+                        role="giver"
+                        receiverName={match.receiver.full_name || undefined}
+                      />
+                    )}
                   </div>
                 )}
               </section>
             )}
 
             {/* Anonymous messages received (someone is asking YOU) */}
-            {drawn && <AnonymousChat matchId={null} groupId={groupId} role="receiver" />}
+            {drawn && !archived && (
+              <AnonymousChat matchId={null} groupId={groupId} role="receiver" />
+            )}
+            {drawn && exchangeDone && <RevealedGiver groupId={groupId} />}
 
             {currentMember && (
               <section className="border-rule rounded-[4px] border p-6 md:p-8">
-                <WishlistEditor
-                  groupId={groupId}
-                  userId={currentMember.user_id}
-                  initialItems={myWishlist}
-                  onSave={fetchGroupData}
-                />
+                {archived ? (
+                  <div>
+                    <h2 className="text-xl font-bold">Tu lista</h2>
+                    {myWishlist.length ? (
+                      <ul className="mt-4 grid gap-2">
+                        {myWishlist.map((item, i) => (
+                          <li key={i} className="bg-slip rounded-[3px] px-4 py-3 break-words">
+                            {item.description}
+                          </li>
+                        ))}
+                      </ul>
+                    ) : (
+                      <p className="text-graphite mt-2">No anotaste nada esta vez.</p>
+                    )}
+                  </div>
+                ) : (
+                  <WishlistEditor
+                    groupId={groupId}
+                    userId={currentMember.user_id}
+                    initialItems={myWishlist}
+                    previousGroupId={group.previous_group_id}
+                    onSave={fetchGroupData}
+                  />
+                )}
               </section>
             )}
+
+            {group.previous_group_id && <EditionHistory groupId={groupId} />}
           </div>
 
           {/* Sidebar */}
@@ -664,7 +729,7 @@ function GroupPage() {
               budget={group.budget}
               currency={group.currency}
               exchangeDate={group.exchange_date}
-              inviteCode={group.invite_code}
+              inviteCode={archived ? undefined : group.invite_code}
             />
 
             <section className="border-rule rounded-[4px] border p-6">
@@ -708,7 +773,7 @@ function GroupPage() {
                         ) : (
                           <span className="text-graphite text-[15px]">Sin lista</span>
                         )}
-                        {isAdmin && !me && (
+                        {isAdmin && !me && !archived && (
                           <Button
                             variant="outline"
                             size="icon-sm"
@@ -724,7 +789,7 @@ function GroupPage() {
                             <Crown aria-hidden="true" />
                           </Button>
                         )}
-                        {isAdmin && !drawn && !me && (
+                        {isAdmin && !drawn && !me && !archived && (
                           <Button
                             variant="danger"
                             size="icon-sm"
@@ -746,6 +811,13 @@ function GroupPage() {
                   )
                 })}
               </ul>
+              {!drawn && !archived && (
+                <PendingInvitations
+                  groupId={groupId}
+                  isAdmin={isAdmin}
+                  refreshKey={members.length}
+                />
+              )}
             </section>
 
             <div className="grid gap-2">
@@ -753,13 +825,23 @@ function GroupPage() {
                 <History aria-hidden="true" />
                 Ver lo que ha pasado en el grupo
               </Button>
-              {isAdmin && (
+              {isAdmin && drawn && (
+                <Button
+                  variant="outline"
+                  className="justify-start"
+                  onClick={() => setShowRepeat(true)}
+                >
+                  <Repeat aria-hidden="true" />
+                  Repetir con las mismas personas
+                </Button>
+              )}
+              {isAdmin && !archived && (
                 <Button variant="outline" className="justify-start" onClick={handleOpenEdit}>
                   <Pencil aria-hidden="true" />
                   Editar grupo
                 </Button>
               )}
-              {isAdmin && (
+              {isAdmin && !archived && (
                 <ExclusionsManager
                   groupId={groupId}
                   members={members}
@@ -767,7 +849,7 @@ function GroupPage() {
                   isDrawn={drawn}
                 />
               )}
-              {isAdmin && drawn && (
+              {isAdmin && drawn && !archived && (
                 <Button
                   variant="danger"
                   className="justify-start"
@@ -777,7 +859,7 @@ function GroupPage() {
                   Reiniciar el sorteo
                 </Button>
               )}
-              {!isAdmin && !drawn && (
+              {!isAdmin && !drawn && !archived && (
                 <Button
                   variant="danger"
                   className="justify-start"
@@ -786,6 +868,16 @@ function GroupPage() {
                   <LogOut aria-hidden="true" />
                   Salir del grupo
                 </Button>
+              )}
+              {isAdmin && !archived && drawn && (
+                <ArchiveButton groupId={group.id} onChange={fetchGroupData} />
+              )}
+              {currentMember && (
+                <HideButton
+                  groupId={group.id}
+                  hidden={currentMember.hidden}
+                  onChange={fetchGroupData}
+                />
               )}
             </div>
           </aside>
@@ -804,10 +896,25 @@ function GroupPage() {
                   <li>a cada persona le aparece a quién le regala</li>
                   <li>ya no se puede sumar gente al grupo</li>
                   <li>si algo sale mal, puedes reiniciarlo, pero todos pierden lo que vieron</li>
+                  <li>quien no haya respondido la invitación queda fuera de esta vuelta</li>
                 </ul>
               </div>
             </DialogDescription>
           </DialogHeader>
+          {group.previous_group_id && (
+            <label className="flex items-start gap-3 text-[15px]">
+              <input
+                type="checkbox"
+                className="accent-ink mt-1 size-4"
+                checked={avoidPrevious}
+                onChange={(e) => setAvoidPrevious(e.target.checked)}
+              />
+              <span>
+                Que a nadie le toque la misma persona que la vez anterior. Usamos el sorteo anterior
+                sin mostrárselo a nadie.
+              </span>
+            </label>
+          )}
           <DialogFooter className="gap-2">
             <Button variant="outline" onClick={() => setShowDrawConfirm(false)}>
               Todavía no
@@ -819,6 +926,8 @@ function GroupPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <RepeatGroupDialog group={group} open={showRepeat} onOpenChange={setShowRepeat} />
 
       {/* Edit group */}
       <Dialog open={showEditDialog} onOpenChange={setShowEditDialog}>
