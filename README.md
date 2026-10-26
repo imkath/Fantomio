@@ -20,7 +20,10 @@
 - 💬 **Mensajes anónimos** para preguntarle cosas a tu amigo secreto sin que sepa que eres tú
 - 🔔 **Avisos** en la app y por correo: sorteo hecho, preguntas, respuestas y cambios en la lista de tu amigo secreto
 - 💰 **9 monedas** (CLP, USD, EUR, MXN, ARS, COP, PEN, BRL, GBP) y fecha del intercambio
-- 🌗 Tema claro y oscuro según la preferencia del sistema
+- 🌗 Tema claro y oscuro según la preferencia del sistema, o el que elijas en tu cuenta
+- 👤 **Mi cuenta**: nombre y foto, correo, contraseña, conectar o desconectar Google, unir dos
+  cuentas tuyas, avisos por correo, cerrar sesión en todos lados, descargar tus datos y eliminar
+  la cuenta
 
 ---
 

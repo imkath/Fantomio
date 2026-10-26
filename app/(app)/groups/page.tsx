@@ -31,7 +31,7 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import { useEffect, useState, useCallback, Suspense } from 'react'
 import GroupLoading from './loading'
 import Link from 'next/link'
-import { BackLink } from '@/components/back-link'
+import { Breadcrumbs } from '@/components/breadcrumbs'
 import { createClient, getSessionUser } from '@/lib/supabase'
 import { drawNames, resetDraw } from '@/lib/actions/draw'
 import {
@@ -482,7 +482,7 @@ function GroupPage() {
   return (
     <div className="bg-paper text-ink min-h-[calc(100vh-69px)] pb-16">
       <main className="mx-auto max-w-[1040px] px-4 pt-8 pb-10 md:px-8">
-        <BackLink />
+        <Breadcrumbs items={[{ label: 'Mis grupos', href: '/dashboard' }, { label: group.name }]} />
 
         {error && (
           <div className="mt-6">

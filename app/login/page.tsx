@@ -17,6 +17,18 @@ function LoginForm() {
   const redirectTo = safeRedirect(searchParams.get('redirectTo'))
   useSignedInRedirect(redirectTo)
   const verified = searchParams.get('verified') === 'true'
+  const deleted = searchParams.get('cuenta') === 'eliminada'
+  // Second step of "Unir otra cuenta": the account page saved who to merge into.
+  const [mergeInto, setMergeInto] = useState<string | null>(null)
+  useEffect(() => {
+    if (searchParams.get('unir') !== '1') return
+    try {
+      const saved = JSON.parse(localStorage.getItem('ghostswap:merge') || 'null')
+      if (saved?.email) setMergeInto(saved.email)
+    } catch {
+      // Nothing saved: the notice just doesn't show.
+    }
+  }, [searchParams])
   const urlError = searchParams.get('error')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -65,6 +77,12 @@ function LoginForm() {
   return (
     <AuthShell title="Entrar" lede="Para ver tus grupos y a quién te tocó.">
       <div className="space-y-6">
+        {mergeInto && (
+          <Notice tone="ok">
+            Entra con la otra cuenta, la que quieres unir a {mergeInto}. Después te pedimos
+            confirmar.
+          </Notice>
+        )}
         <Button size="lg" variant="outline" className="w-full" onClick={handleGoogleSignIn}>
           <svg className="mr-1 h-5 w-5" aria-hidden="true" viewBox="0 0 24 24">
             <path
@@ -91,6 +109,9 @@ function LoginForm() {
 
         <form onSubmit={handleCredentialsSignIn} className="space-y-5">
           {verified && <Notice tone="ok">Tu cuenta quedó confirmada. Ya puedes entrar.</Notice>}
+          {deleted && (
+            <Notice tone="ok">Tu cuenta quedó eliminada. Gracias por usar GhostSwap.</Notice>
+          )}
           {error && <Notice>{error}</Notice>}
           <Field
             label="Correo"

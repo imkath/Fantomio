@@ -1,85 +1,103 @@
 'use client'
 
-import { Suspense, useEffect, useState } from 'react'
+import { Suspense, useCallback, useEffect, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { Loader2, Mail } from 'lucide-react'
-import { Button } from '@/components/ui/button'
-import { Field, Notice } from '@/components/auth-shell'
-import { BackLink } from '@/components/back-link'
+import { Loader2 } from 'lucide-react'
+import { Breadcrumbs } from '@/components/breadcrumbs'
+import { ProfileSection } from '@/components/account/profile-section'
+import { AccessSection, type AccessState } from '@/components/account/access-section'
+import { PreferencesSection } from '@/components/account/preferences-section'
+import { DataSection } from '@/components/account/data-section'
 import { createClient } from '@/lib/supabase'
-import { getUserFriendlyError } from '@/lib/errors'
+import { formatName } from '@/lib/utils'
 
-// Changing the account's email goes through Supabase Auth, which sends a link to the current
-// address and another to the new one; the change applies once both are confirmed. The copy
-// the group sees (profiles.email) follows by trigger (20261026g_sync_profile_email.sql).
+// Everything about your account in one page: profile, how you sign in, preferences and your
+// data. The rules live in the database (see 20261026h_account_settings.sql); this page only
+// shows them and calls them.
 
-interface Account {
-  email: string
-  pendingEmail: string | null
-  withGoogle: boolean
+interface Account extends AccessState {
+  userId: string
+  name: string
+  avatarUrl: string | null
+  googleAvatar: string | null
+  theme: 'system' | 'light' | 'dark'
+  emailNotifications: boolean
+  drawnGroups: string[]
 }
+
+const SECTIONS = [
+  { id: 'perfil', label: 'Perfil' },
+  { id: 'acceso', label: 'Acceso' },
+  { id: 'preferencias', label: 'Preferencias' },
+  { id: 'datos', label: 'Seguridad y datos' },
+]
 
 function AccountPage() {
   const router = useRouter()
   const params = useSearchParams()
   const [account, setAccount] = useState<Account | null>(null)
-  const [newEmail, setNewEmail] = useState('')
-  const [isSaving, setIsSaving] = useState(false)
-  const [error, setError] = useState('')
-  const [sentTo, setSentTo] = useState<string | null>(null)
 
-  useEffect(() => {
-    const load = async () => {
-      // getUser asks the auth server, so a change confirmed elsewhere shows up here.
-      const {
-        data: { user },
-      } = await createClient().auth.getUser()
-      if (!user) {
-        router.push('/login?redirectTo=/account')
-        return
-      }
-      setAccount({
-        email: user.email ?? '',
-        pendingEmail: user.new_email ?? null,
-        withGoogle: !!user.identities?.some((i) => i.provider === 'google'),
-      })
+  const load = useCallback(async () => {
+    const supabase = createClient()
+    // getUser asks the auth server, so changes confirmed elsewhere show up here.
+    const {
+      data: { user },
+    } = await supabase.auth.getUser()
+    if (!user) {
+      router.push('/login?redirectTo=/account')
+      return
     }
-    load()
+    const [profileRes, statusRes, groupsRes] = await Promise.all([
+      supabase
+        .from('profiles')
+        .select('full_name, avatar_url, theme, email_notifications')
+        .eq('id', user.id)
+        .single(),
+      supabase.rpc('account_status'),
+      supabase.from('members').select('groups(name, status)').eq('user_id', user.id),
+    ])
+    const google = user.identities?.find((i) => i.provider === 'google')
+    const status = (statusRes.data ?? { has_password: false, providers: [] }) as {
+      has_password: boolean
+      providers: string[]
+    }
+    const drawn = (groupsRes.data ?? [])
+      .map(
+        (m) =>
+          (Array.isArray(m.groups) ? m.groups[0] : m.groups) as {
+            name: string
+            status: string
+          } | null
+      )
+      .filter((g): g is { name: string; status: string } => !!g && g.status === 'DRAWN')
+      .map((g) => g.name)
+    setAccount({
+      userId: user.id,
+      email: user.email ?? '',
+      pendingEmail: user.new_email ?? null,
+      hasPassword: status.has_password,
+      providers: status.providers,
+      googleEmail: (google?.identity_data?.email as string) ?? null,
+      googleAvatar:
+        ((google?.identity_data?.avatar_url ?? google?.identity_data?.picture) as string) ?? null,
+      name: formatName(profileRes.data?.full_name) || '',
+      avatarUrl: profileRes.data?.avatar_url ?? null,
+      theme: profileRes.data?.theme ?? 'system',
+      emailNotifications: profileRes.data?.email_notifications ?? true,
+      drawnGroups: drawn,
+    })
   }, [router])
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!account) return
-    const email = newEmail.trim().toLowerCase()
-    if (email === account.email.toLowerCase()) {
-      setError('Ese ya es tu correo.')
-      return
-    }
-
-    setIsSaving(true)
-    setError('')
-    const next = encodeURIComponent('/account?correo=listo')
-    const { error: updateError } = await createClient().auth.updateUser(
-      { email },
-      { emailRedirectTo: `${window.location.origin}/auth/callback?next=${next}` }
-    )
-    setIsSaving(false)
-
-    if (updateError) {
-      setError(getUserFriendlyError(updateError))
-      return
-    }
-    setSentTo(email)
-    setAccount({ ...account, pendingEmail: email })
-    setNewEmail('')
-  }
-
-  const status = params.get('correo')
+  useEffect(() => {
+    load()
+  }, [load])
 
   return (
     <div className="bg-paper text-ink min-h-[calc(100vh-69px)]">
-      <main className="mx-auto max-w-[640px] px-4 py-10 md:px-8 md:py-14">
-        <BackLink />
+      <main className="mx-auto max-w-[1040px] px-4 pt-8 pb-16 md:px-8">
+        <Breadcrumbs
+          items={[{ label: 'Mis grupos', href: '/dashboard' }, { label: 'Mi cuenta' }]}
+        />
         <h1 className="mt-6 mb-10 text-[34px] leading-tight font-light md:text-[44px]">
           Mi cuenta
         </h1>
@@ -87,59 +105,47 @@ function AccountPage() {
         {!account ? (
           <Loader2 className="text-faint h-8 w-8 animate-spin" aria-label="Cargando" />
         ) : (
-          <section className="border-rule space-y-6 rounded-[4px] border p-6 md:p-8">
-            <div>
-              <h2 className="text-xl font-bold">Correo</h2>
-              <p className="text-graphite mt-1">
-                Es el que ve tu grupo y donde te llegan los avisos.
-              </p>
-              <p className="font-detail mt-4 text-lg break-all">{account.email}</p>
-            </div>
-
-            {status === 'listo' && !account.pendingEmail && (
-              <Notice tone="ok">Listo, tu correo ya cambió.</Notice>
-            )}
-            {status === 'pendiente' && (
-              <Notice tone="ok">
-                Confirmaste uno de los dos enlaces. Falta el que llegó al otro correo.
-              </Notice>
-            )}
-            {sentTo ? (
-              <Notice tone="ok">
-                Te mandamos un enlace a {account.email} y otro a {sentTo}. El cambio se aplica
-                cuando confirmes en los dos.
-              </Notice>
-            ) : (
-              account.pendingEmail &&
-              status !== 'pendiente' && (
-                <Notice tone="ok">
-                  Hay un cambio pendiente a {account.pendingEmail}. Para aplicarlo, abre los enlaces
-                  que llegaron a los dos correos.
-                </Notice>
-              )
-            )}
-
-            <form onSubmit={handleSubmit} className="space-y-5">
-              {error && <Notice>{error}</Notice>}
-              <Field
-                label="Correo nuevo"
-                type="email"
-                autoComplete="email"
-                required
-                value={newEmail}
-                onChange={(e) => setNewEmail(e.target.value)}
-                hint={
-                  account.withGoogle
-                    ? 'Si entras con Google, sigues entrando igual. Solo cambia el correo de GhostSwap.'
-                    : 'Después del cambio, entras con el correo nuevo y la misma contraseña.'
-                }
+          <div className="grid gap-10 md:grid-cols-[180px_minmax(0,1fr)]">
+            <nav aria-label="Secciones de la cuenta" className="hidden md:block">
+              <ul className="sticky top-24 space-y-1 text-[15px]">
+                {SECTIONS.map((s) => (
+                  <li key={s.id}>
+                    <a
+                      href={`#${s.id}`}
+                      className="text-graphite hover:text-ink inline-flex min-h-11 items-center underline-offset-4 hover:underline"
+                    >
+                      {s.label}
+                    </a>
+                  </li>
+                ))}
+              </ul>
+            </nav>
+            <div className="min-w-0 space-y-8">
+              <ProfileSection
+                key={`${account.name}-${account.avatarUrl}`}
+                userId={account.userId}
+                name={account.name}
+                avatarUrl={account.avatarUrl}
+                googleAvatar={account.googleAvatar}
+                onChange={load}
               />
-              <Button type="submit" disabled={isSaving || !newEmail.trim()}>
-                {isSaving ? <Loader2 className="animate-spin" /> : <Mail aria-hidden="true" />}
-                Cambiar correo
-              </Button>
-            </form>
-          </section>
+              <AccessSection
+                state={account}
+                status={params.get('correo') ?? params.get('google')}
+                onChange={load}
+              />
+              <PreferencesSection
+                userId={account.userId}
+                theme={account.theme}
+                emailNotifications={account.emailNotifications}
+              />
+              <DataSection
+                userId={account.userId}
+                email={account.email}
+                drawnGroups={account.drawnGroups}
+              />
+            </div>
+          </div>
         )}
       </main>
     </div>

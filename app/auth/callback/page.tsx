@@ -17,6 +17,13 @@ function Callback() {
 
   useEffect(() => {
     const next = safeRedirect(params.get('next') || params.get('redirect_to'))
+    const hash = new URLSearchParams(window.location.hash.slice(1))
+    const errorCode = params.get('error_code') || hash.get('error_code')
+    // Connecting Google from Mi cuenta when that Google account already has its own account.
+    if (errorCode === 'identity_already_exists') {
+      router.replace('/account?google=otra-cuenta')
+      return
+    }
     const failed = params.get('error_description')
     if (failed) {
       router.replace(`/login?error=${encodeURIComponent(failed)}`)
@@ -25,7 +32,6 @@ function Callback() {
 
     // Changing the email takes two confirmations (old and new address). After the first one
     // Supabase comes back with a message and no session change.
-    const hash = new URLSearchParams(window.location.hash.slice(1))
     if ((params.get('message') || hash.get('message')) && !params.get('code')) {
       router.replace('/account?correo=pendiente')
       return

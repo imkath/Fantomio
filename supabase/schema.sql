@@ -28,10 +28,13 @@ CREATE TABLE profiles (
   avatar_url text,
   created_at timestamp with time zone DEFAULT now(),
   updated_at timestamp with time zone DEFAULT now(),
+  theme text NOT NULL DEFAULT 'system'::text,
+  email_notifications boolean NOT NULL DEFAULT true,
   CONSTRAINT profiles_email_key UNIQUE (email),
   CONSTRAINT profiles_pkey PRIMARY KEY (id),
   CONSTRAINT profiles_id_fkey FOREIGN KEY (id) REFERENCES auth.users(id) ON DELETE CASCADE,
-  CONSTRAINT profiles_avatar_url_https CHECK (((avatar_url IS NULL) OR (avatar_url ~ '^https://'::text)))
+  CONSTRAINT profiles_avatar_url_source CHECK (((avatar_url IS NULL) OR (avatar_url ~ '^https://lh3\.googleusercontent\.com/'::text) OR (avatar_url ~ '^https://ocgmlgldrmdemdjphcrv\.supabase\.co/storage/v1/object/public/avatars/'::text))),
+  CONSTRAINT profiles_theme_check CHECK ((theme = ANY (ARRAY['system'::text, 'light'::text, 'dark'::text])))
 );
 
 CREATE TABLE groups (
@@ -68,7 +71,7 @@ CREATE TABLE wishlists (
   items jsonb NOT NULL DEFAULT '[]'::jsonb,
   updated_at timestamp with time zone NOT NULL DEFAULT now(),
   CONSTRAINT wishlists_pkey PRIMARY KEY (group_id, user_id),
-  CONSTRAINT wishlists_group_id_user_id_fkey FOREIGN KEY (group_id, user_id) REFERENCES members(group_id, user_id) ON DELETE CASCADE,
+  CONSTRAINT wishlists_group_id_user_id_fkey FOREIGN KEY (group_id, user_id) REFERENCES members(group_id, user_id) ON UPDATE CASCADE ON DELETE CASCADE,
   CONSTRAINT wishlists_items_check CHECK (((jsonb_typeof(items) = 'array'::text) AND (jsonb_array_length(items) <= 10)))
 );
 
@@ -144,6 +147,14 @@ CREATE TABLE email_templates (
   CONSTRAINT email_templates_pkey PRIMARY KEY (name)
 );
 
+CREATE TABLE merge_requests (
+  code text NOT NULL,
+  target uuid NOT NULL,
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  CONSTRAINT merge_requests_pkey PRIMARY KEY (code),
+  CONSTRAINT merge_requests_target_fkey FOREIGN KEY (target) REFERENCES auth.users(id) ON DELETE CASCADE
+);
+
 -- ==========================================================================================
 -- Indexes
 -- ==========================================================================================
@@ -169,6 +180,20 @@ CREATE INDEX idx_notifications_user ON public.notifications USING btree (user_id
 -- Functions
 -- ==========================================================================================
 
+CREATE OR REPLACE FUNCTION public.account_status()
+ RETURNS jsonb
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public'
+AS $function$
+  SELECT jsonb_build_object(
+    'has_password', coalesce(u.encrypted_password, '') <> '',
+    'providers', coalesce((SELECT jsonb_agg(DISTINCT i.provider) FROM auth.identities i WHERE i.user_id = u.id), '[]'::jsonb)
+  )
+  FROM auth.users u WHERE u.id = auth.uid();
+$function$
+;
+
 CREATE OR REPLACE FUNCTION public.auth_user_admin_group_ids()
  RETURNS SETOF uuid
  LANGUAGE sql
@@ -186,6 +211,86 @@ CREATE OR REPLACE FUNCTION public.auth_user_group_ids()
  SET search_path TO 'public'
 AS $function$
   SELECT group_id FROM members WHERE user_id = auth.uid();
+$function$
+;
+
+CREATE OR REPLACE FUNCTION public.confirm_merge(p_code text)
+ RETURNS text
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public'
+AS $function$
+DECLARE
+  src UUID := auth.uid();
+  dst UUID;
+  dst_email TEXT;
+  shared TEXT;
+BEGIN
+  IF src IS NULL THEN
+    RAISE EXCEPTION 'Tienes que entrar a tu cuenta';
+  END IF;
+  SELECT target INTO dst FROM merge_requests
+  WHERE code = p_code AND created_at > NOW() - INTERVAL '15 minutes' FOR UPDATE;
+  IF dst IS NULL THEN
+    RAISE EXCEPTION 'El enlace para unir cuentas venció. Vuelve a empezar desde Mi cuenta.';
+  END IF;
+  IF dst = src THEN
+    RAISE EXCEPTION 'Entraste con la misma cuenta. Entra con la otra para unirlas.';
+  END IF;
+  SELECT string_agg(g.name, ', ') INTO shared
+  FROM members a JOIN members b ON a.group_id = b.group_id JOIN groups g ON g.id = a.group_id
+  WHERE a.user_id = src AND b.user_id = dst;
+  IF shared IS NOT NULL THEN
+    RAISE EXCEPTION 'Las dos cuentas están en el mismo grupo (%). Sal de ese grupo con una de ellas y vuelve a intentarlo.', shared;
+  END IF;
+
+  UPDATE groups SET admin_id = dst WHERE admin_id = src;
+  UPDATE members SET user_id = dst WHERE user_id = src;
+  UPDATE matches SET giver_id = dst WHERE giver_id = src;
+  UPDATE matches SET receiver_id = dst WHERE receiver_id = src;
+  UPDATE exclusions SET giver_id = dst WHERE giver_id = src;
+  UPDATE exclusions SET excluded_receiver_id = dst WHERE excluded_receiver_id = src;
+  UPDATE activities SET user_id = dst WHERE user_id = src;
+  UPDATE notifications SET user_id = dst WHERE user_id = src;
+  -- Google (and any other provider) moves over; the other account's password does not.
+  UPDATE auth.identities SET user_id = dst, updated_at = NOW()
+  WHERE user_id = src AND provider <> 'email';
+  UPDATE auth.users
+  SET raw_app_meta_data = jsonb_set(
+    coalesce(raw_app_meta_data, '{}'::jsonb), '{providers}',
+    coalesce((SELECT jsonb_agg(DISTINCT provider) FROM auth.identities WHERE user_id = dst), '[]'::jsonb))
+  WHERE id = dst;
+
+  DELETE FROM merge_requests WHERE target = dst;
+  DELETE FROM auth.users WHERE id = src;
+  SELECT email INTO dst_email FROM auth.users WHERE id = dst;
+  RETURN dst_email;
+END;
+$function$
+;
+
+CREATE OR REPLACE FUNCTION public.delete_my_account()
+ RETURNS void
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public'
+AS $function$
+DECLARE
+  uid UUID := auth.uid();
+  blocking TEXT;
+BEGIN
+  IF uid IS NULL THEN
+    RAISE EXCEPTION 'Tienes que entrar a tu cuenta';
+  END IF;
+  SELECT string_agg(g.name, ', ') INTO blocking
+  FROM groups g
+  WHERE g.admin_id = uid AND EXISTS (SELECT 1 FROM members m WHERE m.group_id = g.id AND m.user_id <> uid);
+  IF blocking IS NOT NULL THEN
+    RAISE EXCEPTION 'Organizas grupos con más personas (%). Pasa la organización a alguien o elimina esos grupos primero.', blocking;
+  END IF;
+  DELETE FROM groups WHERE admin_id = uid;
+  DELETE FROM auth.users WHERE id = uid;
+END;
 $function$
 ;
 
@@ -288,6 +393,11 @@ BEGIN
     RETURN NEW;
   END IF;
 
+  -- People can turn emails off in their account; the notification stays in the app.
+  IF NOT coalesce((SELECT email_notifications FROM profiles WHERE id = NEW.user_id), TRUE) THEN
+    RETURN NEW;
+  END IF;
+
   SELECT * INTO tpl FROM email_templates WHERE name = NEW.type;
   SELECT decrypted_secret INTO api_key FROM vault.decrypted_secrets WHERE name = 'brevo_api_key';
   SELECT email INTO to_email FROM auth.users WHERE id = NEW.user_id;
@@ -323,6 +433,75 @@ BEGIN
   );
   RETURN NEW;
 END;
+$function$
+;
+
+CREATE OR REPLACE FUNCTION public.ensure_email_identity()
+ RETURNS void
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public'
+AS $function$
+DECLARE
+  u auth.users%ROWTYPE;
+BEGIN
+  SELECT * INTO u FROM auth.users WHERE id = auth.uid();
+  IF u.id IS NULL OR coalesce(u.encrypted_password, '') = '' OR u.email_confirmed_at IS NULL THEN
+    RETURN;
+  END IF;
+  IF EXISTS (SELECT 1 FROM auth.identities WHERE user_id = u.id AND provider = 'email') THEN
+    RETURN;
+  END IF;
+  INSERT INTO auth.identities (provider_id, user_id, identity_data, provider, last_sign_in_at, created_at, updated_at)
+  VALUES (
+    u.id::text, u.id,
+    jsonb_build_object('sub', u.id::text, 'email', u.email, 'email_verified', TRUE, 'phone_verified', FALSE),
+    'email', NOW(), NOW(), NOW()
+  );
+  UPDATE auth.users
+  SET raw_app_meta_data = jsonb_set(
+    coalesce(raw_app_meta_data, '{}'::jsonb), '{providers}',
+    (SELECT jsonb_agg(DISTINCT p) FROM jsonb_array_elements_text(
+      coalesce(raw_app_meta_data->'providers', '[]'::jsonb) || '["email"]'::jsonb) AS p))
+  WHERE id = u.id;
+END;
+$function$
+;
+
+CREATE OR REPLACE FUNCTION public.export_my_data()
+ RETURNS jsonb
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public'
+AS $function$
+  WITH me AS (SELECT auth.uid() AS id)
+  SELECT jsonb_build_object(
+    'exportado', NOW(),
+    'cuenta', (SELECT jsonb_build_object(
+      'correo', u.email, 'creada', u.created_at, 'ultimo_ingreso', u.last_sign_in_at,
+      'metodos_de_entrada', (SELECT jsonb_agg(DISTINCT provider) FROM auth.identities WHERE user_id = u.id))
+      FROM auth.users u, me WHERE u.id = me.id),
+    'perfil', (SELECT jsonb_build_object('nombre', p.full_name, 'foto', p.avatar_url,
+      'tema', p.theme, 'avisos_por_correo', p.email_notifications)
+      FROM profiles p, me WHERE p.id = me.id),
+    'grupos', coalesce((SELECT jsonb_agg(jsonb_build_object(
+      'nombre', g.name, 'estado', g.status, 'organizas', g.admin_id = me.id,
+      'fecha_intercambio', g.exchange_date, 'presupuesto', g.budget, 'moneda', g.currency,
+      'te_uniste', m.joined_at) ORDER BY m.joined_at)
+      FROM members m JOIN groups g ON g.id = m.group_id, me WHERE m.user_id = me.id), '[]'::jsonb),
+    'listas_de_deseos', coalesce((SELECT jsonb_agg(jsonb_build_object('grupo', g.name, 'cosas', w.items))
+      FROM wishlists w JOIN groups g ON g.id = w.group_id, me WHERE w.user_id = me.id), '[]'::jsonb),
+    'a_quien_le_regalas', coalesce((SELECT jsonb_agg(jsonb_build_object('grupo', g.name, 'persona', p.full_name))
+      FROM matches x JOIN groups g ON g.id = x.group_id JOIN profiles p ON p.id = x.receiver_id, me
+      WHERE x.giver_id = me.id), '[]'::jsonb),
+    'mensajes_que_enviaste', coalesce((SELECT jsonb_agg(jsonb_build_object(
+      'grupo', g.name, 'como', CASE a.sender_role WHEN 'giver' THEN 'quien regala' ELSE 'quien recibe' END,
+      'mensaje', a.content, 'fecha', a.created_at) ORDER BY a.created_at)
+      FROM anonymous_messages a JOIN matches x ON x.id = a.match_id JOIN groups g ON g.id = x.group_id, me
+      WHERE (a.sender_role = 'giver' AND x.giver_id = me.id) OR (a.sender_role = 'receiver' AND x.receiver_id = me.id)), '[]'::jsonb),
+    'avisos', coalesce((SELECT jsonb_agg(jsonb_build_object('tipo', n.type, 'texto', n.body, 'fecha', n.created_at) ORDER BY n.created_at)
+      FROM notifications n, me WHERE n.user_id = me.id), '[]'::jsonb)
+  );
 $function$
 ;
 
@@ -482,6 +661,16 @@ END;
 $function$
 ;
 
+CREATE OR REPLACE FUNCTION public.keepalive()
+ RETURNS void
+ LANGUAGE sql
+ SECURITY DEFINER
+ SET search_path TO 'public'
+AS $function$
+  SELECT FROM groups LIMIT 1;
+$function$
+;
+
 CREATE OR REPLACE FUNCTION public.log_member_left()
  RETURNS trigger
  LANGUAGE plpgsql
@@ -490,21 +679,42 @@ CREATE OR REPLACE FUNCTION public.log_member_left()
 AS $function$
 DECLARE
   person TEXT;
+  actor UUID;
 BEGIN
   -- Deleting the whole group cascades here; there is nothing left to log into.
   IF NOT EXISTS (SELECT 1 FROM groups WHERE id = OLD.group_id) THEN
     RETURN OLD;
   END IF;
-  SELECT coalesce(initcap(lower(full_name)), 'Alguien') INTO person FROM profiles WHERE id = OLD.user_id;
+  SELECT initcap(lower(full_name)) INTO person FROM profiles WHERE id = OLD.user_id;
+  SELECT id INTO actor FROM profiles WHERE id = auth.uid();
+
+  IF NOT EXISTS (SELECT 1 FROM profiles WHERE id = OLD.user_id) THEN
+    INSERT INTO activities (group_id, user_id, type, message)
+    VALUES (OLD.group_id, NULL, 'MEMBER_LEFT', 'Una persona eliminó su cuenta y salió del grupo');
+    RETURN OLD;
+  END IF;
+
   INSERT INTO activities (group_id, user_id, type, message)
   VALUES (
-    OLD.group_id, auth.uid(),
+    OLD.group_id, actor,
     CASE WHEN OLD.user_id = auth.uid() THEN 'MEMBER_LEFT' ELSE 'MEMBER_REMOVED' END,
     coalesce(person, 'Alguien') ||
       CASE WHEN OLD.user_id = auth.uid() THEN ' salió del grupo' ELSE ' fue quitado del grupo' END
   );
   RETURN OLD;
 END;
+$function$
+;
+
+CREATE OR REPLACE FUNCTION public.merge_preview(p_code text)
+ RETURNS jsonb
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public'
+AS $function$
+  SELECT jsonb_build_object('email', u.email, 'same', u.id = auth.uid())
+  FROM merge_requests r JOIN auth.users u ON u.id = r.target
+  WHERE r.code = p_code AND r.created_at > NOW() - INTERVAL '15 minutes';
 $function$
 ;
 
@@ -641,6 +851,38 @@ AS $function$
 $function$
 ;
 
+CREATE OR REPLACE FUNCTION public.start_merge()
+ RETURNS text
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public'
+AS $function$
+DECLARE
+  c TEXT := encode(extensions.gen_random_bytes(24), 'hex');
+BEGIN
+  IF auth.uid() IS NULL THEN
+    RAISE EXCEPTION 'Tienes que entrar a tu cuenta';
+  END IF;
+  DELETE FROM merge_requests WHERE target = auth.uid() OR created_at < NOW() - INTERVAL '1 day';
+  INSERT INTO merge_requests (code, target) VALUES (c, auth.uid());
+  RETURN c;
+END;
+$function$
+;
+
+CREATE OR REPLACE FUNCTION public.sync_profile_email()
+ RETURNS trigger
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public'
+AS $function$
+BEGIN
+  UPDATE profiles SET email = NEW.email WHERE id = NEW.id;
+  RETURN NEW;
+END;
+$function$
+;
+
 CREATE OR REPLACE FUNCTION public.touch_wishlist()
  RETURNS trigger
  LANGUAGE plpgsql
@@ -744,6 +986,8 @@ CREATE TRIGGER update_profiles_updated_at BEFORE UPDATE ON public.profiles FOR E
 
 CREATE TRIGGER on_auth_user_created AFTER INSERT ON auth.users FOR EACH ROW EXECUTE FUNCTION handle_new_user();
 
+CREATE TRIGGER on_auth_user_email_changed AFTER UPDATE OF email ON auth.users FOR EACH ROW WHEN (((old.email)::text IS DISTINCT FROM (new.email)::text)) EXECUTE FUNCTION sync_profile_email();
+
 CREATE TRIGGER on_wishlist_change AFTER INSERT OR UPDATE OF items ON public.wishlists FOR EACH ROW EXECUTE FUNCTION notify_wishlist_change();
 
 CREATE TRIGGER touch_wishlist BEFORE UPDATE ON public.wishlists FOR EACH ROW EXECUTE FUNCTION touch_wishlist();
@@ -765,6 +1009,8 @@ ALTER TABLE groups ENABLE ROW LEVEL SECURITY;
 ALTER TABLE matches ENABLE ROW LEVEL SECURITY;
 
 ALTER TABLE members ENABLE ROW LEVEL SECURITY;
+
+ALTER TABLE merge_requests ENABLE ROW LEVEL SECURITY;
 
 ALTER TABLE notifications ENABLE ROW LEVEL SECURITY;
 
@@ -887,11 +1133,21 @@ CREATE POLICY "Owners update their wishlist" ON wishlists
 -- Functions only signed-in users can call
 -- ==========================================================================================
 
+REVOKE EXECUTE ON FUNCTION account_status() FROM PUBLIC, anon;
+
 REVOKE EXECUTE ON FUNCTION auth_user_admin_group_ids() FROM PUBLIC, anon;
 
 REVOKE EXECUTE ON FUNCTION auth_user_group_ids() FROM PUBLIC, anon;
 
+REVOKE EXECUTE ON FUNCTION confirm_merge(p_code text) FROM PUBLIC, anon;
+
+REVOKE EXECUTE ON FUNCTION delete_my_account() FROM PUBLIC, anon;
+
 REVOKE EXECUTE ON FUNCTION draw_group(p_group_id uuid) FROM PUBLIC, anon;
+
+REVOKE EXECUTE ON FUNCTION ensure_email_identity() FROM PUBLIC, anon;
+
+REVOKE EXECUTE ON FUNCTION export_my_data() FROM PUBLIC, anon;
 
 REVOKE EXECUTE ON FUNCTION get_receiver_match_id(p_group_id uuid) FROM PUBLIC, anon;
 
@@ -909,11 +1165,17 @@ REVOKE EXECUTE ON FUNCTION join_group(p_code text) FROM PUBLIC, anon;
 
 REVOKE EXECUTE ON FUNCTION log_member_left() FROM PUBLIC, anon;
 
+REVOKE EXECUTE ON FUNCTION merge_preview(p_code text) FROM PUBLIC, anon;
+
 REVOKE EXECUTE ON FUNCTION push_notification(p_user uuid, p_group uuid, p_type text, p_body text) FROM PUBLIC, anon;
 
 REVOKE EXECUTE ON FUNCTION reset_group_draw(p_group_id uuid) FROM PUBLIC, anon;
 
 REVOKE EXECUTE ON FUNCTION shares_group_with(target uuid) FROM PUBLIC, anon;
+
+REVOKE EXECUTE ON FUNCTION start_merge() FROM PUBLIC, anon;
+
+REVOKE EXECUTE ON FUNCTION sync_profile_email() FROM PUBLIC, anon;
 
 REVOKE EXECUTE ON FUNCTION transfer_group(p_group_id uuid, p_new_admin uuid) FROM PUBLIC, anon;
 
@@ -955,6 +1217,6 @@ GRANT UPDATE (read_at) ON notifications TO authenticated;
 
 GRANT DELETE, INSERT, SELECT ON profiles TO authenticated;
 
-GRANT UPDATE (avatar_url, full_name) ON profiles TO authenticated;
+GRANT UPDATE (avatar_url, email_notifications, full_name, theme) ON profiles TO authenticated;
 
 GRANT DELETE, INSERT, SELECT, UPDATE ON wishlists TO authenticated;

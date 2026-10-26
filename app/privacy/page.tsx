@@ -80,7 +80,13 @@ export default function PrivacyPage() {
                 <li>
                   <strong>Cuenta:</strong> correo electrónico, nombre y foto de perfil. Los ingresas
                   tú al registrarte o los entrega Google cuando entras con tu cuenta de Google. De
-                  Google solo recibimos esos tres datos.
+                  Google solo recibimos esos tres datos. Si subes una foto propia, la guardamos
+                  reducida a 256 px en nuestro almacenamiento, y la borramos cuando la cambias o la
+                  quitas.
+                </li>
+                <li>
+                  <strong>Preferencias:</strong> el tema de pantalla que elijas y si quieres recibir
+                  avisos por correo.
                 </li>
                 <li>
                   <strong>Grupos:</strong> nombre del grupo, presupuesto, moneda, fecha del
@@ -176,10 +182,10 @@ export default function PrivacyPage() {
             <Section title="7. Cuánto tiempo los guardamos">
               <p>
                 Mientras tu cuenta exista. Los datos de un grupo se mantienen hasta que el
-                administrador lo elimina. Si pides eliminar tu cuenta, borramos tus datos de perfil,
-                tus membresías, tus asignaciones y tus mensajes dentro del plazo de respuesta
-                indicado más abajo. Los registros técnicos se conservan por el período que define
-                cada proveedor.
+                administrador lo elimina. Si eliminas tu cuenta desde Mi cuenta, en ese momento se
+                borran tu perfil, tu foto, tus membresías, tus listas, tus asignaciones y tus
+                mensajes. Si lo pides por correo, lo hacemos dentro del plazo indicado más abajo.
+                Los registros técnicos se conservan por el período que define cada proveedor.
               </p>
             </Section>
 
@@ -200,7 +206,9 @@ export default function PrivacyPage() {
             <Section title="9. Tus derechos">
               <p>
                 Puedes pedir acceso, rectificación, supresión, oposición y portabilidad de tus
-                datos. Escribe a {mail} indicando tu nombre, el correo de tu cuenta y qué necesitas.
+                datos. Casi todo lo haces tú mismo desde Mi cuenta: corregir tu nombre, tu foto y tu
+                correo, descargar tus datos en un archivo y eliminar tu cuenta. Para lo demás,
+                escribe a {mail} indicando tu nombre, el correo de tu cuenta y qué necesitas.
                 Respondemos dentro de 30 días corridos, plazo que puede extenderse una sola vez por
                 otros 30.
               </p>
