@@ -9,15 +9,19 @@
 //
 // Secrets: SUPABASE_URL, SUPABASE_ANON_KEY, BREVO_API_KEY (wrangler secret put).
 
+// La clave anon no tiene permisos sobre las tablas (migracion 20261026e), asi que se
+// llama a keepalive(): una consulta real a Postgres que no devuelve datos de nadie.
 async function ping(env) {
-  const url = `${env.SUPABASE_URL}/rest/v1/groups?select=id&limit=1`
-  const res = await fetch(url, {
+  const res = await fetch(`${env.SUPABASE_URL}/rest/v1/rpc/keepalive`, {
+    method: 'POST',
     headers: {
       apikey: env.SUPABASE_ANON_KEY,
       Authorization: `Bearer ${env.SUPABASE_ANON_KEY}`,
+      'content-type': 'application/json',
     },
+    body: '{}',
   })
-  // ponytail: un SELECT real basta como actividad de base de datos. Si aun asi
+  // ponytail: una consulta real basta como actividad de base de datos. Si aun asi
   // se vuelve a pausar, subir a un INSERT en una tabla heartbeat dedicada.
   return { ok: res.ok, status: res.status, body: res.ok ? '' : await res.text() }
 }

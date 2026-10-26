@@ -43,17 +43,18 @@ jobs:
             exit 1
           fi
 
-          # Se consulta 'groups' con limit=1: es una consulta real a Postgres,
-          # que es lo que Supabase cuenta como actividad. RLS sigue aplicando,
-          # asi que no expone datos de nadie.
+          # keepalive() hace una consulta real a Postgres, que es lo que Supabase
+          # cuenta como actividad, y no devuelve datos de nadie. La clave anon no
+          # puede leer tablas (migracion 20261026e). Responde 204 sin cuerpo.
           status="$(curl -s -o /tmp/body.txt -w '%{http_code}' --max-time 30 \
-            "${SUPABASE_URL}/rest/v1/groups?select=id&limit=1" \
+            -X POST "${SUPABASE_URL}/rest/v1/rpc/keepalive" \
             -H "apikey: ${SUPABASE_ANON_KEY}" \
-            -H "Authorization: Bearer ${SUPABASE_ANON_KEY}")"
+            -H "Authorization: Bearer ${SUPABASE_ANON_KEY}" \
+            -H "Content-Type: application/json" -d '{}')"
 
           echo "HTTP ${status}"
 
-          if [ "${status}" != "200" ]; then
+          if [ "${status}" != "204" ] && [ "${status}" != "200" ]; then
             echo "La base no respondio correctamente. Puede estar pausada."
             cat /tmp/body.txt
             exit 1
