@@ -70,46 +70,27 @@ export function JoinGroupForm({
           return
         }
 
-        const { data: groups } = await supabase.rpc('get_group_by_invite_code', { code })
-        const group = groups?.[0]
-        if (!group) return fail('No encontramos un grupo con ese código. Revisa que esté completo.')
-
-        const { data: existing } = await supabase
-          .from('members')
-          .select('id')
-          .eq('group_id', group.id)
-          .eq('user_id', user.id)
-          .maybeSingle()
-        if (existing) {
-          router.push(groupPath(group.id))
-          return
-        }
-        if (group.status === 'DRAWN') {
-          // Shown even on the automatic attempt: it's the answer to the link they opened.
-          setError('Este grupo ya hizo el sorteo, así que no se pueden sumar personas nuevas.')
-          setIsLoading(false)
-          return
-        }
-
-        const { error: joinError } = await supabase
-          .from('members')
-          .insert({ group_id: group.id, user_id: user.id, is_admin: false })
-        if (joinError) return fail(joinError.message)
-
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('full_name')
-          .eq('id', user.id)
-          .single()
-        await supabase.from('activities').insert({
-          group_id: group.id,
-          user_id: user.id,
-          type: 'USER_JOINED',
-          message: `${profile?.full_name || 'Alguien'} se unió al grupo`,
+        // The database checks the code, refuses groups that already drew and logs the join.
+        const { data: groupId, error: joinError } = await supabase.rpc('join_group', {
+          p_code: code,
         })
+        if (joinError || !groupId) {
+          const message = joinError?.message ?? ''
+          // Shown even on the automatic attempt: it's the answer to the link they opened.
+          if (message.includes('ya hizo el sorteo')) {
+            setError(message)
+            setIsLoading(false)
+            return
+          }
+          return fail(
+            message.includes('No encontramos')
+              ? message
+              : 'No pudimos unirte al grupo. Intenta de nuevo en un momento.'
+          )
+        }
 
         setJoined(true)
-        setTimeout(() => router.push(groupPath(group.id)), 1200)
+        setTimeout(() => router.push(groupPath(groupId as string)), 1200)
       } catch {
         fail('No pudimos conectar. Revisa tu internet e intenta de nuevo.')
       }

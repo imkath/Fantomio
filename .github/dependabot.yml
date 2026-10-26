@@ -1,0 +1,12 @@
+# Weekly update PRs. Actions are pinned by commit SHA, so Dependabot is what keeps them current.
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5

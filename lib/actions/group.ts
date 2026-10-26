@@ -1,6 +1,7 @@
 // Runs in the browser with the person's session; RLS decides what each call may do.
 
 import { createClient } from '@/lib/supabase'
+import { getUserFriendlyError } from '@/lib/errors'
 import { updateGroupSchema, groupIdSchema, memberIdSchema } from '@/lib/validations'
 
 export async function updateGroup(
@@ -46,7 +47,7 @@ export async function updateGroup(
   const { error } = await supabase.from('groups').update(data).eq('id', groupId)
 
   if (error) {
-    return { success: false, error: error.message }
+    return { success: false, error: getUserFriendlyError(error) }
   }
 
   // Log activity
@@ -91,7 +92,7 @@ export async function deleteGroup(groupId: string) {
   const { error } = await supabase.from('groups').delete().eq('id', groupId)
 
   if (error) {
-    return { success: false, error: error.message }
+    return { success: false, error: getUserFriendlyError(error) }
   }
 
   return { success: true }
@@ -136,14 +137,6 @@ export async function leaveGroup(groupId: string) {
     return { success: false, error: 'No puedes abandonar un grupo después del sorteo' }
   }
 
-  // Get user's profile for activity log
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('full_name, email')
-    .eq('id', user.id)
-    .single()
-
-  // Delete member
   // RLS turns a forbidden delete into "0 rows", not an error, so check that it happened.
   const { data: left, error } = await supabase
     .from('members')
@@ -153,20 +146,13 @@ export async function leaveGroup(groupId: string) {
     .select('id')
 
   if (error) {
-    return { success: false, error: error.message }
+    return { success: false, error: getUserFriendlyError(error) }
   }
   if (!left?.length) {
     return { success: false, error: 'No puedes salir de este grupo' }
   }
 
-  // Log activity
-  await supabase.from('activities').insert({
-    group_id: groupId,
-    user_id: user.id,
-    type: 'MEMBER_LEFT',
-    message: `${profile?.full_name || profile?.email || 'Un miembro'} abandonó el grupo`,
-  })
-
+  // The database logs the departure (on_member_left trigger).
   return { success: true }
 }
 
@@ -206,18 +192,9 @@ export async function removeMember(groupId: string, memberId: string) {
     return { success: false, error: 'No puedes eliminar miembros después del sorteo' }
   }
 
-  // Get member info for activity log
   const { data: member } = await supabase
     .from('members')
-    .select(
-      `
-      user_id,
-      profiles:user_id (
-        full_name,
-        email
-      )
-    `
-    )
+    .select('user_id')
     .eq('id', memberId)
     .eq('group_id', groupId)
     .single()
@@ -239,25 +216,13 @@ export async function removeMember(groupId: string, memberId: string) {
     .select('id')
 
   if (error) {
-    return { success: false, error: error.message }
+    return { success: false, error: getUserFriendlyError(error) }
   }
   if (!removed?.length) {
     return { success: false, error: 'No se pudo quitar a esta persona' }
   }
 
-  // Log activity
-  const profilesData = member.profiles as unknown as
-    | { full_name: string | null; email: string }
-    | { full_name: string | null; email: string }[]
-    | null
-  const memberProfile = Array.isArray(profilesData) ? profilesData[0] : profilesData
-  await supabase.from('activities').insert({
-    group_id: groupId,
-    user_id: user.id,
-    type: 'MEMBER_REMOVED',
-    message: `${memberProfile?.full_name || memberProfile?.email || 'Un miembro'} fue eliminado del grupo`,
-  })
-
+  // The database logs the removal (on_member_left trigger).
   return { success: true }
 }
 
@@ -309,7 +274,7 @@ export async function getGroupActivities(groupId: string) {
     .limit(50)
 
   if (error) {
-    return { success: false, error: error.message, activities: [] }
+    return { success: false, error: getUserFriendlyError(error), activities: [] }
   }
 
   return { success: true, activities: activities || [] }
@@ -331,5 +296,5 @@ export async function transferGroup(groupId: string, newAdminId: string) {
     p_group_id: groupId,
     p_new_admin: newAdminId,
   })
-  return error ? { success: false, error: error.message } : { success: true }
+  return error ? { success: false, error: getUserFriendlyError(error) } : { success: true }
 }

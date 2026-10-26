@@ -110,4 +110,18 @@ describe('safeRedirect', () => {
     expect(safeRedirect('https://evil.com')).toBe('/dashboard')
     expect(safeRedirect(null)).toBe('/dashboard')
   })
+
+  it('rejects paths the browser would resolve to another domain', async () => {
+    const { safeRedirect } = await import('../routes')
+    // URL parsing turns a backslash into a slash and drops tabs and newlines: all of these
+    // end up as //evil.example once the router resolves them.
+    expect(safeRedirect('/\\evil.example')).toBe('/dashboard')
+    expect(safeRedirect('/\tevil.example')).toBe('/dashboard')
+    expect(safeRedirect('/\t/evil.example')).toBe('/dashboard')
+    expect(safeRedirect('/\n/evil.example')).toBe('/dashboard')
+    expect(safeRedirect(decodeURIComponent('/%5Cevil.example'))).toBe('/dashboard')
+    expect(safeRedirect(decodeURIComponent('/%09/evil.example'))).toBe('/dashboard')
+    expect(safeRedirect('/join?code=a1b2c3d4e5f6')).toBe('/join?code=a1b2c3d4e5f6')
+    expect(safeRedirect('/groups?id=1#lista')).toBe('/groups?id=1#lista')
+  })
 })

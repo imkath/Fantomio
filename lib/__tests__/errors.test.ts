@@ -20,7 +20,7 @@ describe('getUserFriendlyError', () => {
 
     it('handles weak_password', () => {
       const result = getUserFriendlyError({ code: 'weak_password' })
-      expect(result).toBe('La contraseña debe tener al menos 6 caracteres.')
+      expect(result).toBe('La contraseña debe tener al menos 8 caracteres.')
     })
 
     it('handles invalid_email', () => {

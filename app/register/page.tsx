@@ -33,8 +33,8 @@ function RegisterForm() {
       return
     }
 
-    if (password.length < 6) {
-      setError('La contraseña debe tener al menos 6 caracteres')
+    if (password.length < 8) {
+      setError('La contraseña debe tener al menos 8 caracteres')
       setIsLoading(false)
       return
     }
@@ -104,7 +104,7 @@ function RegisterForm() {
         />
         <PasswordField
           label="Contraseña"
-          hint="Al menos 6 caracteres."
+          hint="Al menos 8 caracteres."
           autoComplete="new-password"
           value={password}
           onChange={(e) => setPassword(e.target.value)}

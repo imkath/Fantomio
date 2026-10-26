@@ -16,6 +16,7 @@ import { Input } from '@/components/ui/input'
 import { Notice } from '@/components/auth-shell'
 import { Check, ExternalLink, Loader2, Plus, Trash2 } from 'lucide-react'
 import { createClient } from '@/lib/supabase'
+import { getUserFriendlyError } from '@/lib/errors'
 import { toast } from 'sonner'
 
 interface WishlistEditorProps {
@@ -162,7 +163,7 @@ export function WishlistEditor({
         .upsert({ group_id: groupId, user_id: userId, items: wishlistData })
 
       if (updateError) {
-        setError(updateError.message)
+        setError(getUserFriendlyError(updateError))
         return
       }
 

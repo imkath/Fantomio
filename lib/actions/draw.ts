@@ -2,6 +2,7 @@
 // supabase/migrations/20261013c_draw_in_database.sql): the full list of who gives to whom
 // never reaches a browser, the organizer's included. The database also sends the emails.
 import { createClient } from '@/lib/supabase'
+import { getUserFriendlyError } from '@/lib/errors'
 import { groupIdSchema } from '@/lib/validations'
 
 interface DrawResult {
@@ -15,7 +16,7 @@ async function call(fn: 'draw_group' | 'reset_group_draw', groupId: string): Pro
 
   const { error } = await createClient().rpc(fn, { p_group_id: groupId })
   // The functions raise readable Spanish messages (not enough people, exclusions, etc.).
-  return error ? { success: false, error: error.message } : { success: true }
+  return error ? { success: false, error: getUserFriendlyError(error) } : { success: true }
 }
 
 export const drawNames = (groupId: string) => call('draw_group', groupId)

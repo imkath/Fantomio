@@ -9,7 +9,7 @@ export function getUserFriendlyError(error: { code?: string; message?: string } 
     invalid_credentials: 'Credenciales incorrectas. Verifica tu email y contraseña.',
     user_not_found: 'No encontramos una cuenta con ese email.',
     email_taken: 'Ya existe una cuenta con ese email.',
-    weak_password: 'La contraseña debe tener al menos 6 caracteres.',
+    weak_password: 'La contraseña debe tener al menos 8 caracteres.',
     invalid_email: 'El formato del email no es válido.',
     email_not_confirmed: 'Debes confirmar tu email antes de iniciar sesión.',
     session_expired: 'Tu sesión ha expirado. Por favor, inicia sesión de nuevo.',
@@ -32,6 +32,11 @@ export function getUserFriendlyError(error: { code?: string; message?: string } 
     NetworkError: 'Error de red. Verifica tu conexión a internet.',
   }
 
+  // Our own database functions raise readable Spanish messages (RAISE EXCEPTION).
+  if (code === 'P0001' && message) {
+    return message
+  }
+
   // Check by code first
   if (code && errorMap[code]) {
     return errorMap[code]
@@ -47,7 +52,11 @@ export function getUserFriendlyError(error: { code?: string; message?: string } 
   if (message.includes('foreign key') || message.includes('referenced')) {
     return 'No se puede eliminar porque hay datos relacionados.'
   }
-  if (message.includes('permission denied') || message.includes('not authorized')) {
+  if (
+    message.includes('permission denied') ||
+    message.includes('not authorized') ||
+    message.includes('row-level security')
+  ) {
     return 'No tienes permisos para realizar esta acción.'
   }
   if (message.includes('network') || message.includes('fetch')) {
