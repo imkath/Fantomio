@@ -30,7 +30,8 @@ CREATE TABLE profiles (
   updated_at timestamp with time zone DEFAULT now(),
   CONSTRAINT profiles_email_key UNIQUE (email),
   CONSTRAINT profiles_pkey PRIMARY KEY (id),
-  CONSTRAINT profiles_id_fkey FOREIGN KEY (id) REFERENCES auth.users(id) ON DELETE CASCADE
+  CONSTRAINT profiles_id_fkey FOREIGN KEY (id) REFERENCES auth.users(id) ON DELETE CASCADE,
+  CONSTRAINT profiles_avatar_url_https CHECK (((avatar_url IS NULL) OR (avatar_url ~ '^https://'::text)))
 );
 
 CREATE TABLE groups (
@@ -276,7 +277,7 @@ DECLARE
 BEGIN
   quiet := CASE NEW.type
     WHEN 'wishlist' THEN INTERVAL '12 hours'
-    WHEN 'draw' THEN INTERVAL '0'
+    WHEN 'draw' THEN INTERVAL '1 hour'
     ELSE INTERVAL '15 minutes'
   END;
   IF quiet > INTERVAL '0' AND EXISTS (
@@ -411,6 +412,7 @@ CREATE OR REPLACE FUNCTION public.handle_new_user()
  RETURNS trigger
  LANGUAGE plpgsql
  SECURITY DEFINER
+ SET search_path TO 'public'
 AS $function$
 BEGIN
   INSERT INTO public.profiles (id, email, full_name, avatar_url)
@@ -444,6 +446,65 @@ AS $function$
   SELECT EXISTS (
     SELECT 1 FROM matches WHERE id = p_match_id AND receiver_id = auth.uid()
   );
+$function$
+;
+
+CREATE OR REPLACE FUNCTION public.join_group(p_code text)
+ RETURNS uuid
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public'
+AS $function$
+DECLARE
+  g groups%ROWTYPE;
+BEGIN
+  IF auth.uid() IS NULL THEN
+    RAISE EXCEPTION 'Tienes que entrar a tu cuenta para unirte';
+  END IF;
+  SELECT * INTO g FROM groups WHERE invite_code = lower(trim(p_code)) FOR UPDATE;
+  IF g.id IS NULL THEN
+    RAISE EXCEPTION 'No encontramos un grupo con ese código. Revisa que esté completo.';
+  END IF;
+  IF EXISTS (SELECT 1 FROM members WHERE group_id = g.id AND user_id = auth.uid()) THEN
+    RETURN g.id;
+  END IF;
+  IF g.status <> 'PLANNING' THEN
+    RAISE EXCEPTION 'Este grupo ya hizo el sorteo, así que no se pueden sumar personas nuevas.';
+  END IF;
+
+  INSERT INTO members (group_id, user_id, is_admin) VALUES (g.id, auth.uid(), FALSE);
+  INSERT INTO activities (group_id, user_id, type, message)
+  SELECT g.id, auth.uid(), 'USER_JOINED',
+         coalesce(initcap(lower(p.full_name)), 'Alguien') || ' se unió al grupo'
+  FROM profiles p WHERE p.id = auth.uid();
+  RETURN g.id;
+END;
+$function$
+;
+
+CREATE OR REPLACE FUNCTION public.log_member_left()
+ RETURNS trigger
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public'
+AS $function$
+DECLARE
+  person TEXT;
+BEGIN
+  -- Deleting the whole group cascades here; there is nothing left to log into.
+  IF NOT EXISTS (SELECT 1 FROM groups WHERE id = OLD.group_id) THEN
+    RETURN OLD;
+  END IF;
+  SELECT coalesce(initcap(lower(full_name)), 'Alguien') INTO person FROM profiles WHERE id = OLD.user_id;
+  INSERT INTO activities (group_id, user_id, type, message)
+  VALUES (
+    OLD.group_id, auth.uid(),
+    CASE WHEN OLD.user_id = auth.uid() THEN 'MEMBER_LEFT' ELSE 'MEMBER_REMOVED' END,
+    coalesce(person, 'Alguien') ||
+      CASE WHEN OLD.user_id = auth.uid() THEN ' salió del grupo' ELSE ' fue quitado del grupo' END
+  );
+  RETURN OLD;
+END;
 $function$
 ;
 
@@ -543,6 +604,11 @@ BEGIN
   IF g.status <> 'DRAWN' THEN
     RAISE EXCEPTION 'El grupo todavía no tiene sorteo';
   END IF;
+  IF (SELECT count(*) FROM activities
+      WHERE group_id = p_group_id AND type = 'DRAW_RESET'
+        AND created_at > NOW() - INTERVAL '24 hours') >= 3 THEN
+    RAISE EXCEPTION 'El sorteo ya se reinició 3 veces hoy. Podrás volver a hacerlo mañana.';
+  END IF;
 
   DELETE FROM matches WHERE group_id = p_group_id;
   PERFORM set_config('ghostswap.status_change', 'on', true);
@@ -638,6 +704,7 @@ CREATE OR REPLACE FUNCTION public.user_is_member_of_group(gid uuid)
  RETURNS boolean
  LANGUAGE sql
  STABLE SECURITY DEFINER
+ SET search_path TO 'public'
 AS $function$
   SELECT EXISTS (
     SELECT 1 FROM members WHERE group_id = gid AND user_id = auth.uid()
@@ -668,6 +735,8 @@ CREATE TRIGGER on_anonymous_message AFTER INSERT ON public.anonymous_messages FO
 CREATE TRIGGER guard_group_status BEFORE UPDATE OF status ON public.groups FOR EACH ROW EXECUTE FUNCTION guard_group_status();
 
 CREATE TRIGGER update_groups_updated_at BEFORE UPDATE ON public.groups FOR EACH ROW EXECUTE FUNCTION update_updated_at();
+
+CREATE TRIGGER on_member_left AFTER DELETE ON public.members FOR EACH ROW EXECUTE FUNCTION log_member_left();
 
 CREATE TRIGGER on_notification_email AFTER INSERT ON public.notifications FOR EACH ROW EXECUTE FUNCTION email_notification();
 
@@ -707,17 +776,15 @@ ALTER TABLE wishlists ENABLE ROW LEVEL SECURITY;
 -- Policies
 -- ==========================================================================================
 
-CREATE POLICY "Members can create activities" ON activities
-  FOR INSERT
-  WITH CHECK ((EXISTS ( SELECT 1
-   FROM members
-  WHERE ((members.group_id = activities.group_id) AND (members.user_id = auth.uid())))));
-
 CREATE POLICY "Members can view group activities" ON activities
   FOR SELECT
   USING ((EXISTS ( SELECT 1
    FROM members
   WHERE ((members.group_id = activities.group_id) AND (members.user_id = auth.uid())))));
+
+CREATE POLICY "Members log their own group changes" ON activities
+  FOR INSERT
+  WITH CHECK (((user_id = auth.uid()) AND user_is_member_of_group(group_id) AND (type = ANY (ARRAY['GROUP_CREATED'::text, 'GROUP_UPDATED'::text])) AND (char_length(message) <= 300)));
 
 CREATE POLICY "Match participants can send messages" ON anonymous_messages
   FOR INSERT
@@ -776,7 +843,7 @@ CREATE POLICY "members_delete" ON members
 
 CREATE POLICY "members_insert" ON members
   FOR INSERT
-  WITH CHECK (((user_id = auth.uid()) AND group_is_open(group_id) AND (is_admin = (group_id IN ( SELECT auth_user_admin_group_ids() AS auth_user_admin_group_ids)))));
+  WITH CHECK (((user_id = auth.uid()) AND is_admin AND (group_id IN ( SELECT auth_user_admin_group_ids() AS auth_user_admin_group_ids)) AND group_is_open(group_id)));
 
 CREATE POLICY "members_select" ON members
   FOR SELECT
@@ -838,6 +905,10 @@ REVOKE EXECUTE ON FUNCTION html_escape(t text) FROM PUBLIC, anon;
 
 REVOKE EXECUTE ON FUNCTION is_match_receiver(p_match_id uuid) FROM PUBLIC, anon;
 
+REVOKE EXECUTE ON FUNCTION join_group(p_code text) FROM PUBLIC, anon;
+
+REVOKE EXECUTE ON FUNCTION log_member_left() FROM PUBLIC, anon;
+
 REVOKE EXECUTE ON FUNCTION push_notification(p_user uuid, p_group uuid, p_type text, p_body text) FROM PUBLIC, anon;
 
 REVOKE EXECUTE ON FUNCTION reset_group_draw(p_group_id uuid) FROM PUBLIC, anon;
@@ -859,3 +930,31 @@ ALTER PUBLICATION supabase_realtime ADD TABLE anonymous_messages;
 ALTER PUBLICATION supabase_realtime ADD TABLE groups;
 
 ALTER PUBLICATION supabase_realtime ADD TABLE notifications;
+
+-- ==========================================================================================
+-- Table privileges (applied after REVOKE ALL ON ALL TABLES IN SCHEMA public FROM anon, authenticated)
+-- ==========================================================================================
+
+GRANT DELETE, INSERT, SELECT, UPDATE ON activities TO authenticated;
+
+GRANT DELETE, INSERT, SELECT, UPDATE ON anonymous_messages TO authenticated;
+
+GRANT DELETE, INSERT, SELECT, UPDATE ON email_templates TO authenticated;
+
+GRANT DELETE, INSERT, SELECT, UPDATE ON exclusions TO authenticated;
+
+GRANT DELETE, INSERT, SELECT, UPDATE ON groups TO authenticated;
+
+GRANT DELETE, INSERT, SELECT, UPDATE ON matches TO authenticated;
+
+GRANT DELETE, INSERT, SELECT, UPDATE ON members TO authenticated;
+
+GRANT SELECT ON notifications TO authenticated;
+
+GRANT UPDATE (read_at) ON notifications TO authenticated;
+
+GRANT DELETE, INSERT, SELECT ON profiles TO authenticated;
+
+GRANT UPDATE (avatar_url, full_name) ON profiles TO authenticated;
+
+GRANT DELETE, INSERT, SELECT, UPDATE ON wishlists TO authenticated;
