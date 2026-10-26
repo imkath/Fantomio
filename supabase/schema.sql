@@ -326,25 +326,16 @@ $function$
 ;
 
 CREATE OR REPLACE FUNCTION public.get_group_by_invite_code(code text)
- RETURNS TABLE(id uuid, name text, admin_id uuid, budget numeric, exchange_date date, status group_status, member_count bigint)
- LANGUAGE plpgsql
- SECURITY DEFINER
+ RETURNS TABLE(id uuid, name text, exchange_date date, status group_status, member_count bigint)
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public'
 AS $function$
-BEGIN
-  RETURN QUERY
-  SELECT
-    g.id,
-    g.name,
-    g.admin_id,
-    g.budget,
-    g.exchange_date,
-    g.status,
-    COUNT(m.id) as member_count
+  SELECT g.id, g.name, g.exchange_date, g.status, count(m.id)
   FROM groups g
   LEFT JOIN members m ON m.group_id = g.id
   WHERE g.invite_code = code
   GROUP BY g.id;
-END;
 $function$
 ;
 
@@ -375,15 +366,6 @@ BEGIN
   AND m.receiver_id = auth.uid()
   ORDER BY am.created_at ASC;
 END;
-$function$
-;
-
-CREATE OR REPLACE FUNCTION public.get_user_group_ids(user_uuid uuid)
- RETURNS SETOF uuid
- LANGUAGE sql
- STABLE SECURITY DEFINER
-AS $function$
-  SELECT group_id FROM members WHERE user_id = user_uuid;
 $function$
 ;
 
@@ -801,13 +783,31 @@ CREATE POLICY "Owners update their wishlist" ON wishlists
 -- Functions only signed-in users can call
 -- ==========================================================================================
 
+REVOKE EXECUTE ON FUNCTION auth_user_admin_group_ids() FROM PUBLIC, anon;
+
+REVOKE EXECUTE ON FUNCTION auth_user_group_ids() FROM PUBLIC, anon;
+
 REVOKE EXECUTE ON FUNCTION draw_group(p_group_id uuid) FROM PUBLIC, anon;
+
+REVOKE EXECUTE ON FUNCTION get_receiver_match_id(p_group_id uuid) FROM PUBLIC, anon;
+
+REVOKE EXECUTE ON FUNCTION get_receiver_messages(p_group_id uuid) FROM PUBLIC, anon;
+
+REVOKE EXECUTE ON FUNCTION gives_to(p_group uuid, p_user uuid) FROM PUBLIC, anon;
+
+REVOKE EXECUTE ON FUNCTION group_is_open(p_group uuid) FROM PUBLIC, anon;
+
+REVOKE EXECUTE ON FUNCTION html_escape(t text) FROM PUBLIC, anon;
+
+REVOKE EXECUTE ON FUNCTION is_match_receiver(p_match_id uuid) FROM PUBLIC, anon;
 
 REVOKE EXECUTE ON FUNCTION push_notification(p_user uuid, p_group uuid, p_type text, p_body text) FROM PUBLIC, anon;
 
 REVOKE EXECUTE ON FUNCTION reset_group_draw(p_group_id uuid) FROM PUBLIC, anon;
 
 REVOKE EXECUTE ON FUNCTION shares_group_with(target uuid) FROM PUBLIC, anon;
+
+REVOKE EXECUTE ON FUNCTION user_is_member_of_group(gid uuid) FROM PUBLIC, anon;
 
 REVOKE EXECUTE ON FUNCTION wishlist_status(p_group_id uuid) FROM PUBLIC, anon;
 
