@@ -17,6 +17,7 @@ import {
   ArrowRight,
   Banknote,
   Check,
+  ChevronDown,
   CalendarDays,
   KeyRound,
   Plus,
@@ -38,8 +39,10 @@ import { NewGroupForm } from '@/components/new-group-form'
 import { toast } from 'sonner'
 
 // On phones the modal takes the whole screen, like its own view; on wider screens it's a dialog.
+// A column with a fixed header (title and X), a scrolling middle and, in the forms, a fixed
+// footer with the main button: nothing important scrolls away. Full screen on phones.
 const sheet =
-  'max-h-[100dvh] overflow-y-auto sm:max-w-[520px] max-sm:inset-0 max-sm:h-[100dvh] max-sm:max-w-none max-sm:translate-x-0 max-sm:translate-y-0 max-sm:content-start max-sm:rounded-none max-sm:border-0 max-sm:p-6 max-sm:pt-14'
+  'flex max-h-[min(90dvh,860px)] flex-col gap-0 overflow-hidden p-0 sm:max-w-[520px] max-sm:inset-0 max-sm:h-[100dvh] max-sm:max-h-none max-sm:max-w-none max-sm:translate-x-0 max-sm:translate-y-0 max-sm:rounded-none max-sm:border-0'
 import { createClient, getSessionUser } from '@/lib/supabase'
 import { DashboardSkeleton } from '@/components/skeletons'
 import { getUserFriendlyError } from '@/lib/errors'
@@ -142,6 +145,81 @@ function GroupCard({ group }: { group: Group }) {
         {group.is_admin && <span className="text-graphite text-[15px]">Lo organizas tú</span>}
       </div>
     </Link>
+  )
+}
+
+// Archived or hidden groups: a collapsed section of compact rows, closed by default. The
+// browser remembers whether it was left open.
+const PAST_OPEN = 'ghostswap:past-open'
+
+function PastGroups({ groups }: { groups: Group[] }) {
+  const [open, setOpen] = useState(false)
+  useEffect(() => {
+    try {
+      setOpen(localStorage.getItem(PAST_OPEN) === '1')
+    } catch {
+      // Storage blocked: start closed.
+    }
+  }, [])
+  const toggle = () => {
+    setOpen((o) => {
+      try {
+        localStorage.setItem(PAST_OPEN, o ? '0' : '1')
+      } catch {
+        // Nothing to remember.
+      }
+      return !o
+    })
+  }
+  return (
+    <section className="border-rule border-t pt-6">
+      <button
+        type="button"
+        onClick={toggle}
+        aria-expanded={open}
+        aria-controls="anteriores-lista"
+        className="text-graphite hover:text-ink flex min-h-11 w-full items-center justify-between gap-3 text-left"
+      >
+        <span>
+          <span className="text-ink text-xl font-light">Anteriores</span>
+          <span className="ml-2 text-[15px]">· {groups.length}</span>
+          <span className="mt-0.5 block text-sm">
+            Grupos que ya terminaron o que ocultaste. Quedan como recuerdo.
+          </span>
+        </span>
+        <ChevronDown
+          className={`size-5 shrink-0 transition-transform ${open ? 'rotate-180' : ''}`}
+          aria-hidden="true"
+        />
+      </button>
+      {open && (
+        <ul id="anteriores-lista" className="divide-rule border-rule mt-4 divide-y border-y">
+          {groups.map((group) => (
+            <li key={group.id}>
+              <Link
+                href={groupPath(group.id)}
+                className="hover:bg-slip flex items-center justify-between gap-4 px-2 py-3 transition-colors"
+              >
+                <span className="min-w-0">
+                  <span className="block truncate font-medium">{group.name}</span>
+                  <span className="text-graphite block text-sm">
+                    {[
+                      group.exchange_date && shortDate(group.exchange_date),
+                      `${group.member_count} ${group.member_count === 1 ? 'persona' : 'personas'}`,
+                    ]
+                      .filter(Boolean)
+                      .join(' · ')}
+                  </span>
+                </span>
+                <span className="text-graphite border-rule shrink-0 rounded-full border px-2.5 py-1 text-sm leading-none">
+                  {group.archived ? 'Archivado' : 'Oculto'}
+                </span>
+              </Link>
+            </li>
+          ))}
+        </ul>
+      )}
+    </section>
   )
 }
 
@@ -395,28 +473,14 @@ export default function DashboardPage() {
                   className="border-rule text-graphite hover:border-ink hover:text-ink bg-slip flex h-full min-h-[200px] w-full flex-col items-center justify-center gap-2 rounded-[4px] border transition-colors"
                 >
                   <Plus className="h-7 w-7" strokeWidth={1.5} aria-hidden="true" />
-                  <span className="text-[17px]">Crear otro grupo</span>
+                  <span className="text-[17px]">
+                    {active.length ? 'Crear otro grupo' : 'Crear un grupo'}
+                  </span>
                 </button>
               </li>
             </ul>
 
-            {past.length > 0 && (
-              <section aria-labelledby="anteriores">
-                <h2 id="anteriores" className="mb-2 text-2xl font-light">
-                  Anteriores
-                </h2>
-                <p className="text-graphite mb-6">
-                  Grupos que ya terminaron o que ocultaste. Se pueden mirar como recuerdo.
-                </p>
-                <ul className="grid gap-5 md:grid-cols-2 lg:grid-cols-3">
-                  {past.map((group) => (
-                    <li key={group.id}>
-                      <GroupCard group={group} />
-                    </li>
-                  ))}
-                </ul>
-              </section>
-            )}
+            {past.length > 0 && <PastGroups groups={past} />}
           </div>
         )}
       </main>
@@ -429,19 +493,22 @@ export default function DashboardPage() {
           else closeModal()
         }}
       >
-        <DialogContent className={sheet}>
-          <DialogHeader>
-            <DialogTitle className="text-[30px] leading-tight font-light">
+        {/* Creating a group gets more room on wide screens: fields side by side, two mode cards. */}
+        <DialogContent className={`${sheet} ${modal === 'new' ? 'md:max-w-[720px]' : ''}`}>
+          <DialogHeader className="border-rule shrink-0 border-b px-6 pt-6 pr-16 pb-4 text-left">
+            <DialogTitle className="text-[28px] leading-tight font-light">
               {modal === 'join' ? 'Unirme a un grupo' : 'Crear grupo'}
             </DialogTitle>
-            <DialogDescription className="text-[17px]">
+            <DialogDescription className="text-[16px]">
               {modal === 'join'
-                ? 'Pega el código o el link que te mandó quien organiza.'
-                : 'Solo el nombre es obligatorio. Lo demás lo puedes cambiar después.'}
+                ? 'Pega el código o el link que te mandaron.'
+                : 'Solo el nombre es obligatorio.'}
             </DialogDescription>
           </DialogHeader>
           {modal === 'join' ? (
-            <JoinGroupForm onDirtyChange={setDirty} />
+            <div className="min-h-0 flex-1 overflow-y-auto px-6 py-5">
+              <JoinGroupForm onDirtyChange={setDirty} />
+            </div>
           ) : (
             <NewGroupForm onDirtyChange={setDirty} />
           )}

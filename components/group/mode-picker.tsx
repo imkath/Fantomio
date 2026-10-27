@@ -1,17 +1,24 @@
 'use client'
 
+import type React from 'react'
+import { GhostMark } from '@/components/ghost-mark'
+
 export type GroupMode = 'classic' | 'blind'
 
-const MODES: Array<{ value: GroupMode; title: string; text: string }> = [
+// Tints from the confetti palette (lib/confetti.ts): warm for classic, blue for blind. Only
+// backgrounds and borders take the color; text and the ghost stay in ink for contrast.
+const MODES: Array<{ value: GroupMode; title: string; text: string; hue: string }> = [
   {
     value: 'classic',
+    hue: '#e8a33d',
     title: 'Clásico',
-    text: 'Después del sorteo cada persona ve a quién le regala y su lista.',
+    text: 'Sabes a quién le regalas y qué le gustaría.',
   },
   {
     value: 'blind',
+    hue: '#3f7cc4',
     title: 'A ciegas',
-    text: 'Cada persona ve solo una lista, sin nombre. El día del intercambio intentan adivinar de quién es antes de revelarlo. Todos tienen que anotar su lista antes del sorteo.',
+    text: 'Te toca una lista sin nombre. El día del regalo adivinan de quién es.',
   },
 ]
 
@@ -36,10 +43,15 @@ export function ModePicker({
             role="radio"
             aria-checked={value === m.value}
             onClick={() => onChange(m.value)}
-            className={`rounded-[4px] border p-4 text-left transition-colors disabled:opacity-60 ${
-              value === m.value ? 'border-ink bg-slip' : 'border-rule hover:border-ink'
-            }`}
+            className="mode-card flex flex-col items-start justify-start rounded-[4px] border p-4 text-left transition-colors disabled:opacity-60"
+            style={{ '--tint': m.hue } as React.CSSProperties}
           >
+            <GhostMark
+              blindfold={m.value === 'blind'}
+              filled={value === m.value}
+              bandColor={value === m.value ? m.hue : undefined}
+              className="text-ink mb-3 h-[38px] w-[33px]"
+            />
             <span className="block font-bold">{m.title}</span>
             <span className="text-graphite mt-1 block text-sm leading-snug">{m.text}</span>
           </button>

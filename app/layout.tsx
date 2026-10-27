@@ -37,6 +37,10 @@ const atkinson = Atkinson_Hyperlegible_Next({
   adjustFontFallback: false,
 })
 
+// Marks <html> when the Supabase session cookie exists, before anything paints, so the landing
+// header shows "Mis grupos" or "Entrar" right away (see components/account-link.tsx).
+const SESSION_SCRIPT = `try{if(/(?:^|; )sb-[^=]+-auth-token(?:\\.0)?=/.test(document.cookie))document.documentElement.classList.add('has-session')}catch(_){}`
+
 const THEME_SCRIPT = `window.__name=window.__name||function(f){return f};(function(){try{var t=localStorage.getItem('theme');var d=t==='dark'||((!t||t==='system')&&matchMedia('(prefers-color-scheme: dark)').matches);var e=document.documentElement;e.classList.add(d?'dark':'light');e.style.colorScheme=d?'dark':'light'}catch(_){}})()`
 
 export const viewport: Viewport = {
@@ -113,6 +117,7 @@ export default function RootLayout({
             next-themes' own script sits in <body> and runs after the CSS loads, which let the
             page paint light first and then switch. Fixed text, no user data. */}
         <script dangerouslySetInnerHTML={{ __html: THEME_SCRIPT }} />
+        <script dangerouslySetInnerHTML={{ __html: SESSION_SCRIPT }} />
         <link rel="icon" href="/icon.svg" type="image/svg+xml" />
         <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
         <link rel="manifest" href="/manifest.json" />

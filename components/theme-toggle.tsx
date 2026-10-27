@@ -1,6 +1,6 @@
 'use client'
 
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useTheme } from 'next-themes'
 import { Moon, Sun } from 'lucide-react'
 
@@ -15,6 +15,12 @@ export function ThemeToggle() {
   const { resolvedTheme, setTheme } = useTheme()
   const [target, setTarget] = useState<'light' | 'dark' | null>(null)
   const busy = useRef(false)
+  // The static HTML can't know the theme, so the accessible state waits for the first effect;
+  // rendering it during hydration made the server and browser disagree (and React kept the
+  // server's "light" on a dark page).
+  const [mounted, setMounted] = useState(false)
+  useEffect(() => setMounted(true), [])
+  const isDark = mounted && (target ?? resolvedTheme) === 'dark'
 
   const toggle = () => {
     if (busy.current) return
@@ -30,14 +36,13 @@ export function ThemeToggle() {
     }, 700)
   }
 
-  const label =
-    (target ?? resolvedTheme) === 'dark' ? 'Cambiar a tema claro' : 'Cambiar a tema oscuro'
+  const label = isDark ? 'Cambiar a tema claro' : 'Cambiar a tema oscuro'
 
   return (
     <button
       type="button"
       role="switch"
-      aria-checked={(target ?? resolvedTheme) === 'dark'}
+      aria-checked={isDark}
       aria-label="Tema oscuro"
       title={label}
       onClick={toggle}

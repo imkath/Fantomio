@@ -83,7 +83,7 @@ export function BlindAssignment({
   return (
     <section className="border-rule bg-raised space-y-7 rounded-[4px] border p-6 md:p-8">
       <div className="flex items-center gap-5">
-        <GhostMark className="text-ink h-[64px] w-[56px] shrink-0" />
+        <GhostMark blindfold className="text-ink h-[64px] w-[56px] shrink-0" />
         <div>
           <p className="text-graphite text-[15px] font-medium">Sorteo a ciegas</p>
           <p className="text-[26px] leading-tight font-bold">Le regalas a alguien de este grupo</p>
