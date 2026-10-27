@@ -37,6 +37,7 @@ def user():
 
 a, ta = user()
 b, tb = user()
+c, tc = user()
 
 s, g = req('POST', R + 'groups', {'name': 'QA zona', 'admin_id': a, 'time_zone': 'America/Santiago'}, ta)
 check('create with a real zone', s == 201 and g[0]['time_zone'] == 'America/Santiago', str(g)[:120])
@@ -50,10 +51,11 @@ d = sql("select public.group_today('Pacific/Pago_Pago') p, public.group_today('P
         "(now() at time zone 'Pacific/Pago_Pago')::date pp")[0]
 check('group_today follows the zone', d['p'] == d['pp'] and d['k'] > d['p'], str(d))
 
-# A drawn classic pair, so reveal_myself only depends on the date.
-sql(f"insert into members (group_id, user_id, is_admin) values ('{G}', '{a}', true), ('{G}', '{b}', false) on conflict do nothing")
-sql(f"insert into matches (group_id, giver_id, receiver_id) values ('{G}', '{a}', '{b}'), ('{G}', '{b}', '{a}')")
-sql(f"update groups set status = 'DRAWN', time_zone = 'Pacific/Pago_Pago', exchange_date = '{d['k']}' where id = '{G}'")
+# A real classic draw, so reveal_myself only depends on the date.
+sql(f"insert into members (group_id, user_id, is_admin) values ('{G}', '{a}', true), ('{G}', '{b}', false), "
+    f"('{G}', '{c}', false) on conflict do nothing")
+check('draw', req('POST', R + 'rpc/draw_group', {'p_group_id': G}, ta)[0] in (200, 204))
+sql(f"update groups set time_zone = 'Pacific/Pago_Pago', exchange_date = '{d['k']}' where id = '{G}'")
 check('reveal waits while the exchange day has not come on the group calendar',
       req('POST', R + 'rpc/reveal_myself', {'p_group_id': G}, ta)[0] >= 400)
 sql(f"update groups set exchange_date = '{d['p']}' where id = '{G}'")
@@ -63,7 +65,7 @@ check('reveal opens on the exchange day of the group calendar',
 s, rep = req('POST', R + 'rpc/repeat_group', {'p_group_id': G, 'p_name': 'QA zona 2027', 'p_exchange_date': None, 'p_budget': None}, ta)
 check('next edition keeps the zone', s == 200 and sql(f"select time_zone from groups where id = '{rep}'")[0]['time_zone'] == 'Pacific/Pago_Pago', str(rep)[:120])
 
-for uid in (a, b):
+for uid in (a, b, c):
     req('DELETE', U + f'/auth/v1/admin/users/{uid}', key=SRV)
 
 print('FAILS:', fails or 'none')
