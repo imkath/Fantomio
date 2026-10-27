@@ -10,25 +10,22 @@ import Link from 'next/link'
 import { createClient } from '@/lib/supabase'
 import { safeRedirect } from '@/lib/routes'
 import { useSignedInRedirect } from '@/lib/use-signed-in-redirect'
+import { readMerge } from '@/lib/merge-session'
 
 function LoginForm() {
   const router = useRouter()
   const searchParams = useQuery()
   const redirectTo = safeRedirect(searchParams.get('redirectTo'))
-  useSignedInRedirect(redirectTo)
+  // Second step of "Unir otra cuenta": the account page saved who to merge into, and its
+  // session stays open meanwhile, so don't send it on.
+  const merging = searchParams.get('unir') === '1'
+  useSignedInRedirect(redirectTo, !merging)
   const verified = searchParams.get('verified') === 'true'
   const deleted = searchParams.get('cuenta') === 'eliminada'
-  // Second step of "Unir otra cuenta": the account page saved who to merge into.
   const [mergeInto, setMergeInto] = useState<string | null>(null)
   useEffect(() => {
-    if (searchParams.get('unir') !== '1') return
-    try {
-      const saved = JSON.parse(localStorage.getItem('ghostswap:merge') || 'null')
-      if (saved?.email) setMergeInto(saved.email)
-    } catch {
-      // Nothing saved: the notice just doesn't show.
-    }
-  }, [searchParams])
+    if (merging) setMergeInto(readMerge()?.email ?? null)
+  }, [merging])
   const urlError = searchParams.get('error')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { KeyRound, Link2, Loader2, Mail, Merge, Unlink } from 'lucide-react'
 import { toast } from 'sonner'
@@ -17,8 +17,14 @@ import {
 import { AccountSection, Setting } from '@/components/account/section'
 import { createClient } from '@/lib/supabase'
 import { getUserFriendlyError } from '@/lib/errors'
+import { LEGAL } from '@/lib/legal'
+import {
+  authCallback as callback,
+  forgetGoogleLink,
+  pendingGoogleLink,
+  saveMerge,
+} from '@/lib/merge-session'
 
-export const MERGE_KEY = 'ghostswap:merge'
 const MIN_PASSWORD = 8
 
 export interface AccessState {
@@ -28,9 +34,6 @@ export interface AccessState {
   providers: string[]
   googleEmail: string | null
 }
-
-const callback = (next: string) =>
-  `${window.location.origin}/auth/callback?next=${encodeURIComponent(next)}`
 
 export function AccessSection({
   state,
@@ -153,7 +156,14 @@ function PasswordSetting({ state, onChange }: { state: AccessState; onChange: ()
         return
       }
       // Registers the password as a sign-in method, so Google can be disconnected later.
-      await supabase.rpc('ensure_email_identity')
+      const { data: registered } = await supabase.rpc('ensure_email_identity')
+      if (!registered) {
+        setError(
+          `La contraseña quedó guardada y ya puedes entrar con ella, pero no pudimos dejarla lista para desconectar Google. Escríbenos a ${LEGAL.contacto}.`
+        )
+        onChange()
+        return
+      }
       toast.success(state.hasPassword ? 'Contraseña cambiada' : 'Contraseña creada')
       setCurrent('')
       setNext('')
@@ -222,6 +232,12 @@ function GoogleSetting({
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
   const connected = state.providers.includes('google')
+  // Left by "Unir otra cuenta" when that account's Google still has to be connected here.
+  const [pendingLink, setPendingLink] = useState<string | null>(null)
+  useEffect(() => {
+    if (connected) forgetGoogleLink()
+    else setPendingLink(pendingGoogleLink())
+  }, [connected])
   // Google can only go if there is another way in: a password registered as a sign-in method.
   const canDisconnect = state.hasPassword && state.providers.includes('email')
 
@@ -267,6 +283,12 @@ function GoogleSetting({
       }
     >
       {status === 'conectado' && connected && <Notice tone="ok">Google quedó conectado.</Notice>}
+      {pendingLink && !connected && (
+        <Notice>
+          Conecta {pendingLink} para seguir entrando con Google. Hasta entonces, entrar con ese
+          Google crearía una cuenta nueva.
+        </Notice>
+      )}
       {status === 'otra-cuenta' && (
         <Notice>
           Esa cuenta de Google ya tiene su propia cuenta en GhostSwap. Si las dos son tuyas,
@@ -306,21 +328,22 @@ function MergeSetting({ email }: { email: string }) {
     setBusy(true)
     setError('')
     const supabase = createClient()
+    const {
+      data: { session },
+    } = await supabase.auth.getSession()
     const { data: code, error: rpcError } = await supabase.rpc('start_merge')
-    if (rpcError || !code) {
+    if (rpcError || !code || !session) {
       setError(getUserFriendlyError(rpcError ?? { message: '' }))
       setBusy(false)
       return
     }
-    try {
-      localStorage.setItem(MERGE_KEY, JSON.stringify({ code, email, at: Date.now() }))
-    } catch {
+    // This session is not signed out (that would revoke it): it waits in this tab and comes
+    // back after the merge.
+    if (!saveMerge(code, email, session)) {
       setError('Tu navegador no deja guardar el paso intermedio. Prueba fuera del modo privado.')
       setBusy(false)
       return
     }
-    // Only this device: the person comes straight back after signing in with the other one.
-    await supabase.auth.signOut({ scope: 'local' })
     router.push(`/login?unir=1&redirectTo=${encodeURIComponent('/account/unir')}`)
   }
 
@@ -340,8 +363,9 @@ function MergeSetting({ email }: { email: string }) {
             <DialogTitle>Unir otra cuenta a {email}</DialogTitle>
             <DialogDescription>
               Te vamos a pedir que entres con la otra cuenta, para confirmar que también es tuya.
-              Sus grupos, listas y sorteos pasan a esta, y su acceso con Google también. La otra
-              cuenta deja de existir. Esta conserva su correo y su contraseña.
+              Sus grupos, listas y sorteos pasan a esta. Si entraba con Google, al final te pedimos
+              conectarlo aquí. La otra cuenta deja de existir. Esta conserva su correo y su
+              contraseña.
             </DialogDescription>
           </DialogHeader>
           <DialogFooter className="gap-2">

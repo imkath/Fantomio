@@ -56,11 +56,12 @@ try:
     # 1. Google-only account adds a password, then disconnects Google -------------------------
     g, gmail, gt = user('g', google=True)
     check('google-only status', req('POST', R + 'rpc/account_status', {}, gt)[1] == {'has_password': False, 'providers': ['google']})
-    s, _ = req('POST', R + 'rpc/ensure_email_identity', {}, gt)
-    check('ensure_email_identity without password does nothing', identities(gt) == ['google'])
+    s, r = req('POST', R + 'rpc/ensure_email_identity', {}, gt)
+    check('ensure_email_identity without password does nothing', r is False and identities(gt) == ['google'], str(r))
     pw = 'Qa-' + uuid.uuid4().hex[:12]
     check('set password', req('PUT', U + '/auth/v1/user', {'password': pw}, gt)[0] == 200)
-    req('POST', R + 'rpc/ensure_email_identity', {}, gt)
+    s, r = req('POST', R + 'rpc/ensure_email_identity', {}, gt)
+    check('ensure_email_identity reports success', r is True, f'{s} {r}')
     check('email identity added', identities(gt) == ['email', 'google'], str(identities(gt)))
     gi = [i for i in req('GET', U + '/auth/v1/user', token=gt)[1]['identities'] if i['provider'] == 'google'][0]
     s, r = req('DELETE', U + f"/auth/v1/user/identities/{gi['identity_id']}", token=gt)
@@ -81,6 +82,15 @@ try:
     s, gy = req('POST', R + 'groups', {'name': 'QA grupo A', 'admin_id': a, 'currency': 'CLP'}, at)
     Y = gy[0]['id']
     req('POST', R + 'members', {'group_id': Y, 'user_id': a, 'is_admin': True}, at)
+    # Invitations: one only for B, one for both A and B, and one B sent.
+    zs = []
+    for name in ('QA invita B', 'QA invita A y B'):
+        s, gz = req('POST', R + 'groups', {'name': name, 'admin_id': c, 'currency': 'CLP'}, ct)
+        zs.append(gz[0]['id'])
+        req('POST', R + 'members', {'group_id': gz[0]['id'], 'user_id': c, 'is_admin': True}, ct)
+    Z1, Z2 = zs
+    sql(f"""insert into group_invitations (group_id, user_id, invited_by) values
+      ('{Z1}', '{b}', '{c}'), ('{Z2}', '{a}', '{c}'), ('{Z2}', '{b}', '{c}'), ('{X}', '{g}', '{b}')""")
     s, code = req('POST', R + 'rpc/start_merge', {}, at)
     check('start_merge', s == 200 and isinstance(code, str) and len(code) == 48)
     s, prev = req('POST', R + 'rpc/merge_preview', {'p_code': code}, bt)
@@ -93,12 +103,21 @@ try:
       (select admin_id from groups where id='{X}') = '{a}' admin_moved,
       (select count(*) from members where group_id='{X}' and user_id='{a}') a_in_x,
       (select items from wishlists where group_id='{X}' and user_id='{a}') list,
-      (select jsonb_agg(provider order by provider) from auth.identities where user_id='{a}') providers""")[0]
+      (select jsonb_agg(provider order by provider) from auth.identities where user_id='{a}') providers,
+      (select count(*) from auth.identities where user_id='{b}') b_identities,
+      (select count(*) from group_invitations where user_id='{a}' and group_id='{Z1}') inv_moved,
+      (select count(*) from group_invitations where group_id='{Z2}') inv_z2,
+      (select invited_by from group_invitations where group_id='{X}' and user_id='{g}') = '{a}' inviter_moved""")[0]
     check('B deleted', st['b_left'] == 0)
     check('group admin moved', st['admin_moved'])
     check('membership moved', st['a_in_x'] == 1)
     check('wishlist moved', st['list'] == [{'description': 'libro'}], str(st['list']))
-    check('google now on A', st['providers'] == ['email', 'google'], str(st['providers']))
+    # Google is connected afterwards from the browser (linkIdentity); the database leaves it alone.
+    check('auth identities of A untouched', st['providers'] == ['email'], str(st['providers']))
+    check("B's identities gone with B", st['b_identities'] == 0)
+    check('invitation moved to A', st['inv_moved'] == 1)
+    check('duplicate invitation dropped', st['inv_z2'] == 1, str(st['inv_z2']))
+    check('invited-by moved to A', st['inviter_moved'])
     check('A password still works', pw_login(amail, apw))
     check('code is single use', req('POST', R + 'rpc/merge_preview', {'p_code': code}, at)[1] is None)
 
