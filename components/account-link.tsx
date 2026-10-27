@@ -22,13 +22,13 @@ export function AccountLink() {
       <Button asChild size="sm" className="guest-only">
         <Link href="/login">
           Entrar
-          <ArrowRight aria-hidden="true" />
+          <ArrowRight aria-hidden="true" className="max-sm:hidden" />
         </Link>
       </Button>
       <Button asChild size="sm" className="session-only">
         <Link href="/dashboard">
           Mis grupos
-          <ArrowRight aria-hidden="true" />
+          <ArrowRight aria-hidden="true" className="max-sm:hidden" />
         </Link>
       </Button>
     </>

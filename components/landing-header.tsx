@@ -5,9 +5,9 @@ import { AccountLink } from '@/components/account-link'
 
 export function LandingHeader() {
   return (
-    <header className="flex items-center justify-between gap-4 py-[22px]" role="banner">
+    <header className="flex items-center justify-between gap-3 py-[22px] sm:gap-4" role="banner">
       <Logo />
-      <nav className="flex items-center gap-6" aria-label="Navegación principal">
+      <nav className="flex items-center gap-3 pr-1.5 sm:gap-6" aria-label="Navegación principal">
         <Link
           href="/#por-dentro"
           className="text-graphite hover:text-ink hidden text-base no-underline md:inline"

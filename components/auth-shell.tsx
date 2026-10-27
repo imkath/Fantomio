@@ -22,9 +22,9 @@ export function AuthShell({
 }) {
   return (
     <div className="bg-paper text-ink flex min-h-screen flex-col">
-      <header className="mx-auto flex w-full max-w-[1040px] items-center justify-between gap-4 px-4 py-[22px] md:px-8">
+      <header className="mx-auto flex w-full max-w-[1040px] items-center justify-between gap-3 px-4 py-[22px] sm:gap-4 md:px-8">
         <Logo />
-        <div className="flex items-center gap-5">
+        <div className="flex items-center gap-3 pr-1.5 sm:gap-5">
           <ThemeToggle />
           <Button asChild variant="outline" size="sm">
             <Link href={back}>

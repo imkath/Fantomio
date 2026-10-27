@@ -25,7 +25,7 @@ describe('Logo', () => {
     expect(screen.getByText('fantomio')).toHaveClass('text-base')
 
     rerender(<Logo size="md" linkToHome={false} />)
-    expect(screen.getByText('fantomio')).toHaveClass('text-[22px]')
+    expect(screen.getByText('fantomio')).toHaveClass('sm:text-[22px]')
 
     rerender(<Logo size="lg" linkToHome={false} />)
     expect(screen.getByText('fantomio')).toHaveClass('text-3xl')

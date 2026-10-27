@@ -84,7 +84,7 @@ export function DataSection({
           ) : (
             <LogOut aria-hidden="true" />
           )}
-          Cerrar sesión en todos los dispositivos
+          Cerrar en todas partes
         </Button>
       </Setting>
 

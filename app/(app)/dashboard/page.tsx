@@ -384,16 +384,12 @@ export default function DashboardPage() {
         <InstallApp />
         <div className="mb-10 flex flex-col items-start justify-between gap-6 md:flex-row md:items-end">
           <h1 className="text-[34px] leading-tight font-light md:text-[44px]">Mis grupos</h1>
-          <div className="flex w-full gap-3 md:w-auto">
-            <Button
-              variant="outline"
-              className="flex-1 md:flex-initial"
-              onClick={() => setModal('join')}
-            >
+          <div className="flex w-full flex-wrap gap-3 pr-1.5 md:w-auto">
+            <Button variant="outline" className="grow md:grow-0" onClick={() => setModal('join')}>
               <KeyRound aria-hidden="true" />
               Unirme con código
             </Button>
-            <Button className="flex-1 md:flex-initial" onClick={() => setModal('new')}>
+            <Button className="grow md:grow-0" onClick={() => setModal('new')}>
               <Plus aria-hidden="true" />
               Crear grupo
             </Button>

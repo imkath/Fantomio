@@ -11,7 +11,8 @@
 .device {
   position: relative;
   z-index: 1;
-  width: min(100%, 318px);
+  /* Room for the 3deg tilt and the side buttons, so it never pokes past a narrow screen. */
+  width: min(100% - 16px, 318px);
   margin-inline: auto;
   aspect-ratio: 9 / 19.3;
   border-radius: 52px;
