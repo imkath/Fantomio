@@ -5,6 +5,7 @@ import { Footer } from '@/components/footer'
 import { ScrambleTitle } from '@/components/scramble-title'
 import { InsideDemo } from '@/components/landing/inside-demo'
 import { HeroEyes } from '@/components/landing/hero-eyes'
+import { BlindDemo } from '@/components/landing/blind-demo'
 import { DrawDemo } from '@/components/landing/draw-demo'
 import { StepsStory } from '@/components/landing/steps-story'
 import s from '@/components/landing/landing.module.css'
@@ -264,35 +265,15 @@ export default async function LandingPage() {
             className={`${s.section} ${s.fullscreen}`}
             aria-labelledby="t-ciegas"
           >
-            <div className={s.privacy}>
-              <div>
-                <p className={s.label}>A ciegas</p>
-                <h2 id="t-ciegas" className={s.h2}>
-                  Regalas sin saber a quién, solo por lo que anotó
-                </h2>
-                <p className={s.sub}>
-                  En el sorteo a ciegas no ves el nombre de tu persona hasta la revelación. Tienes
-                  su lista, sus respuestas y tu intuición.
-                </p>
-              </div>
-              <div className={s.sealCard}>
-                <dl>
-                  <dt>Antes de la revelación</dt>
-                  <dd>Ves la lista de tu persona, pero no su nombre.</dd>
-                  <dt>En el chat</dt>
-                  <dd>
-                    Los nombres del grupo se tapan solos al escribir, para que nadie se delate. Rosa
-                    la persona se tapa, el color rosa no.
-                  </dd>
-                  <dt>Las apuestas</dt>
-                  <dd>
-                    Cada quien anota quién cree que le toca. Al revelar, se ve cuántos acertaron.
-                  </dd>
-                  <dt>La revelación</dt>
-                  <dd>Con un botón o a la hora que elija quien organiza.</dd>
-                </dl>
-              </div>
-            </div>
+            <p className={s.label}>A ciegas</p>
+            <h2 id="t-ciegas" className={s.h2}>
+              Regalas sin saber a quién, solo por lo que anotó
+            </h2>
+            <p className={s.sub}>
+              Hasta la revelación ves su lista, no su nombre. Pruébalo con este grupo de mentira:
+              pídele pistas, apuesta quién es y revélalo.
+            </p>
+            <BlindDemo />
           </section>
 
           <ul className={s.facts} aria-label="Lo que incluye">
