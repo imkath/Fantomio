@@ -154,12 +154,15 @@
   display: grid;
   grid-template-columns: 28px 1fr;
   gap: 12px;
+  /* The number sits on the title's baseline, not floating above it. */
+  align-items: first baseline;
 }
 .n {
   font-family: var(--font-detail);
-  font-size: 13px;
+  font-size: 17px;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
   color: var(--faint);
-  padding-top: 2px;
 }
 .notes h3 {
   margin: 0 0 4px;
