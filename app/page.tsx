@@ -59,6 +59,10 @@ const FAQ = [
     a: 'Sí, con los mensajes anónimos del grupo. Te responde sin saber quién le está preguntando.',
   },
   {
+    q: '¿Puedo contarle que fui yo?',
+    a: 'Sí, si quieres. Después del intercambio puedes revelarle que fuiste tú. Nadie más del grupo se entera.',
+  },
+  {
     q: '¿Por qué se llama Fantomio?',
     a: 'Porque hasta el intercambio, quien te regala es tu fantasma.',
   },
@@ -181,7 +185,7 @@ export default async function LandingPage() {
               </h1>
               <p className={s.lede}>
                 Creas el grupo, mandas el link y Fantomio hace el sorteo. Cada persona ve solo a
-                quién le regala, y eso también corre para quien organiza.
+                quién le regala y lo que esa persona anotó en su lista.
               </p>
               <div className={s.actions}>
                 <Link className={`${s.btn} btn-paper`} href="/login">
@@ -256,35 +260,36 @@ export default async function LandingPage() {
           </section>
 
           <section
-            id="privacidad"
+            id="a-ciegas"
             className={`${s.section} ${s.fullscreen}`}
-            aria-labelledby="t-priv"
+            aria-labelledby="t-ciegas"
           >
             <div className={s.privacy}>
               <div>
-                <p className={s.label}>Privacidad</p>
-                <h2 id="t-priv" className={s.h2}>
-                  Quien organiza tampoco sabe a quién te tocó
+                <p className={s.label}>A ciegas</p>
+                <h2 id="t-ciegas" className={s.h2}>
+                  Regalas sin saber a quién, solo por lo que anotó
                 </h2>
                 <p className={s.sub}>
-                  La base de datos le muestra cada asignación solo a la persona que regala. Esa
-                  regla vive en la base, así que nadie se la puede saltar desde la app, ni siquiera
-                  quien armó el grupo.
+                  En el sorteo a ciegas no ves el nombre de tu persona hasta la revelación. Tienes
+                  su lista, sus respuestas y tu intuición.
                 </p>
               </div>
               <div className={s.sealCard}>
                 <dl>
-                  <dt>Tú ves</dt>
+                  <dt>Antes de la revelación</dt>
+                  <dd>Ves la lista de tu persona, pero no su nombre.</dd>
+                  <dt>En el chat</dt>
                   <dd>
-                    A quién le regalas, su lista de deseos y lo que te responde en los mensajes
-                    anónimos.
+                    Los nombres del grupo se tapan solos al escribir, para que nadie se delate. Rosa
+                    la persona se tapa, el color rosa no.
                   </dd>
-                  <dt>Tu grupo ve</dt>
-                  <dd>Que estás dentro y si ya anotaste tu lista, pero no lo que pusiste.</dd>
-                  <dt>Quien organiza</dt>
-                  <dd>Que el sorteo ya se hizo.</dd>
-                  <dt>Nosotros</dt>
-                  <dd>No vendemos tus datos ni te rastreamos.</dd>
+                  <dt>Las apuestas</dt>
+                  <dd>
+                    Cada quien anota quién cree que le toca. Al revelar, se ve cuántos acertaron.
+                  </dd>
+                  <dt>La revelación</dt>
+                  <dd>Con un botón o a la hora que elija quien organiza.</dd>
                 </dl>
               </div>
             </div>
@@ -301,7 +306,7 @@ export default async function LandingPage() {
               <b>Parejas o hermanos</b> separados, si quieres
             </li>
             <li>
-              <b>Listas de deseos</b> con links
+              <b>Tu lista</b> la ve solo quien te regala
             </li>
           </ul>
 

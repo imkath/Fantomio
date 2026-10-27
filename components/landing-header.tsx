@@ -15,10 +15,10 @@ export function LandingHeader() {
           Por dentro
         </Link>
         <Link
-          href="/#privacidad"
+          href="/#a-ciegas"
           className="text-graphite hover:text-ink hidden text-base no-underline md:inline"
         >
-          Privacidad
+          A ciegas
         </Link>
         <ThemeToggle />
         <AccountLink />
