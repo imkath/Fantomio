@@ -857,6 +857,68 @@ function GroupPage() {
               inviteCode={archived ? undefined : group.invite_code}
             />
 
+            {/* The group's actions come before the list, so they don't sink below a long group. */}
+            <div className="grid gap-2">
+              <Button variant="outline" className="justify-start" onClick={handleShowActivity}>
+                <History aria-hidden="true" />
+                Ver lo que ha pasado en el grupo
+              </Button>
+              {isAdmin && drawn && (
+                <Button
+                  variant="outline"
+                  className="justify-start"
+                  onClick={() => setShowRepeat(true)}
+                >
+                  <Repeat aria-hidden="true" />
+                  Repetir con las mismas personas
+                </Button>
+              )}
+              {isAdmin && !archived && (
+                <Button variant="outline" className="justify-start" onClick={handleOpenEdit}>
+                  <Pencil aria-hidden="true" />
+                  Editar grupo
+                </Button>
+              )}
+              {isAdmin && !archived && (
+                <ExclusionsManager
+                  groupId={groupId}
+                  members={members}
+                  isAdmin={isAdmin}
+                  isDrawn={drawn}
+                />
+              )}
+              {isAdmin && drawn && !archived && (
+                <Button
+                  variant="danger"
+                  className="justify-start"
+                  onClick={() => setShowResetDialog(true)}
+                >
+                  <RotateCcw aria-hidden="true" />
+                  Reiniciar el sorteo
+                </Button>
+              )}
+              {!isAdmin && !drawn && !archived && (
+                <Button
+                  variant="danger"
+                  className="justify-start"
+                  onClick={() => setShowLeaveDialog(true)}
+                >
+                  <LogOut aria-hidden="true" />
+                  Salir del grupo
+                </Button>
+              )}
+              {isAdmin && !archived && drawn && (
+                <ArchiveButton groupId={group.id} onChange={fetchGroupData} />
+              )}
+              {currentMember && (
+                <HideButton
+                  groupId={group.id}
+                  hidden={currentMember.hidden}
+                  onChange={fetchGroupData}
+                />
+              )}
+            </div>
+
             <section className="border-rule rounded-[4px] border p-6">
               <div className="mb-1 flex items-center justify-between">
                 <h2 className="flex items-center gap-2.5 text-lg font-bold">
@@ -953,67 +1015,6 @@ function GroupPage() {
                 />
               )}
             </section>
-
-            <div className="grid gap-2">
-              <Button variant="outline" className="justify-start" onClick={handleShowActivity}>
-                <History aria-hidden="true" />
-                Ver lo que ha pasado en el grupo
-              </Button>
-              {isAdmin && drawn && (
-                <Button
-                  variant="outline"
-                  className="justify-start"
-                  onClick={() => setShowRepeat(true)}
-                >
-                  <Repeat aria-hidden="true" />
-                  Repetir con las mismas personas
-                </Button>
-              )}
-              {isAdmin && !archived && (
-                <Button variant="outline" className="justify-start" onClick={handleOpenEdit}>
-                  <Pencil aria-hidden="true" />
-                  Editar grupo
-                </Button>
-              )}
-              {isAdmin && !archived && (
-                <ExclusionsManager
-                  groupId={groupId}
-                  members={members}
-                  isAdmin={isAdmin}
-                  isDrawn={drawn}
-                />
-              )}
-              {isAdmin && drawn && !archived && (
-                <Button
-                  variant="danger"
-                  className="justify-start"
-                  onClick={() => setShowResetDialog(true)}
-                >
-                  <RotateCcw aria-hidden="true" />
-                  Reiniciar el sorteo
-                </Button>
-              )}
-              {!isAdmin && !drawn && !archived && (
-                <Button
-                  variant="danger"
-                  className="justify-start"
-                  onClick={() => setShowLeaveDialog(true)}
-                >
-                  <LogOut aria-hidden="true" />
-                  Salir del grupo
-                </Button>
-              )}
-              {isAdmin && !archived && drawn && (
-                <ArchiveButton groupId={group.id} onChange={fetchGroupData} />
-              )}
-              {currentMember && (
-                <HideButton
-                  groupId={group.id}
-                  hidden={currentMember.hidden}
-                  onChange={fetchGroupData}
-                />
-              )}
-            </div>
           </aside>
         </div>
       </main>
