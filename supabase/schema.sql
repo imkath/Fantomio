@@ -561,7 +561,7 @@ BEGIN
   PERFORM set_config('ghostswap.reveal', 'on', true);
   UPDATE groups SET revealed_at = NOW() WHERE id = p_group_id;
   INSERT INTO notifications (user_id, group_id, type, body)
-  SELECT m.user_id, p_group_id, 'unveil', 'Llegó la hora: ya puedes ver a quién le regalas en ' || g.name
+  SELECT m.user_id, p_group_id, 'unveil', 'Llegó la hora. Ya puedes ver a quién le regalas en ' || g.name
   FROM members m WHERE m.group_id = p_group_id;
 END;
 $function$
@@ -609,7 +609,7 @@ BEGIN
     LEFT JOIN wishlists w ON w.group_id = m.group_id AND w.user_id = m.user_id
     WHERE m.group_id = p_group_id AND coalesce(jsonb_array_length(w.items), 0) = 0;
     IF missing IS NOT NULL THEN
-      RAISE EXCEPTION 'En el sorteo a ciegas todos tienen que anotar su lista antes de sortear. Falta: %', missing;
+      RAISE EXCEPTION 'Para sortear a ciegas, todos tienen que anotar su lista. Todavía falta la de %.', missing;
     END IF;
   END IF;
 
@@ -1084,7 +1084,7 @@ AS $function$
 BEGIN
   IF EXISTS (SELECT 1 FROM groups WHERE id = OLD.group_id AND status = 'DRAWN') AND blind_hidden(OLD.group_id) THEN
     IF TG_OP = 'DELETE' OR coalesce(jsonb_array_length(NEW.items), 0) = 0 THEN
-      RAISE EXCEPTION 'En el sorteo a ciegas tu lista es la única pista de quien te regala: puedes cambiarla, pero no dejarla vacía.';
+      RAISE EXCEPTION 'En el sorteo a ciegas tu lista es la única pista de quien te regala. Puedes cambiarla, pero no dejarla vacía.';
     END IF;
   END IF;
   RETURN CASE WHEN TG_OP = 'DELETE' THEN OLD ELSE NEW END;
@@ -1286,7 +1286,7 @@ BEGIN
     RAISE EXCEPTION 'Solo se apuesta en un sorteo a ciegas ya hecho';
   END IF;
   IF NOT blind_hidden(p_group_id) THEN
-    RAISE EXCEPTION 'Ya se reveló: las apuestas están cerradas';
+    RAISE EXCEPTION 'Ya se reveló el sorteo, así que las apuestas están cerradas';
   END IF;
   IF NOT user_is_member_of_group(p_group_id) THEN
     RAISE EXCEPTION 'No estás en este grupo';

@@ -42,7 +42,7 @@ AS $$
   SELECT EXISTS (SELECT 1 FROM groups WHERE id = p_group AND status = 'PLANNING' AND archived_at IS NULL);
 $$;
 
--- Read-only once archived ---------------------------------------------------------------------
+-- Read-only once archived
 DROP POLICY "Members write their own wishlist" ON wishlists;
 CREATE POLICY "Members write their own wishlist" ON wishlists
   FOR INSERT WITH CHECK (user_id = auth.uid() AND user_is_member_of_group(group_id) AND NOT group_archived(group_id));
@@ -169,7 +169,7 @@ BEGIN
 END;
 $$;
 
--- Archived groups also refuse resets, hand-overs and joins ----------------------------------
+-- Archived groups also refuse resets, hand-overs and joins
 CREATE OR REPLACE FUNCTION public.reset_group_draw(p_group_id uuid)
  RETURNS boolean
  LANGUAGE plpgsql
@@ -285,7 +285,7 @@ END;
 $function$
 ;
 
--- Invitations -----------------------------------------------------------------------------------
+-- Invitations
 CREATE TABLE group_invitations (
   group_id UUID NOT NULL REFERENCES groups (id) ON DELETE CASCADE,
   user_id UUID NOT NULL REFERENCES profiles (id) ON DELETE CASCADE,
@@ -402,7 +402,7 @@ BEGIN
 END;
 $$;
 
--- Archive, restore, hide --------------------------------------------------------------------------
+-- Archive, restore, hide
 CREATE OR REPLACE FUNCTION set_group_archived(p_group_id UUID, p_archived BOOLEAN)
 RETURNS VOID
 LANGUAGE plpgsql SECURITY DEFINER
@@ -459,7 +459,7 @@ END;
 $$;
 REVOKE EXECUTE ON FUNCTION archive_due_groups() FROM PUBLIC, anon, authenticated;
 
--- History of editions ------------------------------------------------------------------------------
+-- History of editions
 -- Earlier editions of a group that the caller took part in. Only their own pair is included.
 CREATE OR REPLACE FUNCTION group_history(p_group_id UUID)
 RETURNS TABLE (group_id UUID, name TEXT, exchange_date DATE, budget NUMERIC, currency TEXT,
@@ -484,7 +484,7 @@ AS $$
   ORDER BY c.depth;
 $$;
 
--- Voluntary reveal -------------------------------------------------------------------------------
+-- Voluntary reveal
 -- After the exchange (or once archived) a giver can tell their receiver who they were.
 CREATE OR REPLACE FUNCTION reveal_myself(p_group_id UUID)
 RETURNS VOID
@@ -526,7 +526,7 @@ $$;
 
 -- Matches: the giver can see whether they already revealed themselves (own row only, as before).
 
--- Emails for the new notification types ----------------------------------------------------------
+-- Emails for the new notification types
 CREATE OR REPLACE FUNCTION public.email_notification()
  RETURNS trigger
  LANGUAGE plpgsql
@@ -608,12 +608,12 @@ END;
 $function$
 ;
 
--- Daily archiving ------------------------------------------------------------------------------
+-- Daily archiving
 CREATE EXTENSION IF NOT EXISTS pg_cron;
 SELECT cron.unschedule(jobid) FROM cron.job WHERE jobname = 'ghostswap-archive';
 SELECT cron.schedule('ghostswap-archive', '15 6 * * *', 'SELECT public.archive_due_groups()');
 
--- Who can call what ----------------------------------------------------------------------------
+-- Who can call what
 REVOKE EXECUTE ON FUNCTION draw_group(UUID, BOOLEAN), repeat_group(UUID, TEXT, DATE, NUMERIC), my_invitations(),
   answer_invitation(UUID, BOOLEAN), cancel_invitation(UUID, UUID), set_group_archived(UUID, BOOLEAN),
   set_group_hidden(UUID, BOOLEAN), group_history(UUID), reveal_myself(UUID), my_revealed_giver(UUID)

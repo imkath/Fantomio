@@ -56,7 +56,7 @@ export function ArchivedNotice({
       <div>
         <p className="font-bold">Este grupo está archivado</p>
         <p className="text-graphite text-[15px]">
-          Queda como recuerdo: se puede mirar, pero ya no se cambian listas ni sorteo, y los
+          Queda como recuerdo. Se puede mirar, pero ya no se cambian listas ni sorteo, y los
           mensajes anónimos se cerraron.
         </p>
       </div>
@@ -96,9 +96,9 @@ export function ArchiveButton({ groupId, onChange }: { groupId: string; onChange
           <DialogHeader>
             <DialogTitle>¿Archivar el grupo?</DialogTitle>
             <DialogDescription>
-              Pasa a Anteriores para todos y queda de solo lectura: no se cambian listas ni sorteo,
-              y los mensajes anónimos se cierran. Lo puedes restaurar cuando quieras. Igual se
-              archiva solo 7 días después de la fecha del intercambio.
+              Pasa a Anteriores para todos y queda de solo lectura, así que ya no se cambian listas
+              ni sorteo y los mensajes anónimos se cierran. Lo puedes restaurar cuando quieras.
+              Igual se archiva solo 7 días después de la fecha del intercambio.
             </DialogDescription>
           </DialogHeader>
           <DialogFooter className="gap-2">
@@ -483,7 +483,7 @@ export function RevealedGiver({ groupId }: { groupId: string }) {
     <section className="border-rule bg-raised flex items-center gap-4 rounded-[4px] border p-6">
       <Gift className="text-hanko size-7 shrink-0" aria-hidden="true" />
       <p>
-        Quien te regaló quiso contártelo: fue <strong>{giver}</strong>.
+        Quien te regaló quiso contártelo. Fue <strong>{giver}</strong>.
       </p>
     </section>
   )

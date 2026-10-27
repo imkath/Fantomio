@@ -49,7 +49,7 @@ $$;
 CREATE TRIGGER guard_group_mode BEFORE UPDATE ON groups
   FOR EACH ROW EXECUTE FUNCTION guard_group_mode();
 
--- Leak 1: the match row (who you give to) ------------------------------------------------------
+-- The match row (who you give to) stays hidden until the reveal.
 DROP POLICY "Users can only view their own match" ON matches;
 CREATE POLICY "Users can only view their own match" ON matches
   FOR SELECT USING (auth.uid() = giver_id AND NOT blind_hidden(group_id));
@@ -77,7 +77,7 @@ DROP POLICY "Match participants can view messages" ON anonymous_messages;
 CREATE POLICY "Match participants can view messages" ON anonymous_messages
   FOR SELECT USING (is_match_giver(match_id) OR is_match_receiver(match_id));
 
--- Leak 2: the receiver's wishlist row and gives_to() ------------------------------------------
+-- So do the receiver's wishlist row and gives_to().
 -- gives_to() could be asked about each member in turn; in a hidden blind group it says no to
 -- everyone, which also keeps the wishlist row (and its user_id) out of the giver's reach.
 CREATE OR REPLACE FUNCTION gives_to(p_group UUID, p_user UUID)
@@ -105,7 +105,7 @@ AS $$
   WHERE x.group_id = p_group_id AND x.giver_id = auth.uid() AND blind_hidden(p_group_id);
 $$;
 
--- Leak 3: notifications and emails --------------------------------------------------------------
+-- And the receiver's name in notifications and emails.
 CREATE OR REPLACE FUNCTION notify_anonymous_message()
 RETURNS TRIGGER
 LANGUAGE plpgsql SECURITY DEFINER
@@ -166,7 +166,7 @@ BEGIN
 END;
 $$;
 
--- Guesses (A11): one per person, never for oneself, changeable until the reveal. Read and
+-- Guesses: one per person, never for oneself, changeable until the reveal. Read and
 -- written only through functions; the table itself is closed.
 CREATE TABLE blind_guesses (
   group_id UUID NOT NULL REFERENCES groups (id) ON DELETE CASCADE,
@@ -471,7 +471,7 @@ END;
 $function$
 ;
 
--- A8: per-person checkmarks would let a giver narrow down an empty list by elimination. In a
+-- per-person checkmarks would let a giver narrow down an empty list by elimination. In a
 -- blind group only your own status and the total are given.
 CREATE OR REPLACE FUNCTION wishlist_status(p_group_id UUID)
 RETURNS TABLE (user_id UUID, has_items BOOLEAN)
@@ -501,7 +501,7 @@ AS $$
   WHERE m.group_id = p_group_id AND user_is_member_of_group(p_group_id);
 $$;
 
--- A10: names in the chat --------------------------------------------------------------------------
+-- names in the chat
 -- Every member's names are masked, not only the two people in the conversation: masking just
 -- theirs would confirm a right guess. Case and accents don't matter ("maria" = "María").
 CREATE OR REPLACE FUNCTION name_pattern(p_word TEXT)
@@ -556,7 +556,7 @@ $$;
 CREATE TRIGGER censor_blind_message BEFORE INSERT ON anonymous_messages
   FOR EACH ROW EXECUTE FUNCTION censor_blind_message();
 
--- A11-A13: guesses, reveal, results ------------------------------------------------------------
+-- guesses, reveal, results
 CREATE OR REPLACE FUNCTION place_guess(p_group_id UUID, p_guessed UUID)
 RETURNS VOID
 LANGUAGE plpgsql SECURITY DEFINER
@@ -704,7 +704,7 @@ BEGIN
 END;
 $$;
 
--- A14: archiving a blind group reveals it first, or it would stay hidden forever --------------
+-- archiving a blind group reveals it first, or it would stay hidden forever
 CREATE OR REPLACE FUNCTION set_group_archived(p_group_id UUID, p_archived BOOLEAN)
 RETURNS VOID
 LANGUAGE plpgsql SECURITY DEFINER
@@ -755,7 +755,7 @@ BEGIN
 END;
 $$;
 
--- Scheduled reveal checked every minute ----------------------------------------------------------
+-- Scheduled reveal checked every minute
 SELECT cron.unschedule(jobid) FROM cron.job WHERE jobname = 'ghostswap-reveal';
 SELECT cron.schedule('ghostswap-reveal', '* * * * *', 'SELECT public.process_scheduled_reveals()');
 

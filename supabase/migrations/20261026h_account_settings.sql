@@ -8,7 +8,7 @@
 -- Preferences: default theme and email notifications, stored in the profile.
 -- Data: export everything about you as JSON, and delete your account.
 
--- Preferences -----------------------------------------------------------------------------
+-- Preferences
 ALTER TABLE profiles
   ADD COLUMN theme TEXT NOT NULL DEFAULT 'system' CHECK (theme IN ('system', 'light', 'dark')),
   ADD COLUMN email_notifications BOOLEAN NOT NULL DEFAULT TRUE;
@@ -86,7 +86,7 @@ END;
 $function$
 ;
 
--- Photos ------------------------------------------------------------------------------------
+-- Photos
 -- One folder per person (<user id>/...), public to read so the group can see it, writable
 -- only by its owner. Small images only; the app resizes to 256 px before uploading.
 INSERT INTO storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
@@ -115,7 +115,7 @@ ALTER TABLE profiles ADD CONSTRAINT profiles_avatar_url_source CHECK (
   OR avatar_url ~ '^https://ocgmlgldrmdemdjphcrv\.supabase\.co/storage/v1/object/public/avatars/'
 );
 
--- Sign-in methods ---------------------------------------------------------------------------
+-- Sign-in methods
 CREATE OR REPLACE FUNCTION account_status()
 RETURNS JSONB
 LANGUAGE sql STABLE SECURITY DEFINER
@@ -161,7 +161,7 @@ BEGIN
 END;
 $$;
 
--- Merging two accounts ----------------------------------------------------------------------
+-- Merging two accounts
 -- Signed in to the account that stays, the person asks for a code (start_merge). Then they
 -- sign in to the other account and confirm with that code (confirm_merge): proof that both are
 -- theirs. Everything of the other account moves over, its Google sign-in included, and it is
@@ -261,7 +261,7 @@ BEGIN
 END;
 $$;
 
--- Your data -----------------------------------------------------------------------------------
+-- Your data
 CREATE OR REPLACE FUNCTION export_my_data()
 RETURNS JSONB
 LANGUAGE sql STABLE SECURITY DEFINER

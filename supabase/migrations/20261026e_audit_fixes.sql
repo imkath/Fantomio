@@ -15,7 +15,7 @@
 -- 5. Least privilege: anon gets no table privileges, nobody gets TRUNCATE/TRIGGER/REFERENCES,
 --    and the two SECURITY DEFINER functions without a fixed search_path get one.
 
--- 1 ---------------------------------------------------------------------------------------
+-- 1.
 CREATE OR REPLACE FUNCTION public.email_notification()
  RETURNS trigger
  LANGUAGE plpgsql
@@ -117,7 +117,7 @@ BEGIN
 END;
 $$;
 
--- 2 ---------------------------------------------------------------------------------------
+-- 2.
 CREATE OR REPLACE FUNCTION join_group(p_code TEXT)
 RETURNS UUID
 LANGUAGE plpgsql SECURITY DEFINER
@@ -160,7 +160,7 @@ CREATE POLICY "members_insert" ON members
     AND group_is_open(group_id)
   );
 
--- 3 ---------------------------------------------------------------------------------------
+-- 3.
 CREATE OR REPLACE FUNCTION log_member_left()
 RETURNS TRIGGER
 LANGUAGE plpgsql SECURITY DEFINER
@@ -199,13 +199,13 @@ CREATE POLICY "Members log their own group changes" ON activities
     AND char_length(message) <= 300
   );
 
--- 4 ---------------------------------------------------------------------------------------
+-- 4.
 REVOKE UPDATE ON profiles FROM authenticated;
 GRANT UPDATE (full_name, avatar_url) ON profiles TO authenticated;
 ALTER TABLE profiles ADD CONSTRAINT profiles_avatar_url_https
   CHECK (avatar_url IS NULL OR avatar_url ~ '^https://');
 
--- 5 ---------------------------------------------------------------------------------------
+-- 5.
 REVOKE ALL ON ALL TABLES IN SCHEMA public FROM anon;
 REVOKE TRUNCATE, TRIGGER, REFERENCES ON ALL TABLES IN SCHEMA public FROM authenticated;
 ALTER DEFAULT PRIVILEGES FOR ROLE postgres IN SCHEMA public REVOKE ALL ON TABLES FROM anon;
