@@ -371,3 +371,57 @@ html:not(.has-session) .session-only {
 .dark .mode-card[aria-checked='true'] {
   background: color-mix(in srgb, var(--tint) 13%, transparent);
 }
+
+/* Everything that can be pressed shows the hand on desktop (Tailwind 4 resets buttons to the
+   default arrow). Disabled things keep the arrow. Touch screens have no cursor, so it's scoped
+   to fine pointers. */
+@media (hover: hover) and (pointer: fine) {
+  a[href],
+  button,
+  summary,
+  select,
+  label[for],
+  [role='button'],
+  [role='radio'],
+  [role='switch'],
+  [role='checkbox'],
+  [role='tab'],
+  [role='option'],
+  [role='menuitem'],
+  [role='menuitemradio'],
+  [role='menuitemcheckbox'],
+  input[type='checkbox'],
+  input[type='radio'],
+  input[type='file'],
+  input[type='date'],
+  input[type='datetime-local'],
+  input[type='color'],
+  input[type='submit'],
+  input[type='button'] {
+    cursor: pointer;
+  }
+  :is(
+    button,
+    select,
+    input,
+    [role='button'],
+    [role='radio'],
+    [role='switch'],
+    [role='menuitem']
+  ):is(:disabled, [aria-disabled='true'], [data-disabled]),
+  fieldset:disabled * {
+    cursor: not-allowed;
+  }
+}
+
+/* Number fields without the up/down spinners (Chrome/Safari and Firefox). The numeric
+   keyboard on phones comes from inputMode, not from these. */
+input[type='number']::-webkit-outer-spin-button,
+input[type='number']::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+input[type='number'] {
+  -moz-appearance: textfield;
+  appearance: textfield;
+}
