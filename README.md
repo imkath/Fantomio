@@ -115,7 +115,7 @@ Ningún cambio se prueba en producción:
 1. `supabase migration new nombre_del_cambio` crea el archivo en `supabase/migrations/`.
 2. Al hacer push, CI levanta un Supabase desechable, aplica todas las migraciones y corre
    `tests/db`. Si algo falla, no hay deploy.
-3. Con CI en verde, `SUPABASE_ACCESS_TOKEN=... node scripts/db-push.mjs` muestra lo pendiente
+3. Con CI en verde, `SUPABASE_ACCESS_TOKEN=... node --experimental-strip-types scripts/db-push.ts` muestra lo pendiente
    y `--apply` lo aplica. Cada migración se ejecuta en una transacción junto con su fila en
    `supabase_migrations.schema_migrations` (la tabla que lee `supabase migration list`).
 
@@ -217,7 +217,7 @@ ghostswap/
 │   ├── schema.sql        # Foto del esquema, generada desde la base
 │   └── templates/        # Correos de Auth y de notificaciones
 ├── tests/db/             # Pruebas de la base contra un Supabase local
-├── scripts/db-push.mjs   # Aplica migraciones pendientes a producción
+├── scripts/db-push.ts    # Aplica migraciones pendientes a producción
 ├── keepalive/            # Worker que evita que Supabase se pause
 ├── public/_headers       # Cabeceras de seguridad y caché
 ├── public/_redirects     # Rutas antiguas

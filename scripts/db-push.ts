@@ -3,8 +3,8 @@
 // uses (`supabase migration list` reads it). It goes through the Management API, so it needs a
 // personal access token instead of the database password.
 //
-//   SUPABASE_ACCESS_TOKEN=sbp_... node scripts/db-push.mjs           # list pending, apply nothing
-//   SUPABASE_ACCESS_TOKEN=sbp_... node scripts/db-push.mjs --apply   # apply them in order
+//   SUPABASE_ACCESS_TOKEN=sbp_... node --experimental-strip-types scripts/db-push.ts           # list pending, apply nothing
+//   SUPABASE_ACCESS_TOKEN=sbp_... node --experimental-strip-types scripts/db-push.ts --apply   # apply them in order
 //
 // Each migration runs in one transaction together with its history row: it is applied and
 // recorded, or neither. Run the database tests (tests/db) on the branch before applying.
@@ -23,7 +23,7 @@ if (!TOKEN) {
   process.exit(1)
 }
 
-async function query(sql) {
+async function query(sql: string): Promise<Record<string, unknown>[]> {
   const res = await fetch(`https://api.supabase.com/v1/projects/${REF}/database/query`, {
     method: 'POST',
     headers: { Authorization: `Bearer ${TOKEN}`, 'Content-Type': 'application/json' },
@@ -34,7 +34,7 @@ async function query(sql) {
   return JSON.parse(text)
 }
 
-const quote = (s) => `'${s.replaceAll("'", "''")}'`
+const quote = (s: string) => `'${s.replaceAll("'", "''")}'`
 
 await query(`
   CREATE SCHEMA IF NOT EXISTS supabase_migrations;
@@ -42,7 +42,9 @@ await query(`
     version TEXT PRIMARY KEY, statements TEXT[], name TEXT
   );`)
 const applied = new Set(
-  (await query('SELECT version FROM supabase_migrations.schema_migrations')).map((r) => r.version)
+  (await query('SELECT version FROM supabase_migrations.schema_migrations')).map(
+    (r) => r.version as string
+  )
 )
 
 const pending = readdirSync(DIR)
