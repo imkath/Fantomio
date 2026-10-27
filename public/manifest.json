@@ -1,12 +1,12 @@
 {
+  "id": "/",
   "name": "Fantomio - Amigo Secreto Online",
   "short_name": "Fantomio",
   "description": "Organiza tu Amigo Secreto o intercambio de regalos online gratis",
-  "start_url": "/",
+  "start_url": "/dashboard",
   "display": "standalone",
   "background_color": "#ffffff",
   "theme_color": "#ffffff",
-  "orientation": "portrait-primary",
   "icons": [
     {
       "src": "/icon.svg",
@@ -29,5 +29,52 @@
   ],
   "categories": ["entertainment", "social"],
   "lang": "es",
-  "dir": "ltr"
+  "dir": "ltr",
+  "shortcuts": [
+    {
+      "name": "Mis grupos",
+      "url": "/dashboard",
+      "icons": [
+        {
+          "src": "/icon-192.png",
+          "sizes": "192x192",
+          "type": "image/png"
+        }
+      ]
+    },
+    {
+      "name": "Crear un grupo",
+      "url": "/dashboard?new=1",
+      "icons": [
+        {
+          "src": "/icon-192.png",
+          "sizes": "192x192",
+          "type": "image/png"
+        }
+      ]
+    }
+  ],
+  "screenshots": [
+    {
+      "src": "/screenshots/inicio-celular.webp",
+      "sizes": "780x1688",
+      "type": "image/webp",
+      "form_factor": "narrow",
+      "label": "Arma tu Amigo Secreto en un minuto"
+    },
+    {
+      "src": "/screenshots/sorteo-celular.webp",
+      "sizes": "780x1688",
+      "type": "image/webp",
+      "form_factor": "narrow",
+      "label": "Un sorteo de prueba"
+    },
+    {
+      "src": "/screenshots/inicio-escritorio.webp",
+      "sizes": "1600x1000",
+      "type": "image/webp",
+      "form_factor": "wide",
+      "label": "Fantomio en el computador"
+    }
+  ]
 }

@@ -65,6 +65,8 @@ export const metadata: Metadata = {
   description:
     'Organiza tu Amigo Secreto online gratis. Crea el grupo, comparte el link por WhatsApp y cada persona ve solo a quién le regala, con su lista de deseos.',
   applicationName: 'Fantomio',
+  // Added to the iPhone home screen it opens full screen, with its own name under the icon.
+  appleWebApp: { capable: true, title: 'Fantomio', statusBarStyle: 'default' },
   authors: [{ name: 'Kath', url: 'https://nvrkth.com' }],
   robots: {
     index: true,

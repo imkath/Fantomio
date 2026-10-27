@@ -34,6 +34,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
+import { InstallApp } from '@/components/install-app'
 import { JoinGroupForm } from '@/components/join-group-form'
 import { NewGroupForm } from '@/components/new-group-form'
 import { toast } from 'sonner'
@@ -380,6 +381,7 @@ export default function DashboardPage() {
   return (
     <div className="bg-paper text-ink min-h-[calc(100vh-69px)]">
       <main className="mx-auto max-w-[1040px] px-4 py-10 md:px-8 md:py-14">
+        <InstallApp />
         <div className="mb-10 flex flex-col items-start justify-between gap-6 md:flex-row md:items-end">
           <h1 className="text-[34px] leading-tight font-light md:text-[44px]">Mis grupos</h1>
           <div className="flex w-full gap-3 md:w-auto">
