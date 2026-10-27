@@ -10,6 +10,7 @@ import { Input } from '@/components/ui/input'
 import { Notice } from '@/components/auth-shell'
 import { createClient, getSessionUser } from '@/lib/supabase'
 import { getUserFriendlyError } from '@/lib/errors'
+import { deviceCurrency } from '@/lib/currency'
 
 // Create a group, from the "Crear grupo" modal in the dashboard.
 
@@ -35,7 +36,8 @@ export function NewGroupForm({
   const nameInputRef = useRef<HTMLInputElement>(null)
   const [name, setName] = useState('')
   const [budget, setBudget] = useState('')
-  const [currency, setCurrency] = useState('CLP')
+  // Preselected from the device's country (lib/currency.ts); the select still changes it.
+  const [currency, setCurrency] = useState<string>(deviceCurrency)
   const [eventDate, setEventDate] = useState('')
   const [mode, setMode] = useState<GroupMode>('classic')
   const [error, setError] = useState('')
