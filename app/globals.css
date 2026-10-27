@@ -352,20 +352,22 @@ html:not(.has-session) .session-only {
   display: none !important;
 }
 
-/* Draw type cards (components/group/mode-picker.tsx): a soft tint of each mode's color. */
+/* Draw type cards (components/group/mode-picker.tsx): neutral at rest, so neither looks chosen;
+   a soft tint of each mode's color on hover, and a stronger one with an ink border when chosen. */
 .mode-card {
-  border-color: color-mix(in srgb, var(--tint) 35%, transparent);
+  border-color: var(--rule);
+  background: transparent;
+}
+.mode-card:hover {
+  border-color: color-mix(in srgb, var(--tint) 55%, transparent);
   background: color-mix(in srgb, var(--tint) 9%, transparent);
 }
-.mode-card:hover,
 .mode-card[aria-checked='true'] {
   border-color: var(--ink);
-}
-.mode-card[aria-checked='true'] {
   background: color-mix(in srgb, var(--tint) 22%, transparent);
 }
 /* On dark paper the same tint turns muddy (amber reads brown), so it's lighter there. */
-.dark .mode-card {
+.dark .mode-card:hover {
   background: color-mix(in srgb, var(--tint) 6%, transparent);
 }
 .dark .mode-card[aria-checked='true'] {
