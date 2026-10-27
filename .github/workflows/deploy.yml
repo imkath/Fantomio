@@ -88,6 +88,8 @@ jobs:
         env:
           NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+          # Es pública a propósito; solo deja que el navegador envíe reportes de error.
+          NEXT_PUBLIC_SENTRY_DSN: ${{ vars.SENTRY_DSN }}
         run: npm run build
 
       - name: Deploy to Cloudflare Workers

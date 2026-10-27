@@ -4,6 +4,7 @@ import localFont from 'next/font/local'
 import { Atkinson_Hyperlegible_Next } from 'next/font/google'
 import { Toaster } from '@/components/ui/sonner'
 import { ThemeProvider } from '@/components/theme-provider'
+import { ErrorMonitor } from '@/components/error-monitor'
 import { AnimatedFavicon } from '@/components/animated-favicon'
 import './globals.css'
 
@@ -135,6 +136,7 @@ export default function RootLayout({
           <AnimatedFavicon />
           {children}
           <Toaster position="top-center" richColors />
+          <ErrorMonitor />
         </ThemeProvider>
       </body>
     </html>

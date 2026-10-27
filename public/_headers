@@ -8,7 +8,7 @@
   # from Google. A static export inlines Next's bootstrap scripts, so script-src needs
   # 'unsafe-inline' (no server to add nonces); everything external is still blocked. The reveal
   # confetti draws in a Web Worker built from a blob: URL, hence worker-src.
-  Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://lh3.googleusercontent.com https://ocgmlgldrmdemdjphcrv.supabase.co; font-src 'self'; worker-src 'self' blob:; connect-src 'self' https://ocgmlgldrmdemdjphcrv.supabase.co wss://ocgmlgldrmdemdjphcrv.supabase.co; manifest-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; upgrade-insecure-requests
+  Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://lh3.googleusercontent.com https://ocgmlgldrmdemdjphcrv.supabase.co; font-src 'self'; worker-src 'self' blob:; connect-src 'self' https://ocgmlgldrmdemdjphcrv.supabase.co wss://ocgmlgldrmdemdjphcrv.supabase.co https://o4512328595668992.ingest.de.sentry.io; manifest-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; upgrade-insecure-requests
   Strict-Transport-Security: max-age=31536000; includeSubDomains
   # The app uses no camera, microphone or location.
   Permissions-Policy: camera=(), microphone=(), geolocation=(), interest-cohort=()

@@ -101,6 +101,13 @@ export default function PrivacyPage() {
                   <strong>Datos técnicos:</strong> dirección IP y registros de inicio de sesión, que
                   nuestro proveedor de autenticación guarda por seguridad.
                 </li>
+                <li>
+                  <strong>Reportes de errores:</strong> si una pantalla falla, se envía un reporte
+                  técnico con el error, la dirección de la página sin los códigos que lleve, el
+                  navegador, el sistema, el idioma, la zona horaria y el país aproximado de la
+                  conexión. No incluye tu nombre, tu correo, tu dirección IP, tus listas ni tus
+                  mensajes, y los correos que aparezcan en el error se borran antes de enviarlo.
+                </li>
               </List>
               <p>
                 No pedimos datos sensibles. Te recomendamos no incluirlos en tu lista de deseos ni
@@ -124,10 +131,17 @@ export default function PrivacyPage() {
                   abuso. La base es nuestro interés legítimo en mantener el servicio seguro
                   (artículo 13 letra d).
                 </li>
+                <li>
+                  <strong>Detectar y corregir fallas</strong> con los reportes de errores. La base
+                  es también nuestro interés legítimo en que el servicio funcione. Para no afectar
+                  tus derechos, el reporte lleva solo lo necesario para encontrar el error y nunca
+                  te identifica.
+                </li>
               </List>
               <p>
                 No usamos tus datos para publicidad, no hacemos perfiles y no usamos herramientas de
-                analítica ni de seguimiento.
+                analítica ni de seguimiento. Los reportes de errores no miden cómo usas el sitio:
+                solo se envían cuando algo falla.
               </p>
             </Section>
 
@@ -170,8 +184,9 @@ export default function PrivacyPage() {
                 </li>
                 <li>
                   <strong>Proveedores que operan el servicio por nuestra cuenta:</strong> Supabase
-                  (base de datos y autenticación), Cloudflare (alojamiento del sitio) y Brevo (envío
-                  de correos). Solo pueden usar los datos para prestarnos ese servicio.
+                  (base de datos y autenticación), Cloudflare (alojamiento del sitio), Brevo (envío
+                  de correos) y Sentry, de Functional Software, Inc. (reportes de errores). Solo
+                  pueden usar los datos para prestarnos ese servicio.
                 </li>
                 <li>
                   <strong>Google</strong>, si eliges entrar con tu cuenta de Google. En ese caso
@@ -184,11 +199,12 @@ export default function PrivacyPage() {
             <Section title="6. Transferencia internacional">
               <p>
                 Tus datos se almacenan en Estados Unidos (Supabase) y pasan por servidores de
-                Cloudflare en distintos países. Los correos se envían a través de Brevo, en la Unión
-                Europea. A la fecha de esta versión, la Agencia de Protección de Datos Personales no
-                ha determinado si esos países ofrecen un nivel adecuado de protección. Las
-                transferencias se amparan en los acuerdos de tratamiento de datos de cada proveedor,
-                que incluyen cláusulas contractuales estándar.
+                Cloudflare en distintos países. Los correos se envían a través de Brevo, y los
+                reportes de errores se guardan en Sentry, ambos en la Unión Europea. A la fecha de
+                esta versión, la Agencia de Protección de Datos Personales no ha determinado si esos
+                países ofrecen un nivel adecuado de protección. Las transferencias se amparan en los
+                acuerdos de tratamiento de datos de cada proveedor, que incluyen cláusulas
+                contractuales estándar.
               </p>
             </Section>
 
@@ -200,7 +216,8 @@ export default function PrivacyPage() {
                 participantes. Si eliminas tu cuenta desde Mi cuenta, en ese momento se borran tu
                 perfil, tu foto, tus membresías, tus listas, tus asignaciones y tus mensajes. Si lo
                 pides por correo, lo hacemos dentro del plazo indicado más abajo. Los registros
-                técnicos se conservan por el período que define cada proveedor.
+                técnicos se conservan por el período que define cada proveedor. Los reportes de
+                errores se borran a los 30 días.
               </p>
             </Section>
 
