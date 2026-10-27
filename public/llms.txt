@@ -1,6 +1,6 @@
 # Fantomio
 
-> App web gratuita en español para organizar un Amigo Secreto (Amigo Invisible) online. Se crea un grupo, se comparte el link, cada persona anota su lista de deseos y la app hace el sorteo: nadie se saca a sí mismo, se pueden excluir parejas, y cada uno ve solo a quién le regala. Incluye mensajes anónimos con tu amigo secreto. Sin anuncios.
+> App web gratuita en español para organizar un Amigo Secreto (Amigo Invisible) online. Se crea un grupo, se comparte el link, cada persona anota su lista de deseos y la app hace el sorteo: nadie se saca a sí mismo, se pueden excluir parejas, y cada uno ve solo a quién le regala. Incluye mensajes anónimos con tu amigo secreto.
 
 - [Inicio](https://fantomio.com/): cómo funciona, privacidad y preguntas frecuentes
 - [Crear cuenta](https://fantomio.com/register)

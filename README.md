@@ -64,7 +64,7 @@ Cómo se sostiene eso:
 - Las funciones que leen o cambian un grupo trabajan con la sesión de quien llama
   (`auth.uid()`), y el sorteo y las listas no se pueden pedir sin sesión. El login vuelve a la app
   con un redirect validado (`safeRedirect`), sin open redirects.
-- Sin analítica, sin anuncios, sin cookies de terceros.
+- Sin analítica y sin cookies de terceros.
 
 El esquema completo, con todas las políticas, está en [supabase/schema.sql](supabase/schema.sql).
 

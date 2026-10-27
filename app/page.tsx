@@ -240,7 +240,7 @@ export default function LandingPage() {
                   <dt>Quien organiza</dt>
                   <dd>Que el sorteo ya se hizo.</dd>
                   <dt>Nosotros</dt>
-                  <dd>No mostramos anuncios ni vendemos tus datos. Tampoco te rastreamos.</dd>
+                  <dd>No vendemos tus datos ni te rastreamos.</dd>
                 </dl>
               </div>
             </div>
