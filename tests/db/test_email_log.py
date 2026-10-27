@@ -1,7 +1,7 @@
 """Email delivery: every notice sent is logged without personal data, the daily reserve holds
 notices back past 200, and the delivery check marks answered requests and drops old rows.
 
-Uses a fake Brevo key, so Brevo answers 401 and nothing is delivered. There is no sentry_dsn in
+Uses a fake Brevo key, so nothing is delivered (Brevo answers 401, or the call times out). There is no sentry_dsn in
 this database, so failures are detected but never reported."""
 
 import json
@@ -44,11 +44,13 @@ check('notice logged', sql('select count(*) n from email_log')[0]['n'] == before
 
 answered = []
 for _ in range(30):
-    answered = sql(f"select status_code from net._http_response where id = {logged[0]['request_id']}")
+    answered = sql(f"select status_code, timed_out, error_msg from net._http_response where id = {logged[0]['request_id']}")
     if answered:
         break
     time.sleep(1)
-check('Brevo answered the fake key with an error', bool(answered) and answered[0]['status_code'] >= 400, str(answered))
+# A rejection, a timeout or a network error all count: the fake key never delivers.
+failed = bool(answered) and (answered[0]['timed_out'] or answered[0]['error_msg'] or (answered[0]['status_code'] or 0) >= 400)
+check('the fake key does not deliver', bool(failed), str(answered))
 
 sql('select public.check_email_delivery()')
 check('answered request marked as checked',
