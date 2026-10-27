@@ -609,7 +609,7 @@ BEGIN
     LEFT JOIN wishlists w ON w.group_id = m.group_id AND w.user_id = m.user_id
     WHERE m.group_id = p_group_id AND coalesce(jsonb_array_length(w.items), 0) = 0;
     IF missing IS NOT NULL THEN
-      RAISE EXCEPTION 'En el sorteo a ciegas todos tienen que anotar su lista antes de sortear. Falta: %', missing;
+      RAISE EXCEPTION 'Para sortear a ciegas, todos tienen que anotar su lista. Todavía falta la de %.', missing;
     END IF;
   END IF;
 
