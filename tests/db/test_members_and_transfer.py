@@ -21,13 +21,16 @@ for k in 'abcd':
     e=f'ghostswap-prueba-{k}@example.com'
     ids[k]=req('POST', U+'/auth/v1/admin/users', {'email':e,'password':pw,'email_confirm':True,'user_metadata':{'full_name':'Prueba '+k.upper()}}, key=SRV)[1]['id']
     T[k]=req('POST', U+'/auth/v1/token?grant_type=password', {'email':e,'password':pw})[1]['access_token']
-G=req('POST', R+'groups', {'name':'QA traspaso','admin_id':ids['a'],'currency':'CLP'}, T['a'])[1][0]['id']
+grp=req('POST', R+'groups', {'name':'QA traspaso','admin_id':ids['a'],'currency':'CLP'}, T['a'])[1][0]
+G, CODE = grp['id'], grp['invite_code']
 json.dump({**ids,'G':G}, open('ids5.json','w'))
 m=lambda k,adm=False: {'group_id':G,'user_id':ids[k],'is_admin':adm}
+join=lambda k: req('POST', R+'rpc/join_group', {'p_code':CODE}, T[k])
 check('a joins own group as admin', req('POST', R+'members', m('a',True), T['a']), rows(1))
 check('b joins claiming is_admin', req('POST', R+'members', m('b',True), T['b']), denied)
-check('b joins normally', req('POST', R+'members', m('b'), T['b']), rows(1))
-check('c joins', req('POST', R+'members', m('c'), T['c']), rows(1))
+check('b inserts own member row directly', req('POST', R+'members', m('b'), T['b']), denied)
+check('b joins with the code', join('b'), okay)
+check('c joins', join('c'), okay)
 tr=lambda tok,new: req('POST', R+'rpc/transfer_group', {'p_group_id':G,'p_new_admin':new}, tok)
 check('b (not organizer) transfers to self', tr(T['b'], ids['b']), denied)
 check('a transfers to d (not a member)', tr(T['a'], ids['d']), denied)
@@ -41,8 +44,8 @@ check('a (old organizer) edits group', req('PATCH', R+f'groups?id=eq.{G}', {'nam
 check('b (new organizer) edits group', req('PATCH', R+f'groups?id=eq.{G}', {'name':'QA traspaso 2'}, T['b']), rows(1))
 check('b (organizer) leaves', req('DELETE', R+f"members?group_id=eq.{G}&user_id=eq.{ids['b']}", token=T['b']), rows(0))
 check('b removes c', req('DELETE', R+f"members?group_id=eq.{G}&user_id=eq.{ids['c']}", token=T['b']), rows(1))
-check('c rejoins', req('POST', R+'members', m('c'), T['c']), rows(1))
-check('d joins', req('POST', R+'members', m('d'), T['d']), rows(1))
+check('c rejoins', join('c'), okay)
+check('d joins', join('d'), okay)
 check('d leaves before draw', req('DELETE', R+f"members?group_id=eq.{G}&user_id=eq.{ids['d']}", token=T['d']), rows(1))
 check('c removes a (not organizer)', req('DELETE', R+f"members?group_id=eq.{G}&user_id=eq.{ids['a']}", token=T['c']), rows(0))
 check('b draws', req('POST', R+'rpc/draw_group', {'p_group_id':G}, T['b']), okay)

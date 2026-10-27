@@ -24,7 +24,7 @@ def sql(query):
     """Runs SQL on the local database. SELECT/WITH queries return rows as dicts."""
     q = query.strip().rstrip(';')
     if q.lower().startswith(('select', 'with')) and ';' not in q:
-        wrapped = f"select coalesce(json_agg(t), '[]'::json) from ({q}) t"
+        wrapped = f"select coalesce(json_agg(_r), '[]'::json) from ({q}) _r"
         out = subprocess.check_output(['psql', DB_URL, '-At', '-v', 'ON_ERROR_STOP=1', '-c', wrapped])
         return json.loads(out.decode() or '[]')
     subprocess.check_output(['psql', DB_URL, '-q', '-v', 'ON_ERROR_STOP=1', '-c', query])
