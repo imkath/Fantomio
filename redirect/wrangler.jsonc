@@ -1,0 +1,12 @@
+// Deploy by hand when this changes: npx wrangler deploy --config redirect/wrangler.jsonc
+{
+  "$schema": "../node_modules/wrangler/config-schema.json",
+  "name": "fantomio-redirect",
+  "main": "index.js",
+  "compatibility_date": "2024-12-30",
+  "workers_dev": false,
+  "routes": [
+    { "pattern": "ghostswap.nvrkth.com", "custom_domain": true },
+    { "pattern": "www.fantomio.com", "custom_domain": true },
+  ],
+}

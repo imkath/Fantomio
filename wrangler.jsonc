@@ -15,14 +15,7 @@
       "pattern": "fantomio.com",
       "custom_domain": true,
     },
-    {
-      "pattern": "www.fantomio.com",
-      "custom_domain": true,
-    },
-    // Old address: a redirect rule on nvrkth.com sends it to fantomio.com.
-    {
-      "pattern": "ghostswap.nvrkth.com",
-      "custom_domain": true,
-    },
+    // www.fantomio.com and the old ghostswap.nvrkth.com belong to the redirect Worker
+    // (redirect/), which sends them here with a 301.
   ],
 }
