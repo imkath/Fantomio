@@ -236,6 +236,10 @@ export default function DashboardPage() {
   const [isLoading, setIsLoading] = useState(true)
   const [user, setUser] = useState<{ id: string; email: string } | null>(null)
   const [modal, setModal] = useState<'join' | 'new' | null>(null)
+  // What the dialog shows. It keeps the last form while the dialog fades out, so closing "Unirme"
+  // never flashes "Crear grupo" for a frame (modal is already null by then).
+  const [view, setView] = useState<'join' | 'new'>('new')
+  if (modal && modal !== view) setView(modal)
   // Closing a form with something typed asks first; an empty one just closes.
   const [dirty, setDirty] = useState(false)
   const [confirmClose, setConfirmClose] = useState(false)
@@ -492,18 +496,18 @@ export default function DashboardPage() {
         }}
       >
         {/* Creating a group gets more room on wide screens: fields side by side, two mode cards. */}
-        <DialogContent className={`${sheet} ${modal === 'new' ? 'md:max-w-[720px]' : ''}`}>
+        <DialogContent className={`${sheet} ${view === 'new' ? 'md:max-w-[720px]' : ''}`}>
           <DialogHeader className="border-rule shrink-0 border-b px-6 pt-6 pr-16 pb-4 text-left">
             <DialogTitle className="text-[28px] leading-tight font-light">
-              {modal === 'join' ? 'Unirme a un grupo' : 'Crear grupo'}
+              {view === 'join' ? 'Unirme a un grupo' : 'Crear grupo'}
             </DialogTitle>
             <DialogDescription className="text-[16px]">
-              {modal === 'join'
+              {view === 'join'
                 ? 'Pega el código o el link que te mandaron.'
                 : 'Solo el nombre es obligatorio.'}
             </DialogDescription>
           </DialogHeader>
-          {modal === 'join' ? (
+          {view === 'join' ? (
             <div className="min-h-0 flex-1 overflow-y-auto px-6 py-5">
               <JoinGroupForm onDirtyChange={setDirty} />
             </div>
@@ -517,7 +521,7 @@ export default function DashboardPage() {
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>
-              {modal === 'join' ? '¿Dejar el código sin usar?' : '¿Descartar el grupo?'}
+              {view === 'join' ? '¿Dejar el código sin usar?' : '¿Descartar el grupo?'}
             </AlertDialogTitle>
             <AlertDialogDescription>Lo que escribiste no se va a guardar.</AlertDialogDescription>
           </AlertDialogHeader>
