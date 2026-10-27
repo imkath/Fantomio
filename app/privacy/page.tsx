@@ -90,7 +90,11 @@ export default function PrivacyPage() {
                 </li>
                 <li>
                   <strong>Grupos:</strong> nombre del grupo, presupuesto, moneda, fecha del
-                  intercambio y código de invitación.
+                  intercambio, zona horaria del grupo (para saber cuándo llega ese día) y código de
+                  invitación. Si quien organiza lo agrega, también el lugar del intercambio: un
+                  nombre y una dirección, o el link de una videollamada. Lo ven solo las personas
+                  del grupo; quien recibe una invitación no lo ve hasta unirse. Cuando abres el
+                  mapa, la dirección se envía a Google Maps.
                 </li>
                 <li>
                   <strong>Participación:</strong> tu lista de deseos, las exclusiones que define el
