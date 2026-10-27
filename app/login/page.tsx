@@ -107,7 +107,7 @@ function LoginForm() {
         <form onSubmit={handleCredentialsSignIn} className="space-y-5">
           {verified && <Notice tone="ok">Tu cuenta quedó confirmada. Ya puedes entrar.</Notice>}
           {deleted && (
-            <Notice tone="ok">Tu cuenta quedó eliminada. Gracias por usar GhostSwap.</Notice>
+            <Notice tone="ok">Tu cuenta quedó eliminada. Gracias por usar Fantomio.</Notice>
           )}
           {error && <Notice>{error}</Notice>}
           <Field

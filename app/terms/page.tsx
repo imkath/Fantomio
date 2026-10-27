@@ -9,12 +9,12 @@ const BREADCRUMB = JSON.stringify({
   '@context': 'https://schema.org',
   '@type': 'BreadcrumbList',
   itemListElement: [
-    { '@type': 'ListItem', position: 1, name: 'Inicio', item: 'https://ghostswap.nvrkth.com/' },
+    { '@type': 'ListItem', position: 1, name: 'Inicio', item: 'https://fantomio.com/' },
     {
       '@type': 'ListItem',
       position: 2,
       name: 'Términos',
-      item: 'https://ghostswap.nvrkth.com/terms',
+      item: 'https://fantomio.com/terms',
     },
   ],
 })
@@ -22,7 +22,7 @@ const BREADCRUMB = JSON.stringify({
 export const metadata: Metadata = {
   alternates: { canonical: '/terms' },
   title: 'Términos del servicio',
-  description: 'Condiciones de uso de GhostSwap para organizar tu Amigo Secreto.',
+  description: 'Condiciones de uso de Fantomio para organizar tu Amigo Secreto.',
 }
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
@@ -58,9 +58,9 @@ export default function TermsPage() {
           </p>
 
           <div className="max-w-none">
-            <Section title="1. Qué es GhostSwap">
+            <Section title="1. Qué es Fantomio">
               <p>
-                GhostSwap es un servicio gratuito para organizar sorteos de Amigo Secreto e
+                Fantomio es un servicio gratuito para organizar sorteos de Amigo Secreto e
                 intercambios de regalos. Quién lo ofrece y cómo contactarla está en la{' '}
                 <Link href="/privacy" className="text-ink underline underline-offset-[3px]">
                   Política de Privacidad
@@ -73,7 +73,7 @@ export default function TermsPage() {
             <Section title="2. Quién puede usarlo">
               <p>
                 Si tienes menos de 14 años, necesitas el consentimiento de tu madre, padre o
-                representante legal para usar GhostSwap.
+                representante legal para usar Fantomio.
               </p>
             </Section>
 
@@ -115,9 +115,9 @@ export default function TermsPage() {
 
             <Section title="7. Disponibilidad y responsabilidad">
               <p>
-                GhostSwap es gratuito y se ofrece tal como está. Hacemos lo posible para que
-                funcione bien, pero no garantizamos que esté siempre disponible ni libre de errores.
-                En la medida en que la ley lo permita, no respondemos por daños derivados de
+                Fantomio es gratuito y se ofrece tal como está. Hacemos lo posible para que funcione
+                bien, pero no garantizamos que esté siempre disponible ni libre de errores. En la
+                medida en que la ley lo permita, no respondemos por daños derivados de
                 interrupciones del servicio ni por los regalos, compras o acuerdos entre
                 participantes.
               </p>
@@ -125,7 +125,7 @@ export default function TermsPage() {
 
             <Section title="8. Cierre de tu cuenta">
               <p>
-                Puedes dejar de usar GhostSwap cuando quieras y pedir que eliminemos tu cuenta
+                Puedes dejar de usar Fantomio cuando quieras y pedir que eliminemos tu cuenta
                 escribiendo a{' '}
                 <a
                   href={`mailto:${LEGAL.contacto}`}

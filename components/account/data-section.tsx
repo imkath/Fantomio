@@ -49,7 +49,7 @@ export function DataSection({
     const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' })
     const link = document.createElement('a')
     link.href = URL.createObjectURL(blob)
-    link.download = `ghostswap-mis-datos-${new Date().toISOString().slice(0, 10)}.json`
+    link.download = `fantomio-mis-datos-${new Date().toISOString().slice(0, 10)}.json`
     link.click()
     URL.revokeObjectURL(link.href)
   }
@@ -126,8 +126,8 @@ export function DataSection({
           <DialogHeader>
             <DialogTitle>¿Eliminar tu cuenta?</DialogTitle>
             <DialogDescription>
-              Se borra todo lo tuyo en GhostSwap y no se puede recuperar. Si organizas grupos con
-              más personas, primero pásale la organización a alguien o elimina esos grupos.
+              Se borra todo lo tuyo en Fantomio y no se puede recuperar. Si organizas grupos con más
+              personas, primero pásale la organización a alguien o elimina esos grupos.
             </DialogDescription>
           </DialogHeader>
           {drawnGroups.length > 0 && (

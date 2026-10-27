@@ -26,9 +26,9 @@ async function ping(env) {
   return { ok: res.ok, status: res.status, body: res.ok ? '' : await res.text() }
 }
 
-// Brevo desactiva toda clave que pase 90 dias sin un envio exitoso, y GhostSwap
+// Brevo desactiva toda clave que pase 90 dias sin un envio exitoso, y Fantomio
 // solo manda correos en diciembre. Un correo al mes mantiene viva la clave y, como
-// llega al Gmail de Kath via hello@nvrkth.com, si un mes no aparece algo se rompio.
+// llega al Gmail de Kath via hola@fantomio.com, si un mes no aparece algo se rompio.
 const HEARTBEAT_CRON = '0 13 1 * *'
 
 async function heartbeat(env) {
@@ -36,11 +36,11 @@ async function heartbeat(env) {
     method: 'POST',
     headers: { 'api-key': env.BREVO_API_KEY, 'content-type': 'application/json' },
     body: JSON.stringify({
-      sender: { name: 'GhostSwap', email: 'hello@nvrkth.com' },
-      to: [{ email: 'hello@nvrkth.com' }],
-      subject: 'GhostSwap: el correo sigue funcionando',
+      sender: { name: 'Fantomio', email: 'hola@fantomio.com' },
+      to: [{ email: 'hola@fantomio.com' }],
+      subject: 'Fantomio: el correo sigue funcionando',
       textContent:
-        'Envio mensual automatico para que Brevo no desactive la clave de GhostSwap. Si este mes no llego, revisar la clave en app.brevo.com.',
+        'Envio mensual automatico para que Brevo no desactive la clave de Fantomio. Si este mes no llego, revisar la clave en app.brevo.com.',
     }),
   })
   if (!res.ok) throw new Error(`latido de Brevo fallo: HTTP ${res.status} ${await res.text()}`)

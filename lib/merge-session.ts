@@ -6,9 +6,9 @@ import type { Session } from '@supabase/supabase-js'
 // setSession once the merge is done, so the other account's Google can be connected to it
 // through Supabase's own linkIdentity, without touching its auth tables.
 
-const KEY = 'ghostswap:merge'
+const KEY = 'fantomio:merge'
 // Pending Google connection, for when the first session couldn't come back.
-const LINK_KEY = 'ghostswap:link-google'
+const LINK_KEY = 'fantomio:link-google'
 const TTL = 15 * 60 * 1000 // same window as merge_requests
 
 export interface PendingMerge {

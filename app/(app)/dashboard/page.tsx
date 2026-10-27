@@ -150,7 +150,7 @@ function GroupCard({ group }: { group: Group }) {
 
 // Archived or hidden groups: a collapsed section of compact rows, closed by default. The
 // browser remembers whether it was left open.
-const PAST_OPEN = 'ghostswap:past-open'
+const PAST_OPEN = 'fantomio:past-open'
 
 function PastGroups({ groups }: { groups: Group[] }) {
   const [open, setOpen] = useState(false)

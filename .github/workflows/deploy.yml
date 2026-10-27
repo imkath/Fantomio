@@ -66,7 +66,7 @@ jobs:
     name: Deploy
     environment:
       name: production
-      url: https://ghostswap.nvrkth.com
+      url: https://fantomio.com
 
     steps:
       - name: Checkout

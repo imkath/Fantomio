@@ -12,6 +12,15 @@
   },
   "routes": [
     {
+      "pattern": "fantomio.com",
+      "custom_domain": true,
+    },
+    {
+      "pattern": "www.fantomio.com",
+      "custom_domain": true,
+    },
+    // Old address: a redirect rule on nvrkth.com sends it to fantomio.com.
+    {
       "pattern": "ghostswap.nvrkth.com",
       "custom_domain": true,
     },

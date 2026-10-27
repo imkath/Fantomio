@@ -69,7 +69,7 @@ export function InsideDemo() {
             <div className={styles.appbar}>
               <span className="text-ink flex items-center gap-2">
                 <GhostMark className="h-[21px] w-[18px]" />
-                <span className="font-display text-base leading-none">ghostswap</span>
+                <span className="font-display text-base leading-none">fantomio</span>
               </span>
               <GhostAvatar seed="demo-camila" size={30} />
             </div>

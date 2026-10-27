@@ -9,12 +9,12 @@ const BREADCRUMB = JSON.stringify({
   '@context': 'https://schema.org',
   '@type': 'BreadcrumbList',
   itemListElement: [
-    { '@type': 'ListItem', position: 1, name: 'Inicio', item: 'https://ghostswap.nvrkth.com/' },
+    { '@type': 'ListItem', position: 1, name: 'Inicio', item: 'https://fantomio.com/' },
     {
       '@type': 'ListItem',
       position: 2,
       name: 'Privacidad',
-      item: 'https://ghostswap.nvrkth.com/privacy',
+      item: 'https://fantomio.com/privacy',
     },
   ],
 })
@@ -22,7 +22,7 @@ const BREADCRUMB = JSON.stringify({
 export const metadata: Metadata = {
   alternates: { canonical: '/privacy' },
   title: 'Política de privacidad',
-  description: 'Qué datos trata GhostSwap, para qué, quién los ve y cómo ejercer tus derechos.',
+  description: 'Qué datos trata Fantomio, para qué, quién los ve y cómo ejercer tus derechos.',
 }
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
@@ -70,8 +70,8 @@ export default function PrivacyPage() {
           <div className="max-w-none">
             <Section title="1. Quién es responsable">
               <p>
-                La responsable del tratamiento de tus datos en GhostSwap es {LEGAL.responsable}.
-                Para cualquier consulta o solicitud sobre tus datos escribe a {mail}.
+                La responsable del tratamiento de tus datos en Fantomio es {LEGAL.responsable}. Para
+                cualquier consulta o solicitud sobre tus datos escribe a {mail}.
               </p>
             </Section>
 
@@ -253,7 +253,7 @@ export default function PrivacyPage() {
             <Section title="10. Menores de edad">
               <p>
                 Si tienes menos de 14 años, necesitas el consentimiento de tu madre, padre o
-                representante legal para usar GhostSwap. Si sabemos que se creó una cuenta sin ese
+                representante legal para usar Fantomio. Si sabemos que se creó una cuenta sin ese
                 consentimiento, la eliminaremos.
               </p>
             </Section>

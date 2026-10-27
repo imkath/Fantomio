@@ -1,9 +1,9 @@
 import type { Metadata } from 'next'
 
 export const metadata: Metadata = {
-  title: { absolute: 'Entrar a tu Amigo Secreto online | GhostSwap' },
+  title: { absolute: 'Entrar a tu Amigo Secreto online | Fantomio' },
   description:
-    'Entra a GhostSwap con Google o con tu correo para ver tus grupos de Amigo Secreto, a quién le regalas y su lista de deseos.',
+    'Entra a Fantomio con Google o con tu correo para ver tus grupos de Amigo Secreto, a quién le regalas y su lista de deseos.',
   alternates: { canonical: '/login' },
 }
 

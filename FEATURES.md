@@ -1,8 +1,9 @@
-# GhostSwap - Características
+# Fantomio - Características
 
 ## 🎁 Funcionalidades Principales
 
 ### 1. Sorteo de Amigo Secreto
+
 - ✅ Algoritmo de derangement matemáticamente verificado
 - ✅ Garantiza que nadie se asigna a sí mismo
 - ✅ Cada participante da y recibe exactamente un regalo
@@ -15,6 +16,7 @@
 - ✅ Tests de estrés con restricciones complejas
 
 ### 2. Gestión de Grupos
+
 - ✅ Crear grupos con nombre personalizado
 - ✅ Código de invitación único generado automáticamente
 - ✅ Compartir link de invitación
@@ -26,21 +28,23 @@
 - ✅ Miembros pueden abandonar el grupo (antes del sorteo)
 
 ### 3. Soporte Multi-Moneda 🆕
+
 **Monedas soportadas:**
 
-| Código | Símbolo | País/Región | Bandera |
-|--------|---------|-------------|---------|
-| CLP | $ | Chile | 🇨🇱 |
-| USD | US$ | Estados Unidos | 🇺🇸 |
-| EUR | € | Unión Europea | 🇪🇺 |
-| MXN | MX$ | México | 🇲🇽 |
-| ARS | AR$ | Argentina | 🇦🇷 |
-| COP | COL$ | Colombia | 🇨🇴 |
-| PEN | S/ | Perú | 🇵🇪 |
-| BRL | R$ | Brasil | 🇧🇷 |
-| GBP | £ | Reino Unido | 🇬🇧 |
+| Código | Símbolo | País/Región    | Bandera |
+| ------ | ------- | -------------- | ------- |
+| CLP    | $       | Chile          | 🇨🇱      |
+| USD    | US$     | Estados Unidos | 🇺🇸      |
+| EUR    | €       | Unión Europea  | 🇪🇺      |
+| MXN    | MX$     | México         | 🇲🇽      |
+| ARS    | AR$     | Argentina      | 🇦🇷      |
+| COP    | COL$    | Colombia       | 🇨🇴      |
+| PEN    | S/      | Perú           | 🇵🇪      |
+| BRL    | R$      | Brasil         | 🇧🇷      |
+| GBP    | £       | Reino Unido    | 🇬🇧      |
 
 **Características:**
+
 - ✅ Seleccionar moneda al crear grupo
 - ✅ Editar moneda después de crear
 - ✅ Formateo automático con separadores de miles
@@ -49,6 +53,7 @@
 - ✅ Validación con Zod
 
 ### 4. Presupuesto y Fecha
+
 - ✅ Configurar presupuesto máximo (opcional)
 - ✅ Mostrar presupuesto con moneda correcta
 - ✅ Establecer fecha del intercambio
@@ -56,6 +61,7 @@
 - ✅ Formato de fecha localizado (español)
 
 ### 5. Wishlist / Lista de Deseos
+
 - ✅ Hasta 5 items por persona
 - ✅ Nombre del regalo (requerido)
 - ✅ URL opcional (validación de formato)
@@ -64,6 +70,7 @@
 - ✅ Guardado automático
 
 ### 6. Privacidad y Seguridad
+
 - ✅ Autenticación con Supabase Auth
 - ✅ Row Level Security (RLS) en todas las tablas
 - ✅ Los participantes solo ven su asignación
@@ -72,6 +79,7 @@
 - ✅ Validación de inputs con Zod
 
 ### 7. Historial de Actividades
+
 - ✅ Log de eventos del grupo
 - ✅ Miembro se unió
 - ✅ Miembro abandonó
@@ -82,6 +90,7 @@
 - ✅ Límite de 50 actividades recientes
 
 ### 8. Interfaz de Usuario
+
 - ✅ Responsive (mobile y desktop)
 - ✅ Animaciones con Framer Motion
 - ✅ Efectos de aurora background
@@ -92,6 +101,7 @@
 - ✅ Diseño moderno con Tailwind CSS
 
 ### 9. Manejo de Errores
+
 - ✅ Mensajes de error en español
 - ✅ Mapeo de 20+ códigos de error
 - ✅ Errores de autenticación
@@ -100,6 +110,7 @@
 - ✅ Mensajes amigables al usuario
 
 ### 10. Testing y Calidad
+
 - ✅ 101 tests automatizados
 - ✅ Cobertura de código del 77%
 - ✅ Tests unitarios
@@ -113,18 +124,21 @@
 ## 🚀 Próximas Características (Roadmap)
 
 ### A Corto Plazo
+
 - [ ] Notificaciones por email
 - [ ] PWA (Progressive Web App)
 - [ ] Dark mode
 - [ ] Soporte para más idiomas (inglés, portugués)
 
 ### A Mediano Plazo
+
 - [ ] Chat entre participantes
 - [ ] Historial de grupos pasados
 - [ ] Estadísticas y analytics
 - [ ] Sugerencias de regalos con IA
 
 ### A Largo Plazo
+
 - [ ] API pública
 - [ ] Integración con e-commerce
 - [ ] Conversión de monedas en tiempo real
@@ -148,6 +162,7 @@
 ## 🏗️ Arquitectura
 
 ### Frontend
+
 - **Framework:** Next.js 16 (App Router)
 - **UI:** React 19, Tailwind CSS, Radix UI
 - **State:** React Hooks
@@ -155,6 +170,7 @@
 - **Forms:** React Hook Form + Zod
 
 ### Backend
+
 - **Database:** Supabase (PostgreSQL)
 - **Auth:** Supabase Auth
 - **API:** Next.js Server Actions
@@ -162,6 +178,7 @@
 - **RLS:** Row Level Security policies
 
 ### Testing
+
 - **Framework:** Vitest
 - **Render:** React Testing Library
 - **Environment:** jsdom
@@ -172,6 +189,7 @@
 ## 🔒 Seguridad
 
 ### Implementaciones
+
 - ✅ Row Level Security (RLS) en todas las tablas
 - ✅ Validación de entrada con Zod
 - ✅ Sanitización de URLs
@@ -182,6 +200,7 @@
 - ✅ CORS configurado
 
 ### Políticas RLS Implementadas
+
 ```sql
 -- Profiles: Usuarios pueden ver todos, editar solo el suyo
 -- Groups: Miembros pueden ver, admin puede editar
@@ -195,6 +214,7 @@
 ## 📱 Compatibilidad
 
 ### Navegadores
+
 - ✅ Chrome 90+
 - ✅ Firefox 88+
 - ✅ Safari 14+
@@ -202,6 +222,7 @@
 - ✅ Mobile browsers (iOS Safari, Chrome Mobile)
 
 ### Dispositivos
+
 - ✅ Desktop (1920x1080+)
 - ✅ Laptop (1366x768+)
 - ✅ Tablet (768x1024)
@@ -212,15 +233,17 @@
 ## 🌍 Internacionalización
 
 ### Idiomas Soportados
+
 - ✅ Español (es-ES) - Principal
 
 ### Formatos Localizados
+
 - ✅ Fechas en formato español
 - ✅ Números con separador de miles (punto)
 - ✅ Símbolos de moneda localizados
 
 ---
 
-**GhostSwap** - Tu plataforma de confianza para Amigo Secreto 🎁
+**Fantomio** - Tu plataforma de confianza para Amigo Secreto 🎁
 
 **Última actualización:** 24 de Noviembre, 2025

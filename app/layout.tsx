@@ -55,16 +55,16 @@ export const viewport: Viewport = {
 }
 
 export const metadata: Metadata = {
-  metadataBase: new URL('https://ghostswap.nvrkth.com'),
+  metadataBase: new URL('https://fantomio.com'),
   // "Amigo secreto" is the term people use in 9 of the 10 Spanish-speaking countries
   // measured (Google autocomplete, oct-2026); Spain says "amigo invisible".
   title: {
-    default: 'Amigo Secreto online gratis, con lista de deseos | GhostSwap',
-    template: '%s | GhostSwap',
+    default: 'Amigo Secreto online gratis, con lista de deseos | Fantomio',
+    template: '%s | Fantomio',
   },
   description:
     'Organiza tu Amigo Secreto online gratis. Crea el grupo, comparte el link por WhatsApp y cada persona ve solo a quién le regala, con su lista de deseos.',
-  applicationName: 'GhostSwap',
+  applicationName: 'Fantomio',
   authors: [{ name: 'Kath', url: 'https://nvrkth.com' }],
   robots: {
     index: true,
@@ -80,9 +80,9 @@ export const metadata: Metadata = {
   openGraph: {
     type: 'website',
     locale: 'es_LA',
-    url: 'https://ghostswap.nvrkth.com',
-    siteName: 'GhostSwap',
-    title: 'Amigo Secreto online gratis, con lista de deseos | GhostSwap',
+    url: 'https://fantomio.com',
+    siteName: 'Fantomio',
+    title: 'Amigo Secreto online gratis, con lista de deseos | Fantomio',
     description:
       'Organiza tu Amigo Secreto online gratis. Crea el grupo, comparte el link por WhatsApp y cada persona ve solo a quién le regala, con su lista de deseos.',
     images: [
@@ -90,13 +90,13 @@ export const metadata: Metadata = {
         url: '/og-image.png',
         width: 1200,
         height: 630,
-        alt: 'GhostSwap, arma tu Amigo Secreto en un minuto',
+        alt: 'Fantomio, arma tu Amigo Secreto en un minuto',
       },
     ],
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'Amigo Secreto online gratis, con lista de deseos | GhostSwap',
+    title: 'Amigo Secreto online gratis, con lista de deseos | Fantomio',
     description:
       'Organiza tu Amigo Secreto online gratis. Crea el grupo, comparte el link por WhatsApp y cada persona ve solo a quién le regala, con su lista de deseos.',
     images: ['/og-image.png'],

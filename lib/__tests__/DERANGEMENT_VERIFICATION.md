@@ -2,7 +2,7 @@
 
 ## ¿Qué garantiza el algoritmo?
 
-El algoritmo `generateDerangement` implementado en GhostSwap garantiza las siguientes propiedades matemáticas para el sorteo de Secret Santa:
+El algoritmo `generateDerangement` implementado en Fantomio garantiza las siguientes propiedades matemáticas para el sorteo de Secret Santa:
 
 ---
 

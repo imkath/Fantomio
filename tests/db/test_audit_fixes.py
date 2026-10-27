@@ -17,7 +17,7 @@ denied = lambda s,b: s>=400
 okay = lambda s,b: s<300
 pw='Qa-'+secrets.token_hex(8); ids={}; T={}
 for k in 'abcd':
-    e=f'ghostswap-prueba-{k}@example.com'
+    e=f'fantomio-prueba-{k}@example.com'
     ids[k]=req('POST', U+'/auth/v1/admin/users', {'email':e,'password':pw,'email_confirm':True,'user_metadata':{'full_name':'Prueba '+k.upper()}}, key=SRV)[1]['id']
     T[k]=req('POST', U+'/auth/v1/token?grant_type=password', {'email':e,'password':pw})[1]['access_token']
 json.dump(ids, open('ids6.json','w'))

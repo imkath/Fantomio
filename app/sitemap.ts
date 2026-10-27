@@ -3,7 +3,7 @@ export const dynamic = 'force-static'
 
 import { MetadataRoute } from 'next'
 
-const baseUrl = 'https://ghostswap.nvrkth.com'
+const baseUrl = 'https://fantomio.com'
 
 // Public pages only (signed-in pages are noindex). lastModified is the date each page's
 // content really changed: Google ignores dates that move on every build. It also ignores

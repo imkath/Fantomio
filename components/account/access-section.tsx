@@ -45,7 +45,7 @@ export function AccessSection({
   onChange: () => void
 }) {
   return (
-    <AccountSection id="acceso" title="Acceso" lede="Cómo entras a GhostSwap.">
+    <AccountSection id="acceso" title="Acceso" lede="Cómo entras a Fantomio.">
       <EmailSetting state={state} status={status} />
       <PasswordSetting state={state} onChange={onChange} />
       <GoogleSetting state={state} status={status} onChange={onChange} />
@@ -291,8 +291,8 @@ function GoogleSetting({
       )}
       {status === 'otra-cuenta' && (
         <Notice>
-          Esa cuenta de Google ya tiene su propia cuenta en GhostSwap. Si las dos son tuyas,
-          júntalas con &quot;Unir otra cuenta&quot;, más abajo.
+          Esa cuenta de Google ya tiene su propia cuenta en Fantomio. Si las dos son tuyas, júntalas
+          con &quot;Unir otra cuenta&quot;, más abajo.
         </Notice>
       )}
       {error && <Notice>{error}</Notice>}

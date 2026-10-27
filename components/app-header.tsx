@@ -28,8 +28,8 @@ interface User {
 }
 
 // The account page fires this after changing the name or the photo, so the header follows.
-export const PROFILE_UPDATED = 'ghostswap:profile-updated'
-const THEME_APPLIED = 'ghostswap:theme-applied'
+export const PROFILE_UPDATED = 'fantomio:profile-updated'
+const THEME_APPLIED = 'fantomio:theme-applied'
 
 export function AppHeader() {
   const router = useRouter()

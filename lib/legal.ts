@@ -2,7 +2,7 @@
 // El nombre va solo en la Política de Privacidad; los Términos remiten a ella.
 export const LEGAL = {
   responsable: 'Katherine Castillo, persona natural con domicilio en Chile',
-  contacto: 'privacidad@nvrkth.com',
-  version: '2.5',
+  contacto: 'privacidad@fantomio.com',
+  version: '2.6',
   fecha: '27 de octubre de 2026',
 }

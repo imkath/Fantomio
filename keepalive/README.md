@@ -4,7 +4,7 @@ Worker con dos crons:
 
 - Cada 6 horas consulta la base para que el plan gratuito de Supabase no pause
   el proyecto.
-- El dia 1 de cada mes envia un correo a hello@nvrkth.com (llega al Gmail de
+- El dia 1 de cada mes envia un correo a hola@fantomio.com (llega al Gmail de
   Kath) para que Brevo no desactive la clave API por 90 dias sin uso. Si un mes
   ese correo no llega, hay que revisar la clave.
 

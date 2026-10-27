@@ -57,6 +57,10 @@ const FAQ = [
     q: '¿Puedo preguntarle algo a mi amigo secreto?',
     a: 'Sí, con los mensajes anónimos del grupo. Te responde sin saber quién le está preguntando.',
   },
+  {
+    q: '¿Por qué se llama Fantomio?',
+    a: 'Porque hasta el intercambio, quien te regala es tu fantasma. Antes se llamaba GhostSwap; tus grupos y tu cuenta siguen igual.',
+  },
 ]
 
 // The site, who runs it and the app itself, each in its own block (some validators don't
@@ -64,30 +68,30 @@ const FAQ = [
 const jsonLdBlocks = [
   {
     '@type': 'WebSite',
-    '@id': 'https://ghostswap.nvrkth.com/#website',
-    name: 'GhostSwap',
-    url: 'https://ghostswap.nvrkth.com',
+    '@id': 'https://fantomio.com/#website',
+    name: 'Fantomio',
+    url: 'https://fantomio.com',
     inLanguage: 'es',
-    publisher: { '@id': 'https://ghostswap.nvrkth.com/#organization' },
+    publisher: { '@id': 'https://fantomio.com/#organization' },
   },
   {
     '@type': 'Organization',
-    '@id': 'https://ghostswap.nvrkth.com/#organization',
-    name: 'GhostSwap',
-    url: 'https://ghostswap.nvrkth.com',
-    logo: 'https://ghostswap.nvrkth.com/icon-512.png',
+    '@id': 'https://fantomio.com/#organization',
+    name: 'Fantomio',
+    url: 'https://fantomio.com',
+    logo: 'https://fantomio.com/icon-512.png',
   },
   {
     '@type': 'WebApplication',
-    name: 'GhostSwap',
+    name: 'Fantomio',
     description:
       'Organiza tu Amigo Secreto online gratis, con sorteo automático, listas de deseos y mensajes anónimos con tu amigo secreto.',
-    url: 'https://ghostswap.nvrkth.com',
+    url: 'https://fantomio.com',
     applicationCategory: 'LifestyleApplication',
     operatingSystem: 'Web',
     offers: { '@type': 'Offer', price: '0', priceCurrency: 'USD' },
     inLanguage: 'es',
-    publisher: { '@id': 'https://ghostswap.nvrkth.com/#organization' },
+    publisher: { '@id': 'https://fantomio.com/#organization' },
   },
 ].map((block) => ({ '@context': 'https://schema.org', ...block }))
 
@@ -129,7 +133,7 @@ export default function LandingPage() {
                 Arma tu <ScrambleTitle /> online en un minuto.
               </h1>
               <p className={s.lede}>
-                Creas el grupo, mandas el link y GhostSwap hace el sorteo. Cada persona ve solo a
+                Creas el grupo, mandas el link y Fantomio hace el sorteo. Cada persona ve solo a
                 quién le regala, y eso también corre para quien organiza.
               </p>
               <div className={s.actions}>

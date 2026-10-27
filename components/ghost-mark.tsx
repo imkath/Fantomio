@@ -1,4 +1,4 @@
-// The GhostSwap ghost: one stroke, a folded slip in hand, the hem cut like a raffle book.
+// The Fantomio ghost: one stroke, a folded slip in hand, the hem cut like a raffle book.
 // It inherits the text color, so it works on paper, on ink and on the red seal.
 interface GhostMarkProps {
   className?: string

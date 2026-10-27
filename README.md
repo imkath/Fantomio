@@ -1,13 +1,13 @@
-# 👻 GhostSwap
+# 👻 Fantomio
 
 **Organiza tu Amigo Secreto online gratis: sorteo automático, listas de deseos y mensajes anónimos.**
 
-[![Deploy](https://github.com/imkath/GhostSwap/actions/workflows/deploy.yml/badge.svg)](https://github.com/imkath/GhostSwap/actions/workflows/deploy.yml)
+[![Deploy](https://github.com/imkath/Fantomio/actions/workflows/deploy.yml/badge.svg)](https://github.com/imkath/Fantomio/actions/workflows/deploy.yml)
 [![Next.js](https://img.shields.io/badge/Next.js-16-black)](https://nextjs.org/)
 [![Supabase](https://img.shields.io/badge/Supabase-PostgreSQL-green)](https://supabase.com/)
 [![Cloudflare Workers](https://img.shields.io/badge/Cloudflare-Workers-orange)](https://workers.cloudflare.com/)
 
-👉 **[ghostswap.nvrkth.com](https://ghostswap.nvrkth.com)**
+👉 **[fantomio.com](https://fantomio.com)**
 
 ---
 
@@ -87,8 +87,8 @@ El esquema completo, con todas las políticas, está en [supabase/schema.sql](su
 Requisitos: Node.js 22 (ver `.nvmrc`), npm y un proyecto de Supabase.
 
 ```bash
-git clone https://github.com/imkath/GhostSwap.git
-cd GhostSwap
+git clone https://github.com/imkath/Fantomio.git
+cd Fantomio
 npm install
 cp .env.example .env.local   # completa la URL y la anon key de Supabase
 npm run dev
@@ -106,7 +106,7 @@ npm run dev
 4. Los correos de cuenta (confirmar registro, recuperar contraseña, cambiar correo) los manda
    Supabase Auth y necesitan un SMTP propio: el que trae Supabase solo entrega a los miembros del
    equipo del proyecto, 2 por hora. Aquí se usa el SMTP de Brevo (`smtp-relay.brevo.com:587`,
-   remitente `hello@nvrkth.com`), con las plantillas de `supabase/templates/*.html`.
+   remitente `hola@fantomio.com`), con las plantillas de `supabase/templates/*.html`.
 
 ### Cambiar la base
 
@@ -153,10 +153,10 @@ La solución quedó en dos capas:
    base no responde, GitHub avisa por correo.
 
 GitHub deshabilita los workflows programados tras **60 días sin actividad en el repo**, y por eso
-no puede ser la única capa. GhostSwap es un producto **estacional** (se usa en diciembre), así que
+no puede ser la única capa. Fantomio es un producto **estacional** (se usa en diciembre), así que
 la ventana de baja actividad es larga y previsible.
 
-El mismo Worker manda **dos correos el día 1 de cada mes** a hello@nvrkth.com. Brevo desactiva
+El mismo Worker manda **dos correos el día 1 de cada mes**, a hola@fantomio.com y a la cuenta técnica hello@nvrkth.com. Brevo desactiva
 toda clave que pase 90 días sin un envío exitoso, y en octubre de 2026 tanto la clave SMTP como la
 de la API ya habían muerto así. El primero ("el correo sigue funcionando") usa la clave API; el
 segundo es una recuperación de contraseña para una cuenta técnica con ese correo, que sale por el
@@ -200,7 +200,7 @@ Se niegan a correr si la URL no es local.
 ## 🗂️ Estructura
 
 ```
-ghostswap/
+fantomio/
 ├── app/                  # Páginas (App Router, exportadas como estáticas)
 │   ├── (app)/            # Rutas con sesión: dashboard y grupo (/groups?id=)
 │   ├── auth/callback/    # Vuelta del login, en el navegador

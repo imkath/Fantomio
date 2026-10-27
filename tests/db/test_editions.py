@@ -24,7 +24,7 @@ def check(label, ok, detail=''):
 
 
 def user(tag):
-    email = f'ghostswap-prueba-{tag}@example.com'
+    email = f'fantomio-prueba-{tag}@example.com'
     pw = 'Qa-' + uuid.uuid4().hex[:12]
     s, u = req('POST', U + '/auth/v1/admin/users', {'email': email, 'password': pw, 'email_confirm': True, 'user_metadata': {'full_name': 'Prueba ' + tag.upper()}}, key=SRV)
     created.append(u['id'])
@@ -131,6 +131,6 @@ finally:
     sql("delete from groups where name like 'QA %'")
     for uid in created:
         req('DELETE', U + f'/auth/v1/admin/users/{uid}', key=SRV)
-    print('cleanup, users left:', sql("select count(*) n from auth.users where email like 'ghostswap-prueba-%'")[0]['n'])
+    print('cleanup, users left:', sql("select count(*) n from auth.users where email like 'fantomio-prueba-%'")[0]['n'])
 print('FAILS:', fails or 'none')
 sys.exit(1 if fails else 0)

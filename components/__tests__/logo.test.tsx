@@ -5,13 +5,13 @@ import { Logo } from '../logo'
 describe('Logo', () => {
   it('shows the ghost and the lowercase wordmark', () => {
     const { container } = render(<Logo linkToHome={false} />)
-    expect(screen.getByText('ghostswap')).toBeInTheDocument()
+    expect(screen.getByText('fantomio')).toBeInTheDocument()
     expect(container.querySelector('svg')).not.toBeNull()
   })
 
   it('links home with an accessible name by default', () => {
     render(<Logo />)
-    const link = screen.getByRole('link', { name: /ghostswap/i })
+    const link = screen.getByRole('link', { name: /fantomio/i })
     expect(link).toHaveAttribute('href', '/')
   })
 
@@ -22,17 +22,17 @@ describe('Logo', () => {
 
   it('scales the wordmark with the size prop', () => {
     const { rerender } = render(<Logo size="sm" linkToHome={false} />)
-    expect(screen.getByText('ghostswap')).toHaveClass('text-base')
+    expect(screen.getByText('fantomio')).toHaveClass('text-base')
 
     rerender(<Logo size="md" linkToHome={false} />)
-    expect(screen.getByText('ghostswap')).toHaveClass('text-[22px]')
+    expect(screen.getByText('fantomio')).toHaveClass('text-[22px]')
 
     rerender(<Logo size="lg" linkToHome={false} />)
-    expect(screen.getByText('ghostswap')).toHaveClass('text-3xl')
+    expect(screen.getByText('fantomio')).toHaveClass('text-3xl')
   })
 
   it('uses the display face for the wordmark', () => {
     render(<Logo linkToHome={false} />)
-    expect(screen.getByText('ghostswap')).toHaveClass('font-display')
+    expect(screen.getByText('fantomio')).toHaveClass('font-display')
   })
 })

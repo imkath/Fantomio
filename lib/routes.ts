@@ -8,7 +8,7 @@ export const groupPath = (id: string) => `/groups?id=${id}`
 // characters and then resolve the path the way the router will, keeping it only if it stays here.
 export function safeRedirect(value: string | null | undefined, fallback = '/dashboard') {
   if (!value || !value.startsWith('/') || /[\\\s]/.test(value)) return fallback
-  const base = 'https://ghostswap.invalid'
+  const base = 'https://fantomio.invalid'
   try {
     const url = new URL(value, base)
     return url.origin === base ? url.pathname + url.search + url.hash : fallback

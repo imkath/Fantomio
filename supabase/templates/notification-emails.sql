@@ -16,8 +16,8 @@ INSERT INTO email_templates (name, subject, html) VALUES
         <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width: 480px; border-collapse: collapse;">
           <tr>
             <td style="padding-bottom: 36px;">
-              <a href="https://ghostswap.nvrkth.com" style="text-decoration: none;">
-                <img src="https://ghostswap.nvrkth.com/email-logo.png" width="175" height="30" alt="ghostswap" style="display: block; border: 0;">
+              <a href="https://fantomio.com" style="text-decoration: none;">
+                <img src="https://fantomio.com/email-logo.png" width="175" height="30" alt="fantomio" style="display: block; border: 0;">
               </a>
             </td>
           </tr>
@@ -46,7 +46,7 @@ INSERT INTO email_templates (name, subject, html) VALUES
             <td style="padding: 20px 4px 0;">
               <p style="margin: 0 0 24px; font-size: 14px; line-height: 21px; color: #7d7d76;">Solo tú puedes ver a quién te tocó. Si no esperabas este correo, puedes ignorarlo.</p>
               <p style="margin: 0; font-size: 14px; color: #7d7d76;">
-                GhostSwap &middot; <a href="https://ghostswap.nvrkth.com" style="color: #7d7d76;">ghostswap.nvrkth.com</a>
+                Fantomio &middot; <a href="https://fantomio.com" style="color: #7d7d76;">fantomio.com</a>
               </p>
             </td>
           </tr>
@@ -72,8 +72,8 @@ INSERT INTO email_templates (name, subject, html) VALUES
         <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width: 480px; border-collapse: collapse;">
           <tr>
             <td style="padding-bottom: 36px;">
-              <a href="https://ghostswap.nvrkth.com" style="text-decoration: none;">
-                <img src="https://ghostswap.nvrkth.com/email-logo.png" width="175" height="30" alt="ghostswap" style="display: block; border: 0;">
+              <a href="https://fantomio.com" style="text-decoration: none;">
+                <img src="https://fantomio.com/email-logo.png" width="175" height="30" alt="fantomio" style="display: block; border: 0;">
               </a>
             </td>
           </tr>
@@ -102,7 +102,7 @@ INSERT INTO email_templates (name, subject, html) VALUES
             <td style="padding: 20px 4px 0;">
               <p style="margin: 0 0 24px; font-size: 14px; line-height: 21px; color: #7d7d76;">Te avisamos como máximo una vez cada 15 minutos por grupo.</p>
               <p style="margin: 0; font-size: 14px; color: #7d7d76;">
-                GhostSwap &middot; <a href="https://ghostswap.nvrkth.com" style="color: #7d7d76;">ghostswap.nvrkth.com</a>
+                Fantomio &middot; <a href="https://fantomio.com" style="color: #7d7d76;">fantomio.com</a>
               </p>
             </td>
           </tr>
@@ -128,8 +128,8 @@ INSERT INTO email_templates (name, subject, html) VALUES
         <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width: 480px; border-collapse: collapse;">
           <tr>
             <td style="padding-bottom: 36px;">
-              <a href="https://ghostswap.nvrkth.com" style="text-decoration: none;">
-                <img src="https://ghostswap.nvrkth.com/email-logo.png" width="175" height="30" alt="ghostswap" style="display: block; border: 0;">
+              <a href="https://fantomio.com" style="text-decoration: none;">
+                <img src="https://fantomio.com/email-logo.png" width="175" height="30" alt="fantomio" style="display: block; border: 0;">
               </a>
             </td>
           </tr>
@@ -157,7 +157,7 @@ INSERT INTO email_templates (name, subject, html) VALUES
             <td style="padding: 20px 4px 0;">
               <p style="margin: 0 0 24px; font-size: 14px; line-height: 21px; color: #7d7d76;">Te avisamos como máximo una vez cada 15 minutos por grupo.</p>
               <p style="margin: 0; font-size: 14px; color: #7d7d76;">
-                GhostSwap &middot; <a href="https://ghostswap.nvrkth.com" style="color: #7d7d76;">ghostswap.nvrkth.com</a>
+                Fantomio &middot; <a href="https://fantomio.com" style="color: #7d7d76;">fantomio.com</a>
               </p>
             </td>
           </tr>
@@ -183,8 +183,8 @@ INSERT INTO email_templates (name, subject, html) VALUES
         <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width: 480px; border-collapse: collapse;">
           <tr>
             <td style="padding-bottom: 36px;">
-              <a href="https://ghostswap.nvrkth.com" style="text-decoration: none;">
-                <img src="https://ghostswap.nvrkth.com/email-logo.png" width="175" height="30" alt="ghostswap" style="display: block; border: 0;">
+              <a href="https://fantomio.com" style="text-decoration: none;">
+                <img src="https://fantomio.com/email-logo.png" width="175" height="30" alt="fantomio" style="display: block; border: 0;">
               </a>
             </td>
           </tr>
@@ -212,7 +212,7 @@ INSERT INTO email_templates (name, subject, html) VALUES
             <td style="padding: 20px 4px 0;">
               <p style="margin: 0 0 24px; font-size: 14px; line-height: 21px; color: #7d7d76;">Te avisamos como máximo una vez cada 12 horas por grupo.</p>
               <p style="margin: 0; font-size: 14px; color: #7d7d76;">
-                GhostSwap &middot; <a href="https://ghostswap.nvrkth.com" style="color: #7d7d76;">ghostswap.nvrkth.com</a>
+                Fantomio &middot; <a href="https://fantomio.com" style="color: #7d7d76;">fantomio.com</a>
               </p>
             </td>
           </tr>
@@ -238,8 +238,8 @@ INSERT INTO email_templates (name, subject, html) VALUES
         <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width: 480px; border-collapse: collapse;">
           <tr>
             <td style="padding-bottom: 36px;">
-              <a href="https://ghostswap.nvrkth.com" style="text-decoration: none;">
-                <img src="https://ghostswap.nvrkth.com/email-logo.png" width="175" height="30" alt="ghostswap" style="display: block; border: 0;">
+              <a href="https://fantomio.com" style="text-decoration: none;">
+                <img src="https://fantomio.com/email-logo.png" width="175" height="30" alt="fantomio" style="display: block; border: 0;">
               </a>
             </td>
           </tr>
@@ -268,7 +268,7 @@ INSERT INTO email_templates (name, subject, html) VALUES
             <td style="padding: 20px 4px 0;">
               <p style="margin: 0 0 24px; font-size: 14px; line-height: 21px; color: #7d7d76;">Si no respondes antes del sorteo, quedas fuera de esta vuelta.</p>
               <p style="margin: 0; font-size: 14px; color: #7d7d76;">
-                GhostSwap &middot; <a href="https://ghostswap.nvrkth.com" style="color: #7d7d76;">ghostswap.nvrkth.com</a>
+                Fantomio &middot; <a href="https://fantomio.com" style="color: #7d7d76;">fantomio.com</a>
               </p>
             </td>
           </tr>
@@ -294,8 +294,8 @@ INSERT INTO email_templates (name, subject, html) VALUES
         <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width: 480px; border-collapse: collapse;">
           <tr>
             <td style="padding-bottom: 36px;">
-              <a href="https://ghostswap.nvrkth.com" style="text-decoration: none;">
-                <img src="https://ghostswap.nvrkth.com/email-logo.png" width="175" height="30" alt="ghostswap" style="display: block; border: 0;">
+              <a href="https://fantomio.com" style="text-decoration: none;">
+                <img src="https://fantomio.com/email-logo.png" width="175" height="30" alt="fantomio" style="display: block; border: 0;">
               </a>
             </td>
           </tr>
@@ -324,7 +324,7 @@ INSERT INTO email_templates (name, subject, html) VALUES
             <td style="padding: 20px 4px 0;">
               <p style="margin: 0 0 24px; font-size: 14px; line-height: 21px; color: #7d7d76;">Solo tú ves a quién le regalas.</p>
               <p style="margin: 0; font-size: 14px; color: #7d7d76;">
-                GhostSwap &middot; <a href="https://ghostswap.nvrkth.com" style="color: #7d7d76;">ghostswap.nvrkth.com</a>
+                Fantomio &middot; <a href="https://fantomio.com" style="color: #7d7d76;">fantomio.com</a>
               </p>
             </td>
           </tr>
@@ -350,8 +350,8 @@ INSERT INTO email_templates (name, subject, html) VALUES
         <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width: 480px; border-collapse: collapse;">
           <tr>
             <td style="padding-bottom: 36px;">
-              <a href="https://ghostswap.nvrkth.com" style="text-decoration: none;">
-                <img src="https://ghostswap.nvrkth.com/email-logo.png" width="175" height="30" alt="ghostswap" style="display: block; border: 0;">
+              <a href="https://fantomio.com" style="text-decoration: none;">
+                <img src="https://fantomio.com/email-logo.png" width="175" height="30" alt="fantomio" style="display: block; border: 0;">
               </a>
             </td>
           </tr>
@@ -379,7 +379,7 @@ INSERT INTO email_templates (name, subject, html) VALUES
             <td style="padding: 20px 4px 0;">
               <p style="margin: 0 0 24px; font-size: 14px; line-height: 21px; color: #7d7d76;">Solo tú ves quién te regaló, y solo porque esa persona lo decidió.</p>
               <p style="margin: 0; font-size: 14px; color: #7d7d76;">
-                GhostSwap &middot; <a href="https://ghostswap.nvrkth.com" style="color: #7d7d76;">ghostswap.nvrkth.com</a>
+                Fantomio &middot; <a href="https://fantomio.com" style="color: #7d7d76;">fantomio.com</a>
               </p>
             </td>
           </tr>

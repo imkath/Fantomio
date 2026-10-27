@@ -17,7 +17,7 @@ export function Logo({ size = 'md', linkToHome = true }: LogoProps) {
     <span className="text-ink flex items-center gap-2.5">
       <GhostMark className={sizes[size].mark} />
       <span className={`font-display leading-none tracking-[-0.01em] ${sizes[size].text}`}>
-        ghostswap
+        fantomio
       </span>
     </span>
   )
@@ -27,7 +27,7 @@ export function Logo({ size = 'md', linkToHome = true }: LogoProps) {
   return (
     <Link
       href="/"
-      aria-label="GhostSwap, ir al inicio"
+      aria-label="Fantomio, ir al inicio"
       className="transition-opacity hover:opacity-80"
     >
       {content}
