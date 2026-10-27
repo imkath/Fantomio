@@ -96,3 +96,15 @@ jobs:
         uses: cloudflare/wrangler-action@9acf94ace14e7dc412b076f2c5c20b8ce93c79cd # v3.15.0
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+
+      # IndexNow avisa a Bing (y a los demás buscadores que lo usan) qué páginas cambiaron, sin
+      # esperar a que las vuelvan a rastrear. La clave es el archivo public/<clave>.txt. Si el
+      # aviso falla no se cae el deploy: el sitemap sigue ahí.
+      - name: Notify search engines (IndexNow)
+        continue-on-error: true
+        run: |
+          KEY=4eda86bb5eb5e3ace7418667e3c81f0c
+          URLS=$(curl -s https://fantomio.com/sitemap.xml | grep -o '<loc>[^<]*' | sed 's/<loc>//' | jq -R . | jq -s -c .)
+          curl -s -o /dev/null -w "IndexNow %{http_code}\n" -X POST https://api.indexnow.org/indexnow \
+            -H 'Content-Type: application/json; charset=utf-8' \
+            -d "{\"host\":\"fantomio.com\",\"key\":\"$KEY\",\"keyLocation\":\"https://fantomio.com/$KEY.txt\",\"urlList\":$URLS}"

@@ -3,6 +3,6 @@
 export const LEGAL = {
   responsable: 'Katherine Castillo, persona natural con domicilio en Chile',
   contacto: 'privacidad@fantomio.com',
-  version: '2.6',
+  version: '2.7',
   fecha: '27 de octubre de 2026',
 }

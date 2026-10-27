@@ -272,6 +272,35 @@
   font-size: 17px;
   max-width: 52ch;
 }
+.guides {
+  margin-top: 48px;
+  padding-top: 28px;
+  border-top: 1px solid var(--rule);
+}
+.guides h3 {
+  font-weight: 700;
+  font-size: 19px;
+  margin: 0 0 10px;
+}
+.guides ul {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px clamp(24px, 5vw, 64px);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.guides a {
+  color: var(--ink);
+  font-size: 17px;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+@media (max-width: 640px) {
+  .guides ul {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
 
 .closing {
   display: flex;
@@ -314,4 +343,10 @@
   .faq {
     grid-template-columns: 1fr;
   }
+}
+
+.rating {
+  margin-top: 18px;
+  color: var(--graphite);
+  font-size: 15px;
 }

@@ -8,6 +8,7 @@ import { HeroEyes } from '@/components/landing/hero-eyes'
 import { DrawDemo } from '@/components/landing/draw-demo'
 import { StepsStory } from '@/components/landing/steps-story'
 import s from '@/components/landing/landing.module.css'
+import { GUIDES } from '@/lib/guides'
 
 export const metadata: Metadata = {
   alternates: { canonical: '/' },
@@ -98,6 +99,32 @@ const jsonLdBlocks = [
   },
 ].map((block) => ({ '@context': 'https://schema.org', ...block }))
 
+// Ratings collected inside the app (rate_app). Read once at build time; shown on the page and
+// added to the WebApplication JSON-LD only with enough real ratings, as Google requires them to be
+// genuine and visible.
+const MIN_RATINGS = 5
+type Rating = { count: number; average: number }
+async function getRating(): Promise<Rating | null> {
+  try {
+    const res = await fetch(
+      `${process.env.NEXT_PUBLIC_SUPABASE_URL}/rest/v1/rpc/app_rating_summary`,
+      {
+        method: 'POST',
+        headers: {
+          apikey: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+          'Content-Type': 'application/json',
+        },
+        body: '{}',
+      }
+    )
+    if (!res.ok) return null
+    const r = (await res.json()) as Rating
+    return r.count >= MIN_RATINGS ? r : null
+  } catch {
+    return null
+  }
+}
+
 const faqJsonLd = {
   '@context': 'https://schema.org',
   '@type': 'FAQPage',
@@ -114,10 +141,27 @@ const ld = (data: object) => ({ __html: JSON.stringify(data).replace(/</g, '\\u0
 
 const len = (n: number) => ({ '--len': n }) as React.CSSProperties
 
-export default function LandingPage() {
+export default async function LandingPage() {
+  const rating = await getRating()
+  const blocks = rating
+    ? jsonLdBlocks.map((block) =>
+        block['@type'] === 'WebApplication'
+          ? {
+              ...block,
+              aggregateRating: {
+                '@type': 'AggregateRating',
+                ratingValue: rating.average,
+                ratingCount: rating.count,
+                bestRating: 5,
+                worstRating: 1,
+              },
+            }
+          : block
+      )
+    : jsonLdBlocks
   return (
     <div className={s.page}>
-      {jsonLdBlocks.map((block) => (
+      {blocks.map((block) => (
         <script
           key={block['@type']}
           type="application/ld+json"
@@ -285,6 +329,16 @@ export default function LandingPage() {
                 </div>
               ))}
             </div>
+            <nav className={s.guides} aria-labelledby="t-guias">
+              <h3 id="t-guias">Guías</h3>
+              <ul>
+                {GUIDES.map((g) => (
+                  <li key={g.slug}>
+                    <Link href={`/${g.slug}`}>{g.title}</Link>
+                  </li>
+                ))}
+              </ul>
+            </nav>
           </section>
 
           <section className={`${s.section} ${s.closing}`} aria-labelledby="t-end">
@@ -294,6 +348,12 @@ export default function LandingPage() {
             <Link className={`${s.btn} btn-paper`} href="/login">
               Crear un grupo
             </Link>
+            {rating && (
+              <p className={s.rating}>
+                Nota {rating.average.toLocaleString('es-CL')} de 5, según {rating.count} personas
+                que lo usaron.
+              </p>
+            )}
           </section>
         </main>
 

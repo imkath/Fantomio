@@ -55,6 +55,7 @@ import {
   removeMember,
   transferGroup,
 } from '@/lib/actions/group'
+import { RateApp } from '@/components/rate-app'
 import { GhostMark } from '@/components/ghost-mark'
 import { GhostAvatar } from '@/components/ghost-avatar'
 import { celebrate } from '@/lib/confetti'
@@ -766,6 +767,7 @@ function GroupPage() {
                 )}
               </section>
             )}
+            {drawn && match && showMatch && <RateApp />}
 
             {/* Anonymous messages received (someone is asking YOU) */}
             {drawn && !archived && (

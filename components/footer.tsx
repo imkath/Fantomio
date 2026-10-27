@@ -17,7 +17,11 @@ export function Footer() {
           nvrkth.com
         </a>
       </span>
-      <nav className="flex gap-2" aria-label="Enlaces legales">
+      <nav className="flex gap-2" aria-label="Más enlaces">
+        <Link href="/guias" className="hover:text-ink underline underline-offset-[3px]">
+          Guías
+        </Link>
+        <span aria-hidden="true">·</span>
         <Link href="/privacy" className="hover:text-ink underline underline-offset-[3px]">
           Privacidad
         </Link>

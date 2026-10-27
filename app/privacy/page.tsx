@@ -102,6 +102,11 @@ export default function PrivacyPage() {
                   nuestro proveedor de autenticación guarda por seguridad.
                 </li>
                 <li>
+                  <strong>Valoración:</strong> si calificas Fantomio de 1 a 5, guardamos tu nota
+                  asociada a tu cuenta, para que cuente una sola vez. Solo mostramos el promedio y
+                  la cantidad de notas, nunca quién puso cuál.
+                </li>
+                <li>
                   <strong>Reportes de errores:</strong> si una pantalla falla, se envía un reporte
                   técnico con el error, la dirección de la página sin los códigos que lleve, el
                   navegador, el sistema, el idioma, la zona horaria y el país aproximado de la
