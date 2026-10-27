@@ -96,8 +96,9 @@ npm run dev
 
 ### Base de datos
 
-1. Ejecuta [supabase/schema.sql](supabase/schema.sql) en el SQL Editor de Supabase. Es el estado
-   actual completo; el historial de cambios está en `supabase/migrations/`.
+1. Aplica las migraciones de `supabase/migrations/` en orden. La primera
+   (`20261027120000_baseline.sql`) es el esquema completo de producción a esa fecha; lo anterior
+   quedó como registro en `supabase/migrations_history/` y no se vuelve a ejecutar.
 2. Carga las plantillas de correo: [supabase/templates/notification-emails.sql](supabase/templates/notification-emails.sql)
    (se generan con `scripts/build-auth-emails.ts`).
 3. Para que salgan los avisos (sorteo, preguntas, listas), guarda la clave API de Brevo en Vault
@@ -106,6 +107,17 @@ npm run dev
    Supabase Auth y necesitan un SMTP propio: el que trae Supabase solo entrega a los miembros del
    equipo del proyecto, 2 por hora. Aquí se usa el SMTP de Brevo (`smtp-relay.brevo.com:587`,
    remitente `hello@nvrkth.com`), con las plantillas de `supabase/templates/*.html`.
+
+### Cambiar la base
+
+Ningún cambio se prueba en producción:
+
+1. `supabase migration new nombre_del_cambio` crea el archivo en `supabase/migrations/`.
+2. Al hacer push, CI levanta un Supabase desechable, aplica todas las migraciones y corre
+   `tests/db`. Si algo falla, no hay deploy.
+3. Con CI en verde, `SUPABASE_ACCESS_TOKEN=... node scripts/db-push.mjs` muestra lo pendiente
+   y `--apply` lo aplica. Cada migración se ejecuta en una transacción junto con su fila en
+   `supabase_migrations.schema_migrations` (la tabla que lee `supabase migration list`).
 
 ---
 
@@ -170,6 +182,19 @@ Qué se verifica:
 - **Códigos de invitación:** formato, entropía y unicidad sobre miles de generaciones.
 - **Validación:** los esquemas Zod que filtran lo que se escribe en la base.
 
+La base tiene sus propias pruebas en `tests/db`: privacidad de listas y parejas, organización y
+traspaso, cuenta (unir, exportar, borrar), ediciones, modo a ciegas y censura de nombres. CI las
+corre contra un Supabase local (`supabase start`) antes de cada deploy. Para correrlas en tu equipo,
+con Docker:
+
+```bash
+supabase start
+eval "$(supabase status -o env)" && export API_URL ANON_KEY SERVICE_ROLE_KEY DB_URL
+python3 tests/db/run_all.py
+```
+
+Se niegan a correr si la URL no es local.
+
 ---
 
 ## 🗂️ Estructura
@@ -187,9 +212,12 @@ ghostswap/
 │   ├── email-layout.ts   # HTML de todos los correos
 │   └── ...
 ├── supabase/
-│   ├── schema.sql        # Esquema actual, generado desde la base
-│   ├── migrations/       # Historial de cambios
+│   ├── migrations/       # Línea base y cambios desde el 27-oct-2026
+│   ├── migrations_history/ # Cambios anteriores, solo como registro
+│   ├── schema.sql        # Foto del esquema, generada desde la base
 │   └── templates/        # Correos de Auth y de notificaciones
+├── tests/db/             # Pruebas de la base contra un Supabase local
+├── scripts/db-push.mjs   # Aplica migraciones pendientes a producción
 ├── keepalive/            # Worker que evita que Supabase se pause
 ├── public/_headers       # Cabeceras de seguridad y caché
 ├── public/_redirects     # Rutas antiguas
