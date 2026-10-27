@@ -483,7 +483,7 @@ export function RevealedGiver({ groupId }: { groupId: string }) {
     <section className="border-rule bg-raised flex items-center gap-4 rounded-[4px] border p-6">
       <Gift className="text-hanko size-7 shrink-0" aria-hidden="true" />
       <p>
-        Quien te regaló quiso contártelo. Fue <strong>{giver}</strong>.
+        Quien te regaló quiso contártelo: fue <strong>{giver}</strong>.
       </p>
     </section>
   )
