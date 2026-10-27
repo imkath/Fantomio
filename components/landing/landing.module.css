@@ -222,9 +222,9 @@
   margin: 0;
 }
 .facts {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 12px 36px;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 20px clamp(20px, 3vw, 40px);
   font-size: 17px;
   color: var(--graphite);
   border-block: 1px solid var(--rule);
@@ -233,9 +233,23 @@
   list-style: none;
   padding-inline: 0;
 }
+.facts li {
+  line-height: 1.45;
+}
 .facts b {
+  display: block;
   color: var(--ink);
   font-weight: 500;
+}
+@media (max-width: 900px) {
+  .facts {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+@media (max-width: 480px) {
+  .facts {
+    grid-template-columns: minmax(0, 1fr);
+  }
 }
 
 .faq {

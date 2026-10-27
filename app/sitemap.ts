@@ -10,10 +10,10 @@ const baseUrl = 'https://fantomio.com'
 // changeFrequency and priority, so they're left out.
 export default function sitemap(): MetadataRoute.Sitemap {
   return [
-    { url: baseUrl, lastModified: '2026-10-13' },
-    { url: `${baseUrl}/login`, lastModified: '2026-10-13' },
-    { url: `${baseUrl}/register`, lastModified: '2026-10-13' },
-    { url: `${baseUrl}/privacy`, lastModified: '2026-10-12' },
-    { url: `${baseUrl}/terms`, lastModified: '2026-10-12' },
+    { url: baseUrl, lastModified: '2026-10-27' },
+    { url: `${baseUrl}/login`, lastModified: '2026-10-27' },
+    { url: `${baseUrl}/register`, lastModified: '2026-10-27' },
+    { url: `${baseUrl}/privacy`, lastModified: '2026-10-27' },
+    { url: `${baseUrl}/terms`, lastModified: '2026-10-27' },
   ]
 }

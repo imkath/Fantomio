@@ -59,17 +59,19 @@ const FAQ = [
   },
   {
     q: '¿Por qué se llama Fantomio?',
-    a: 'Porque hasta el intercambio, quien te regala es tu fantasma. Antes se llamaba GhostSwap; tus grupos y tu cuenta siguen igual.',
+    a: 'Porque hasta el intercambio, quien te regala es tu fantasma.',
   },
 ]
 
 // The site, who runs it and the app itself, each in its own block (some validators don't
-// read @graph). Everything here is visible on the page.
+// read @graph). Everything here is visible on the page, except the old name in alternateName.
 const jsonLdBlocks = [
   {
     '@type': 'WebSite',
     '@id': 'https://fantomio.com/#website',
     name: 'Fantomio',
+    // The site's previous name, so search engines tie the old results to this one.
+    alternateName: 'GhostSwap',
     url: 'https://fantomio.com',
     inLanguage: 'es',
     publisher: { '@id': 'https://fantomio.com/#organization' },
@@ -89,6 +91,7 @@ const jsonLdBlocks = [
     url: 'https://fantomio.com',
     applicationCategory: 'LifestyleApplication',
     operatingSystem: 'Web',
+    isAccessibleForFree: true,
     offers: { '@type': 'Offer', price: '0', priceCurrency: 'USD' },
     inLanguage: 'es',
     publisher: { '@id': 'https://fantomio.com/#organization' },
@@ -245,13 +248,13 @@ export default function LandingPage() {
 
           <ul className={s.facts} aria-label="Lo que incluye">
             <li>
-              <b>Gratis</b>, sin plan pagado
+              <b>Gratis</b> sin plan pagado
             </li>
             <li>
               <b>Mensajes anónimos</b> con tu amigo secreto
             </li>
             <li>
-              Puedes evitar que se toquen <b>parejas o hermanos</b>
+              <b>Parejas o hermanos</b> separados, si quieres
             </li>
             <li>
               <b>Listas de deseos</b> con links
