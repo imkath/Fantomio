@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { cn, parseLocalDate, formatLocalDate } from '../utils'
+import { cn, daysBetween, parseLocalDate, formatLocalDate, todayIn } from '../utils'
 
 describe('cn (class names utility)', () => {
   it('merges simple class names', () => {
@@ -123,5 +123,40 @@ describe('safeRedirect', () => {
     expect(safeRedirect(decodeURIComponent('/%09/evil.example'))).toBe('/dashboard')
     expect(safeRedirect('/join?code=a1b2c3d4e5f6')).toBe('/join?code=a1b2c3d4e5f6')
     expect(safeRedirect('/groups?id=1#lista')).toBe('/groups?id=1#lista')
+  })
+})
+
+describe('todayIn', () => {
+  // 02:30 UTC on 25 Dec is still the evening of the 24th in Chile.
+  const lateEve = new Date('2026-12-25T02:30:00Z')
+
+  it("gives the date on the group's calendar, not UTC", () => {
+    expect(todayIn('America/Santiago', lateEve)).toBe('2026-12-24')
+    expect(todayIn('Europe/Madrid', lateEve)).toBe('2026-12-25')
+    expect(todayIn('UTC', lateEve)).toBe('2026-12-25')
+  })
+
+  it('handles both sides of the Chilean clock changes', () => {
+    // April: clocks go back (UTC-3 to UTC-4). 03:30 UTC on the 5th is 23:30 on the 4th.
+    expect(todayIn('America/Santiago', new Date('2026-04-05T03:30:00Z'))).toBe('2026-04-04')
+    // September: clocks go forward (UTC-4 to UTC-3). 04:30 UTC on the 6th is 00:30 on the 6th.
+    expect(todayIn('America/Santiago', new Date('2026-09-06T04:30:00Z'))).toBe('2026-09-06')
+  })
+
+  it('falls back to the device zone on an unknown name', () => {
+    expect(todayIn('Not/AZone', lateEve)).toMatch(/^\d{4}-\d{2}-\d{2}$/)
+  })
+})
+
+describe('daysBetween', () => {
+  it('counts calendar days', () => {
+    expect(daysBetween('2026-12-20', '2026-12-24')).toBe(4)
+    expect(daysBetween('2026-12-24', '2026-12-24')).toBe(0)
+    expect(daysBetween('2026-12-25', '2026-12-24')).toBe(-1)
+  })
+
+  it('is not thrown off by a 25 or 23 hour day', () => {
+    expect(daysBetween('2026-04-04', '2026-04-06')).toBe(2)
+    expect(daysBetween('2026-09-05', '2026-09-07')).toBe(2)
   })
 })

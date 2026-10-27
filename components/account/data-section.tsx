@@ -17,6 +17,7 @@ import { AccountSection, Setting } from '@/components/account/section'
 import { clearAvatarFiles } from '@/components/account/profile-section'
 import { createClient } from '@/lib/supabase'
 import { getUserFriendlyError } from '@/lib/errors'
+import { todayIn } from '@/lib/utils'
 
 export function DataSection({
   userId,
@@ -49,7 +50,7 @@ export function DataSection({
     const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' })
     const link = document.createElement('a')
     link.href = URL.createObjectURL(blob)
-    link.download = `fantomio-mis-datos-${new Date().toISOString().slice(0, 10)}.json`
+    link.download = `fantomio-mis-datos-${todayIn()}.json`
     link.click()
     URL.revokeObjectURL(link.href)
   }

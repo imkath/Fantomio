@@ -4,11 +4,14 @@ import { useState } from 'react'
 import { Banknote, CalendarDays, Check, Copy, Hash } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { toast } from 'sonner'
+import { daysBetween, parseLocalDate, todayIn } from '@/lib/utils'
 
 interface GroupInfoCardProps {
   budget: number | null
   currency?: string
   exchangeDate: string | null
+  // The group's time zone, so "Es hoy" flips at midnight on the group's calendar.
+  timeZone?: string
   inviteCode?: string
 }
 
@@ -16,6 +19,7 @@ export function GroupInfoCard({
   budget,
   currency = 'CLP',
   exchangeDate,
+  timeZone,
   inviteCode,
 }: GroupInfoCardProps) {
   const [codeCopied, setCodeCopied] = useState(false)
@@ -34,13 +38,6 @@ export function GroupInfoCard({
     }
   }
 
-  // Parse date string as local date to avoid timezone issues
-  // "2024-12-24" should be Dec 24, not Dec 23 due to UTC conversion
-  const parseLocalDate = (dateString: string) => {
-    const [year, month, day] = dateString.split('-').map(Number)
-    return new Date(year, month - 1, day)
-  }
-
   const formatDate = (dateString: string) => {
     const date = parseLocalDate(dateString)
     return date.toLocaleDateString('es-ES', {
@@ -48,16 +45,6 @@ export function GroupInfoCard({
       day: 'numeric',
       month: 'long',
     })
-  }
-
-  const getDaysUntil = (dateString: string) => {
-    const date = parseLocalDate(dateString)
-    const today = new Date()
-    today.setHours(0, 0, 0, 0)
-    date.setHours(0, 0, 0, 0)
-    const diffTime = date.getTime() - today.getTime()
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
-    return diffDays
   }
 
   const formatCurrency = (amount: number, currencyCode: string) => {
@@ -85,7 +72,7 @@ export function GroupInfoCard({
     return `${symbol}${formattedAmount}`
   }
 
-  const days = exchangeDate ? getDaysUntil(exchangeDate) : -1
+  const days = exchangeDate ? daysBetween(todayIn(timeZone), exchangeDate) : -1
 
   return (
     <section className="border-rule bg-slip rounded-[4px] border p-6">

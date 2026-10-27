@@ -22,6 +22,31 @@ export function formatLocalDate(dateString: string, locale = 'es-ES'): string {
   return parseLocalDate(dateString).toLocaleDateString(locale)
 }
 
+/**
+ * Today's date (YYYY-MM-DD) in a time zone; the group's, so everyone in the group and the
+ * server agree on when the exchange day has come. Falls back to the device's own zone.
+ */
+export function todayIn(timeZone?: string, now: Date = new Date()): string {
+  try {
+    // en-CA formats as YYYY-MM-DD.
+    return new Intl.DateTimeFormat('en-CA', { timeZone }).format(now)
+  } catch {
+    return new Intl.DateTimeFormat('en-CA').format(now)
+  }
+}
+
+/**
+ * Whole calendar days from one YYYY-MM-DD to another. Counted on UTC dates, so a 23 or 25 hour
+ * day (when the clocks change) never makes it one off.
+ */
+export function daysBetween(from: string, to: string): number {
+  const utc = (d: string) => {
+    const [y, m, day] = d.split('-').map(Number)
+    return Date.UTC(y, m - 1, day)
+  }
+  return Math.round((utc(to) - utc(from)) / 86_400_000)
+}
+
 const NAME_PARTICLES = new Set(['de', 'del', 'la', 'las', 'los', 'y', 'e', 'da', 'van', 'von'])
 
 /**

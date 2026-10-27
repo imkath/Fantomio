@@ -66,7 +66,7 @@ import { GroupInfoCard } from '@/components/group-info-card'
 import { ExclusionsManager } from '@/components/exclusions-manager'
 import { AnonymousChat } from '@/components/anonymous-chat'
 import { Input } from '@/components/ui/input'
-import { formatName } from '@/lib/utils'
+import { formatName, todayIn } from '@/lib/utils'
 import { toast } from 'sonner'
 
 interface Member {
@@ -109,6 +109,7 @@ interface Group {
   mode: GroupMode
   reveal_at: string | null
   revealed_at: string | null
+  time_zone: string
 }
 
 // "2026-12-24T20:00" for <input type="datetime-local">, in the viewer's time zone.
@@ -555,7 +556,8 @@ function GroupPage() {
   const drawn = group.status === 'DRAWN'
   // A keepsake: everything shows, nothing changes (the database enforces it too).
   const archived = !!group.archived_at
-  const today = new Date().toISOString().slice(0, 10)
+  // The group's calendar, the same one the database uses to allow the reveal.
+  const today = todayIn(group.time_zone)
   const exchangeDone = archived || (!!group.exchange_date && group.exchange_date <= today)
   const blind = group.mode === 'blind'
   const blindHidden = blind && !group.revealed_at
@@ -822,6 +824,7 @@ function GroupPage() {
               budget={group.budget}
               currency={group.currency}
               exchangeDate={group.exchange_date}
+              timeZone={group.time_zone}
               inviteCode={archived ? undefined : group.invite_code}
             />
 

@@ -11,6 +11,7 @@ import { Notice } from '@/components/auth-shell'
 import { createClient, getSessionUser } from '@/lib/supabase'
 import { getUserFriendlyError } from '@/lib/errors'
 import { deviceCurrency } from '@/lib/currency'
+import { todayIn } from '@/lib/utils'
 
 // Create a group, from the "Crear grupo" modal in the dashboard.
 
@@ -84,6 +85,8 @@ export function NewGroupForm({
           currency,
           exchange_date: eventDate || null,
           mode,
+          // The calendar the exchange date belongs to (see group_today in the database).
+          time_zone: Intl.DateTimeFormat().resolvedOptions().timeZone || 'America/Santiago',
         })
         .select()
         .single()
@@ -188,7 +191,7 @@ export function NewGroupForm({
               type="date"
               value={eventDate}
               onChange={(e) => setEventDate(e.target.value)}
-              min={new Date().toISOString().split('T')[0]}
+              min={todayIn()}
             />
           </div>
         </div>
