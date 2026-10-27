@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button'
 import { Notice } from '@/components/auth-shell'
 import { Breadcrumbs } from '@/components/breadcrumbs'
 import { clearAvatarFiles } from '@/components/account/profile-section'
+import { PROFILE_UPDATED } from '@/components/app-header'
 import { createClient, getSessionUser } from '@/lib/supabase'
 import { getUserFriendlyError } from '@/lib/errors'
 import {
@@ -68,7 +69,10 @@ export default function MergePage() {
   const restore = async (pending: PendingMerge) => {
     const supabase = createClient()
     const { data, error: restoreError } = await supabase.auth.setSession(pending.keep)
-    if (!restoreError && data.session) return true
+    if (!restoreError && data.session) {
+      window.dispatchEvent(new Event(PROFILE_UPDATED))
+      return true
+    }
     await supabase.auth.signOut({ scope: 'local' })
     return false
   }

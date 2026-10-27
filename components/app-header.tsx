@@ -44,8 +44,9 @@ export function AppHeader() {
       if (!authUser) return
       const fallbackName = formatName(authUser.user_metadata?.name) || authUser.email?.split('@')[0]
       // Show what the session already knows right away, then refine with the profile row.
+      // A different id means the session switched to another account (Unir cuentas).
       setUser((u) =>
-        u
+        u && u.id === authUser.id
           ? { ...u, email: authUser.email || u.email }
           : {
               id: authUser.id,
@@ -60,14 +61,15 @@ export function AppHeader() {
         .eq('id', authUser.id)
         .single()
       if (profile) {
-        setUser(
-          (u) =>
-            u && {
-              ...u,
-              name: formatName(profile.full_name) || u.name,
-              // null means "no photo" (the ghost), not "unknown".
-              avatar_url: profile.avatar_url ?? undefined,
-            }
+        setUser((u) =>
+          u && u.id === authUser.id
+            ? {
+                ...u,
+                name: formatName(profile.full_name) || u.name,
+                // null means "no photo" (the ghost), not "unknown".
+                avatar_url: profile.avatar_url ?? undefined,
+              }
+            : u
         )
         // The account's default theme applies once per visit; the sun/moon switch then
         // changes it for this device only.
