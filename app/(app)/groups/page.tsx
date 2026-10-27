@@ -67,6 +67,13 @@ import { ExclusionsManager } from '@/components/exclusions-manager'
 import { AnonymousChat } from '@/components/anonymous-chat'
 import { Input } from '@/components/ui/input'
 import { formatName, todayIn } from '@/lib/utils'
+import {
+  PlaceFields,
+  placeError,
+  placeToSave,
+  type PlaceDraft,
+} from '@/components/group/place-fields'
+import type { PlaceKind } from '@/lib/place'
 import { toast } from 'sonner'
 
 interface Member {
@@ -110,6 +117,9 @@ interface Group {
   reveal_at: string | null
   revealed_at: string | null
   time_zone: string
+  place_kind: PlaceKind | null
+  place_name: string | null
+  place_detail: string | null
 }
 
 // "2026-12-24T20:00" for <input type="datetime-local">, in the viewer's time zone.
@@ -166,6 +176,7 @@ function GroupPage() {
   const [editBudget, setEditBudget] = useState('')
   const [editCurrency, setEditCurrency] = useState('CLP')
   const [editDate, setEditDate] = useState('')
+  const [editPlace, setEditPlace] = useState<PlaceDraft>({ kind: null, name: '', detail: '' })
   const [editMode, setEditMode] = useState<GroupMode>('classic')
   const [editRevealAt, setEditRevealAt] = useState('')
   const [isSaving, setIsSaving] = useState(false)
@@ -387,6 +398,11 @@ function GroupPage() {
       setEditBudget(group.budget?.toString() || '')
       setEditCurrency(group.currency || 'CLP')
       setEditDate(group.exchange_date || '')
+      setEditPlace({
+        kind: group.place_kind,
+        name: group.place_name ?? '',
+        detail: group.place_detail ?? '',
+      })
       setEditMode(group.mode)
       setEditRevealAt(group.reveal_at ? toLocalInput(group.reveal_at) : '')
       setShowEditDialog(true)
@@ -395,6 +411,13 @@ function GroupPage() {
 
   const handleSaveEdit = async () => {
     if (!group) return
+    // Never a silent no: a bad call link says why right where it is typed.
+    const badPlace = placeError(editPlace)
+    if (badPlace) {
+      toast.error(badPlace)
+      document.getElementById('place-detail')?.focus()
+      return
+    }
     setIsSaving(true)
 
     const result = await updateGroup(group.id, {
@@ -402,6 +425,7 @@ function GroupPage() {
       budget: editBudget ? parseFloat(editBudget) : null,
       currency: editCurrency,
       exchange_date: editDate || null,
+      ...placeToSave(editPlace),
       // The mode is locked once there is a draw (the database refuses it too).
       ...(group.status === 'PLANNING' ? { mode: editMode } : {}),
       ...(group.revealed_at
@@ -825,6 +849,11 @@ function GroupPage() {
               currency={group.currency}
               exchangeDate={group.exchange_date}
               timeZone={group.time_zone}
+              place={
+                group.place_kind
+                  ? { kind: group.place_kind, name: group.place_name, detail: group.place_detail }
+                  : null
+              }
               inviteCode={archived ? undefined : group.invite_code}
             />
 
@@ -1140,6 +1169,7 @@ function GroupPage() {
                 onChange={(e) => setEditDate(e.target.value)}
               />
             </div>
+            <PlaceFields value={editPlace} onChange={setEditPlace} />
             <ModePicker
               value={editMode}
               onChange={setEditMode}

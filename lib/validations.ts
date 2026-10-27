@@ -22,6 +22,10 @@ export const updateGroupSchema = z.object({
   mode: z.enum(['classic', 'blind']).optional(),
   // Backup time for a blind reveal (ISO with offset); null clears it.
   reveal_at: z.string().datetime({ offset: true }).nullable().optional(),
+  // Where the exchange happens (see lib/place.ts); the database checks the same rules.
+  place_kind: z.enum(['in_person', 'online']).nullable().optional(),
+  place_name: z.string().max(80, 'El nombre del lugar es muy largo').nullable().optional(),
+  place_detail: z.string().max(300, 'La dirección es muy larga').nullable().optional(),
 })
 
 export const groupIdSchema = z.string().uuid('ID de grupo inválido')
