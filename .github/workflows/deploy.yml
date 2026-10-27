@@ -33,8 +33,35 @@ jobs:
       - name: Run tests
         run: npm run test:run
 
+  # Las reglas de privacidad viven en la base, así que también se prueban ahí: se levanta un
+  # Supabase desechable dentro de esta máquina, se le aplican las migraciones de
+  # supabase/migrations y se corren tests/db contra él. Nunca toca producción.
+  db-test:
+    runs-on: ubuntu-latest
+    name: Database tests
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+
+      - name: Setup Supabase CLI
+        uses: supabase/setup-cli@45a513f8c64c0bc8e0e3dfe572b5c95be85f6359 # v3.0.1
+        with:
+          version: latest
+
+      - name: Start a throwaway Supabase with the migrations
+        run: supabase start -x studio,imgproxy,edge-runtime,logflare,vector,supavisor,realtime,postgres-meta
+
+      - name: Run database tests
+        run: |
+          eval "$(supabase status -o env)"
+          export API_URL ANON_KEY SERVICE_ROLE_KEY DB_URL
+          python3 tests/db/run_all.py
+
   deploy:
-    needs: test
+    needs: [test, db-test]
+    # Ramas y ejecuciones manuales solo prueban; publicar es solo desde main.
+    if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     name: Deploy
     environment:

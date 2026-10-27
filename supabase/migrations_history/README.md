@@ -31,12 +31,14 @@ supabase db push
 **Propósito:** Agregar soporte para restricciones de gifting
 
 **Cambios:**
+
 - Crea tabla `exclusions` para restricciones
 - Define relaciones con `groups` y `profiles`
 - Agrega políticas RLS para seguridad
 - Índices para optimización
 
 **SQL:**
+
 ```sql
 CREATE TABLE exclusions (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
@@ -50,12 +52,14 @@ CREATE TABLE exclusions (
 ```
 
 **Casos de uso:**
+
 - Parejas que no quieren intercambiar regalos entre sí
 - Familiares cercanos
 - Restricciones jerárquicas en empresas
 - Ver [documentación completa](../../docs/EXCLUSIONS.md)
 
 **Backward Compatibility:** ✅ Sí
+
 - Tabla nueva, no afecta funcionalidad existente
 - Los sorteos sin restricciones siguen funcionando igual
 
@@ -67,11 +71,13 @@ CREATE TABLE exclusions (
 **Propósito:** Agregar soporte multi-moneda a grupos
 
 **Cambios:**
+
 - Agrega columna `currency VARCHAR(3)` a tabla `groups`
 - Valor por defecto: `CLP` (Peso Chileno)
 - Índice para optimizar búsquedas por moneda
 
 **SQL:**
+
 ```sql
 ALTER TABLE groups ADD COLUMN currency VARCHAR(3) DEFAULT 'CLP';
 CREATE INDEX idx_groups_currency ON groups(currency);
@@ -79,6 +85,7 @@ COMMENT ON COLUMN groups.currency IS 'ISO 4217 currency code (e.g., CLP, USD, EU
 ```
 
 **Monedas soportadas:**
+
 - `CLP` - Peso Chileno ($)
 - `USD` - Dólar Estadounidense (US$)
 - `EUR` - Euro (€)
@@ -90,6 +97,7 @@ COMMENT ON COLUMN groups.currency IS 'ISO 4217 currency code (e.g., CLP, USD, EU
 - `GBP` - Libra Esterlina (£)
 
 **Backward Compatibility:** ✅ Sí
+
 - Los grupos existentes automáticamente obtendrán `currency = 'CLP'`
 - El sitio seguirá funcionando sin cambios
 
@@ -134,26 +142,30 @@ ALTER TABLE groups DROP COLUMN IF EXISTS currency;
 
 ## Estado de Migraciones
 
-| Archivo | Estado | Fecha Aplicada | Notas |
-|---------|--------|----------------|-------|
-| `fix_matches_policies.sql` | ✅ Aplicada | - | Migración inicial |
-| `20251124135813_add_currency_to_groups.sql` | ⏳ Pendiente | - | Soporte multi-moneda |
-| `20251124140000_add_exclusions_table.sql` | ⏳ Pendiente | - | Restricciones de gifting |
+| Archivo                                     | Estado       | Fecha Aplicada | Notas                    |
+| ------------------------------------------- | ------------ | -------------- | ------------------------ |
+| `fix_matches_policies.sql`                  | ✅ Aplicada  | -              | Migración inicial        |
+| `20251124135813_add_currency_to_groups.sql` | ⏳ Pendiente | -              | Soporte multi-moneda     |
+| `20251124140000_add_exclusions_table.sql`   | ⏳ Pendiente | -              | Restricciones de gifting |
 
 ---
 
 ## Troubleshooting
 
 ### Error: "column already exists"
+
 La migración ya fue aplicada. Verifica con:
+
 ```sql
 SELECT * FROM information_schema.columns WHERE table_name = 'groups' AND column_name = 'currency';
 ```
 
 ### Error: "permission denied"
+
 Asegúrate de tener permisos de administrador en la base de datos.
 
 ### La migración no aparece en producción
+
 1. Verifica que el archivo esté en el repositorio
 2. Ejecuta manualmente desde el SQL Editor
 3. Documenta la aplicación manual
@@ -173,5 +185,6 @@ Asegúrate de tener permisos de administrador en la base de datos.
 ## Contacto
 
 Si tienes problemas con las migraciones, revisa:
+
 - [Documentación de Supabase](https://supabase.com/docs/guides/database/migrations)
 - Logs de la base de datos en el dashboard de Supabase

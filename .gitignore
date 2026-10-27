@@ -44,3 +44,5 @@ next-env.d.ts
 
 # Lighthouse CI reports
 .lighthouseci/
+tests/db/*.json
+__pycache__/
