@@ -12,6 +12,12 @@ import { createClient, getSessionUser } from '@/lib/supabase'
 import { getUserFriendlyError } from '@/lib/errors'
 import { deviceCurrency } from '@/lib/currency'
 import { todayIn } from '@/lib/utils'
+import {
+  PlaceFields,
+  placeError,
+  placeToSave,
+  type PlaceDraft,
+} from '@/components/group/place-fields'
 
 // Create a group, from the "Crear grupo" modal in the dashboard.
 
@@ -41,6 +47,7 @@ export function NewGroupForm({
   const [currency, setCurrency] = useState<string>(deviceCurrency)
   const [eventDate, setEventDate] = useState('')
   const [mode, setMode] = useState<GroupMode>('classic')
+  const [place, setPlace] = useState<PlaceDraft>({ kind: null, name: '', detail: '' })
   const [error, setError] = useState('')
   const [isLoading, setIsLoading] = useState(false)
 
@@ -48,7 +55,7 @@ export function NewGroupForm({
     nameInputRef.current?.focus()
   }, [])
 
-  const dirty = !!(name.trim() || budget || eventDate)
+  const dirty = !!(name.trim() || budget || eventDate || place.name.trim() || place.detail.trim())
   useEffect(() => {
     onDirtyChange?.(dirty)
   }, [dirty, onDirtyChange])
@@ -60,6 +67,13 @@ export function NewGroupForm({
       setError('Ponle un nombre al grupo para crearlo.')
       nameInputRef.current?.focus()
       nameInputRef.current?.scrollIntoView({ block: 'center', behavior: 'smooth' })
+      return
+    }
+    // A bad call link already says why under its field; take the person there.
+    if (placeError(place)) {
+      const field = document.getElementById('place-detail')
+      field?.focus()
+      field?.scrollIntoView({ block: 'center', behavior: 'smooth' })
       return
     }
     setIsLoading(true)
@@ -84,6 +98,7 @@ export function NewGroupForm({
           budget: budget ? parseFloat(budget) : null,
           currency,
           exchange_date: eventDate || null,
+          ...placeToSave(place),
           mode,
           // The calendar the exchange date belongs to (see group_today in the database).
           time_zone: Intl.DateTimeFormat().resolvedOptions().timeZone || 'America/Santiago',
@@ -195,6 +210,8 @@ export function NewGroupForm({
             />
           </div>
         </div>
+
+        <PlaceFields value={place} onChange={setPlace} />
 
         <ModePicker value={mode} onChange={setMode} />
       </div>
