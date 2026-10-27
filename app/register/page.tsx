@@ -13,7 +13,7 @@ import { useSignedInRedirect } from '@/lib/use-signed-in-redirect'
 function RegisterForm() {
   const searchParams = useQuery()
   const redirectTo = safeRedirect(searchParams.get('redirectTo'))
-  useSignedInRedirect(redirectTo)
+  useSignedInRedirect()
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')

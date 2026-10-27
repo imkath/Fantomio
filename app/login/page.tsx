@@ -19,7 +19,7 @@ function LoginForm() {
   // Second step of "Unir otra cuenta": the account page saved who to merge into, and its
   // session stays open meanwhile, so don't send it on.
   const merging = searchParams.get('unir') === '1'
-  useSignedInRedirect(redirectTo, !merging)
+  useSignedInRedirect()
   const verified = searchParams.get('verified') === 'true'
   const deleted = searchParams.get('cuenta') === 'eliminada'
   const [mergeInto, setMergeInto] = useState<string | null>(null)
