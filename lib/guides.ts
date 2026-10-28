@@ -1,3 +1,5 @@
+import type { GuideArtName } from '@/components/guide-art'
+
 // The guides: real questions people search for (rules, WhatsApp, office, gift ideas), each
 // answered in full on its own page. `updated` is the date the content last changed for real;
 // the sitemap reads it, so bump it only when the text changes.
@@ -8,6 +10,9 @@ export interface Guide {
   short: string
   description: string
   updated: string
+  // Spot illustration (components/guide-art.tsx) and an honest reading time.
+  art: GuideArtName
+  minutes: number
 }
 
 export const GUIDES: Guide[] = [
@@ -18,6 +23,8 @@ export const GUIDES: Guide[] = [
     description:
       'Las reglas del amigo secreto (o amigo invisible), qué acordar antes del sorteo, variantes para hacerlo más entretenido y qué hacer si alguien se suma tarde o no puede ir.',
     updated: '2026-10-27',
+    art: 'reglas',
+    minutes: 4,
   },
   {
     slug: 'amigo-secreto-por-whatsapp',
@@ -26,6 +33,8 @@ export const GUIDES: Guide[] = [
     description:
       'Cómo organizar el amigo secreto desde un grupo de WhatsApp sin que nadie sepa todos los pares, y cómo hacerlo a distancia cuando el grupo no se puede juntar.',
     updated: '2026-10-27',
+    art: 'whatsapp',
+    minutes: 3,
   },
   {
     slug: 'amigo-secreto-oficina',
@@ -34,6 +43,8 @@ export const GUIDES: Guide[] = [
     description:
       'Qué decidir antes, cómo manejar grupos grandes, presupuesto parejo, personas que trabajan a distancia y un calendario simple para el amigo secreto del trabajo.',
     updated: '2026-10-27',
+    art: 'oficina',
+    minutes: 3,
   },
   {
     slug: 'ideas-de-regalo-amigo-secreto',
@@ -42,6 +53,8 @@ export const GUIDES: Guide[] = [
     description:
       'Ideas de regalo para el amigo secreto ordenadas por presupuesto, para cuando no conoces bien a la persona, para regalos que se envían y qué conviene evitar.',
     updated: '2026-10-27',
+    art: 'ideas',
+    minutes: 3,
   },
 ]
 
