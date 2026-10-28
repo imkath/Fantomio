@@ -62,7 +62,7 @@ export function PreferencesSection({
 
       <Setting
         title="Tema"
-        hint="Se aplica cada vez que entras. El botón del sol y la luna lo cambia solo en el dispositivo que estés usando."
+        hint="Vale tu última elección, aquí o con el botón del sol y la luna. Si entras desde otro dispositivo, parte con este tema."
       >
         <div role="radiogroup" aria-label="Tema" className="flex flex-wrap gap-2">
           {THEMES.map((t) => (
@@ -72,7 +72,7 @@ export function PreferencesSection({
               role="radio"
               aria-checked={chosen === t.value}
               onClick={() => pickTheme(t.value)}
-              className={`min-h-11 rounded-[4px] border px-4 text-[15px] transition-colors ${
+              className={`min-h-11 cursor-pointer rounded-[4px] border px-4 text-[15px] transition-colors ${
                 chosen === t.value
                   ? 'border-ink bg-ink text-paper'
                   : 'border-rule hover:border-ink text-ink'
@@ -86,7 +86,7 @@ export function PreferencesSection({
 
       <Setting
         title="Avisos por correo"
-        hint="Cuando se hace el sorteo, te preguntan algo, te responden o tu amigo secreto cambia su lista. Si los apagas, igual los ves en la campanita."
+        hint="Cuando se hace el sorteo, te preguntan algo, te responden, tu amigo secreto cambia su lista o se acerca el intercambio. Si los apagas, igual los ves en la campanita."
       >
         <label className="flex items-center gap-3">
           <Switch checked={emails} onCheckedChange={toggleEmails} aria-label="Avisos por correo" />

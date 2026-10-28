@@ -10,6 +10,7 @@ import { createClient, getSessionUser } from '@/lib/supabase'
 import { Logo } from '@/components/logo'
 import { formatName } from '@/lib/utils'
 import { ThemeToggle } from '@/components/theme-toggle'
+import { deviceHasTheme } from '@/lib/theme-sync'
 import { NotificationBell } from '@/components/notification-bell'
 import {
   DropdownMenu,
@@ -29,7 +30,6 @@ interface User {
 
 // The account page fires this after changing the name or the photo, so the header follows.
 export const PROFILE_UPDATED = 'fantomio:profile-updated'
-const THEME_APPLIED = 'fantomio:theme-applied'
 
 export function AppHeader() {
   const router = useRouter()
@@ -71,16 +71,10 @@ export function AppHeader() {
               }
             : u
         )
-        // The account's default theme applies once per visit; the sun/moon switch then
-        // changes it for this device only.
-        try {
-          if (!sessionStorage.getItem(THEME_APPLIED)) {
-            sessionStorage.setItem(THEME_APPLIED, '1')
-            setTheme(profile.theme)
-          }
-        } catch {
-          // Storage blocked: keep whatever this device already uses.
-        }
+        // The account's theme only starts a device that never picked one. Once someone uses the
+        // switch, here or on the landing, that choice stays: overriding it on the way into the
+        // app felt like a bug (light on the landing, dark in "Mis grupos").
+        if (!deviceHasTheme()) setTheme(profile.theme)
       }
     }
 

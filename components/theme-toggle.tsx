@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react'
 import { useTheme } from 'next-themes'
+import { saveThemeToAccount } from '@/lib/theme-sync'
 import { Moon, Sun } from 'lucide-react'
 
 // A day/night switch: a sky track with the sun on the left and the moon on the right, and the
@@ -29,6 +30,8 @@ export function ThemeToggle() {
     const next = dark ? 'light' : 'dark'
     setTarget(next)
     window.setTimeout(() => setTheme(next), 540)
+    // The latest choice wins everywhere, including what the account starts a new device with.
+    saveThemeToAccount(next)
     // Let go of the override only after the theme class has caught up, so nothing jumps.
     window.setTimeout(() => {
       setTarget(null)
