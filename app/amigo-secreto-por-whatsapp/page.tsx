@@ -22,6 +22,20 @@ export default function WhatsappPage() {
         </p>
       </GuideSection>
 
+      <GuideSection title="Un link para cada uno o una cuenta">
+        <p>
+          Algunas herramientas mandan a cada persona un link con su resultado, sin pedir cuenta. Es
+          rápido, pero ese link es el resultado mismo. Si alguien lo reenvía por error al grupo,
+          cualquiera lo ve, y si quien organiza escribe mal un correo, el resultado le llega a otra
+          persona.
+        </p>
+        <p>
+          Con una cuenta, cada uno entra con su propio Google o correo y solo ve lo suyo. Eso además
+          permite una lista que ve solo quien te regala, preguntas anónimas durante semanas y los
+          grupos guardados para el año siguiente.
+        </p>
+      </GuideSection>
+
       <GuideSection title="Paso a paso">
         <GuideList
           ordered

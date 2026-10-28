@@ -48,6 +48,10 @@ const FAQ = [
     a: 'No. Se usa desde el navegador del celular y entras con Google o con correo y contraseña.',
   },
   {
+    q: '¿Por qué hay que crear una cuenta?',
+    a: 'Para que cada persona vea solo lo suyo. Con tu cuenta, tu lista la ve solo quien te regala, te pueden hacer preguntas anónimas y quien organiza no puede ver a quién le tocó a cada uno. Además, tus grupos quedan guardados de un año a otro. Con Google es un toque.',
+  },
+  {
     q: '¿Y si alguien se suma tarde?',
     a: 'Si todavía no se sortea, entra con el mismo link. Si ya se sorteó, quien organiza puede hacer el sorteo de nuevo.',
   },
