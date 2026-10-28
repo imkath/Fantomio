@@ -100,12 +100,12 @@ export function GuideLayout({
         </header>
 
         <section
-          aria-labelledby="en-corto"
+          aria-labelledby="breve"
           className="border-rule bg-slip relative mb-12 rounded-[6px] border border-dashed p-6 md:p-7"
         >
-          <h2 id="en-corto" className="mb-3 flex items-center gap-2.5 text-lg font-bold">
+          <h2 id="breve" className="mb-3 flex items-center gap-2.5 text-lg font-bold">
             <NoteGhost className="text-ink h-7 w-6 shrink-0" />
-            En corto
+            Breve
           </h2>
           <ul className="text-ink space-y-2.5 text-[17px] leading-relaxed">
             {summary.map((line, i) => (
