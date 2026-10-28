@@ -24,10 +24,12 @@ interface LayoutParams {
   paragraphs: string[]
   cta: { text: string; href: string }
   note: string
+  // Notices the person can turn off: the footer says where, in one click.
+  manageable?: boolean
 }
 
 // Values passed in must already be safe HTML: escape user input before calling.
-export function emailLayout({ title, label, paragraphs, cta, note }: LayoutParams) {
+export function emailLayout({ title, label, paragraphs, cta, note, manageable }: LayoutParams) {
   const body = paragraphs
     .map(
       (p) =>
@@ -80,7 +82,11 @@ export function emailLayout({ title, label, paragraphs, cta, note }: LayoutParam
             <td style="padding: 20px 4px 0;">
               <p style="margin: 0 0 24px; font-size: 14px; line-height: 21px; color: ${FAINT};">${note}</p>
               <p style="margin: 0; font-size: 14px; color: ${FAINT};">
-                Fantomio &middot; <a href="${APP_URL}" style="color: ${FAINT};">fantomio.com</a>
+                Fantomio &middot; <a href="${APP_URL}" style="color: ${FAINT};">fantomio.com</a>${
+                  manageable
+                    ? ` &middot; <a href="${APP_URL}/account#preferencias" style="color: ${FAINT};">Dejar de recibir avisos</a>`
+                    : ''
+                }
               </p>
             </td>
           </tr>
@@ -143,6 +149,7 @@ export const NOTIFICATION_EMAILS = {
   draw: {
     subject: 'Ya hicimos el sorteo de {{GROUP}}',
     html: emailLayout({
+      manageable: true,
       label: '{{GROUP}}',
       title: 'Ya hicimos el sorteo',
       paragraphs: [
@@ -156,6 +163,7 @@ export const NOTIFICATION_EMAILS = {
   question: {
     subject: 'Te hicieron una pregunta en {{GROUP}}',
     html: emailLayout({
+      manageable: true,
       label: '{{GROUP}}',
       title: 'Tienes una pregunta',
       paragraphs: [
@@ -169,6 +177,7 @@ export const NOTIFICATION_EMAILS = {
   reply: {
     subject: '{{NAME}} te respondió en {{GROUP}}',
     html: emailLayout({
+      manageable: true,
       label: '{{GROUP}}',
       title: 'Te respondieron',
       paragraphs: [
@@ -181,6 +190,7 @@ export const NOTIFICATION_EMAILS = {
   wishlist: {
     subject: '{{NAME}} actualizó su lista en {{GROUP}}',
     html: emailLayout({
+      manageable: true,
       label: '{{GROUP}}',
       title: 'Tu amigo secreto cambió su lista',
       paragraphs: [
@@ -194,6 +204,7 @@ export const NOTIFICATION_EMAILS = {
   invitation: {
     subject: '{{NAME}} te invitó a {{GROUP}}',
     html: emailLayout({
+      manageable: true,
       label: '{{GROUP}}',
       title: 'Te invitaron a un nuevo amigo secreto',
       paragraphs: [
@@ -208,6 +219,7 @@ export const NOTIFICATION_EMAILS = {
   unveil: {
     subject: 'Llegó la hora en {{GROUP}}',
     html: emailLayout({
+      manageable: true,
       label: '{{GROUP}}',
       title: 'Ya puedes ver a quién le regalas',
       paragraphs: [
@@ -222,6 +234,7 @@ export const NOTIFICATION_EMAILS = {
   reveal: {
     subject: '{{NAME}} fue tu amigo secreto en {{GROUP}}',
     html: emailLayout({
+      manageable: true,
       label: '{{GROUP}}',
       title: 'Tu amigo secreto se reveló',
       paragraphs: [
@@ -229,6 +242,48 @@ export const NOTIFICATION_EMAILS = {
       ],
       cta: { text: 'Ver el grupo', href: '{{URL}}' },
       note: 'Solo tú ves quién te regaló, y solo porque esa persona lo decidió.',
+    }),
+  },
+  // Three days before the exchange. One email for both things when the list is still empty, so
+  // nobody gets two reminders the same week (send_reminders in the database picks which).
+  remind_soon: {
+    subject: 'Faltan 3 días para {{GROUP}}',
+    html: emailLayout({
+      manageable: true,
+      label: '{{GROUP}}',
+      title: 'Faltan 3 días',
+      paragraphs: [
+        'El intercambio de <strong style="color: #1b1b1a;">{{GROUP}}</strong> es en 3 días. Si aún no tienes el regalo, todavía estás a tiempo.',
+      ],
+      cta: { text: 'Ver el grupo', href: '{{URL}}' },
+      note: 'Es el único recordatorio de la fecha que te mandamos.',
+    }),
+  },
+  remind_soon_list: {
+    subject: 'Faltan 3 días para {{GROUP}} y tu lista está vacía',
+    html: emailLayout({
+      manageable: true,
+      label: '{{GROUP}}',
+      title: 'Faltan 3 días',
+      paragraphs: [
+        'El intercambio de <strong style="color: #1b1b1a;">{{GROUP}}</strong> es en 3 días. Si aún no tienes el regalo, todavía estás a tiempo.',
+        'Tu lista sigue vacía, así que quien te regala no tiene pistas. Con dos o tres ideas le ayudas a acertar.',
+      ],
+      cta: { text: 'Anotar mi lista', href: '{{URL}}' },
+      note: 'Es el único recordatorio de la fecha que te mandamos.',
+    }),
+  },
+  remind_list: {
+    subject: 'Quien te regala en {{GROUP}} no tiene pistas',
+    html: emailLayout({
+      manageable: true,
+      label: '{{GROUP}}',
+      title: 'Tu lista está vacía',
+      paragraphs: [
+        'Ya se hizo el sorteo de <strong style="color: #1b1b1a;">{{GROUP}}</strong> y todavía no anotas qué te gustaría. Con dos o tres ideas, quien te regala puede acertar.',
+      ],
+      cta: { text: 'Anotar mi lista', href: '{{URL}}' },
+      note: 'Te lo recordamos una sola vez.',
     }),
   },
 }

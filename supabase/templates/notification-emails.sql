@@ -46,7 +46,7 @@ INSERT INTO email_templates (name, subject, html) VALUES
             <td style="padding: 20px 4px 0;">
               <p style="margin: 0 0 24px; font-size: 14px; line-height: 21px; color: #7d7d76;">Solo tú puedes ver a quién te tocó. Si no esperabas este correo, puedes ignorarlo.</p>
               <p style="margin: 0; font-size: 14px; color: #7d7d76;">
-                Fantomio &middot; <a href="https://fantomio.com" style="color: #7d7d76;">fantomio.com</a>
+                Fantomio &middot; <a href="https://fantomio.com" style="color: #7d7d76;">fantomio.com</a> &middot; <a href="https://fantomio.com/account#preferencias" style="color: #7d7d76;">Dejar de recibir avisos</a>
               </p>
             </td>
           </tr>
@@ -102,7 +102,7 @@ INSERT INTO email_templates (name, subject, html) VALUES
             <td style="padding: 20px 4px 0;">
               <p style="margin: 0 0 24px; font-size: 14px; line-height: 21px; color: #7d7d76;">Te avisamos como máximo una vez cada 15 minutos por grupo.</p>
               <p style="margin: 0; font-size: 14px; color: #7d7d76;">
-                Fantomio &middot; <a href="https://fantomio.com" style="color: #7d7d76;">fantomio.com</a>
+                Fantomio &middot; <a href="https://fantomio.com" style="color: #7d7d76;">fantomio.com</a> &middot; <a href="https://fantomio.com/account#preferencias" style="color: #7d7d76;">Dejar de recibir avisos</a>
               </p>
             </td>
           </tr>
@@ -157,7 +157,7 @@ INSERT INTO email_templates (name, subject, html) VALUES
             <td style="padding: 20px 4px 0;">
               <p style="margin: 0 0 24px; font-size: 14px; line-height: 21px; color: #7d7d76;">Te avisamos como máximo una vez cada 15 minutos por grupo.</p>
               <p style="margin: 0; font-size: 14px; color: #7d7d76;">
-                Fantomio &middot; <a href="https://fantomio.com" style="color: #7d7d76;">fantomio.com</a>
+                Fantomio &middot; <a href="https://fantomio.com" style="color: #7d7d76;">fantomio.com</a> &middot; <a href="https://fantomio.com/account#preferencias" style="color: #7d7d76;">Dejar de recibir avisos</a>
               </p>
             </td>
           </tr>
@@ -212,7 +212,7 @@ INSERT INTO email_templates (name, subject, html) VALUES
             <td style="padding: 20px 4px 0;">
               <p style="margin: 0 0 24px; font-size: 14px; line-height: 21px; color: #7d7d76;">Te avisamos como máximo una vez cada 12 horas por grupo.</p>
               <p style="margin: 0; font-size: 14px; color: #7d7d76;">
-                Fantomio &middot; <a href="https://fantomio.com" style="color: #7d7d76;">fantomio.com</a>
+                Fantomio &middot; <a href="https://fantomio.com" style="color: #7d7d76;">fantomio.com</a> &middot; <a href="https://fantomio.com/account#preferencias" style="color: #7d7d76;">Dejar de recibir avisos</a>
               </p>
             </td>
           </tr>
@@ -268,7 +268,7 @@ INSERT INTO email_templates (name, subject, html) VALUES
             <td style="padding: 20px 4px 0;">
               <p style="margin: 0 0 24px; font-size: 14px; line-height: 21px; color: #7d7d76;">Si no respondes antes del sorteo, quedas fuera de esta vuelta.</p>
               <p style="margin: 0; font-size: 14px; color: #7d7d76;">
-                Fantomio &middot; <a href="https://fantomio.com" style="color: #7d7d76;">fantomio.com</a>
+                Fantomio &middot; <a href="https://fantomio.com" style="color: #7d7d76;">fantomio.com</a> &middot; <a href="https://fantomio.com/account#preferencias" style="color: #7d7d76;">Dejar de recibir avisos</a>
               </p>
             </td>
           </tr>
@@ -324,7 +324,7 @@ INSERT INTO email_templates (name, subject, html) VALUES
             <td style="padding: 20px 4px 0;">
               <p style="margin: 0 0 24px; font-size: 14px; line-height: 21px; color: #7d7d76;">Solo tú ves a quién le regalas.</p>
               <p style="margin: 0; font-size: 14px; color: #7d7d76;">
-                Fantomio &middot; <a href="https://fantomio.com" style="color: #7d7d76;">fantomio.com</a>
+                Fantomio &middot; <a href="https://fantomio.com" style="color: #7d7d76;">fantomio.com</a> &middot; <a href="https://fantomio.com/account#preferencias" style="color: #7d7d76;">Dejar de recibir avisos</a>
               </p>
             </td>
           </tr>
@@ -379,7 +379,173 @@ INSERT INTO email_templates (name, subject, html) VALUES
             <td style="padding: 20px 4px 0;">
               <p style="margin: 0 0 24px; font-size: 14px; line-height: 21px; color: #7d7d76;">Solo tú ves quién te regaló, y solo porque esa persona lo decidió.</p>
               <p style="margin: 0; font-size: 14px; color: #7d7d76;">
-                Fantomio &middot; <a href="https://fantomio.com" style="color: #7d7d76;">fantomio.com</a>
+                Fantomio &middot; <a href="https://fantomio.com" style="color: #7d7d76;">fantomio.com</a> &middot; <a href="https://fantomio.com/account#preferencias" style="color: #7d7d76;">Dejar de recibir avisos</a>
+              </p>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>$tpl$),
+  ($tpl$remind_soon$tpl$, $tpl$Faltan 3 días para {{GROUP}}$tpl$, $tpl$<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="color-scheme" content="light">
+  <meta name="supported-color-schemes" content="light">
+  <title>Faltan 3 días</title>
+</head>
+<body style="margin: 0; padding: 0; background-color: #ffffff; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif; color: #1b1b1a;">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse: collapse; background-color: #ffffff;">
+    <tr>
+      <td align="center" style="padding: 40px 20px;">
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width: 480px; border-collapse: collapse;">
+          <tr>
+            <td style="padding-bottom: 36px;">
+              <a href="https://fantomio.com" style="text-decoration: none;">
+                <img src="https://fantomio.com/email-logo.png" width="175" height="30" alt="fantomio" style="display: block; border: 0;">
+              </a>
+            </td>
+          </tr>
+          <tr>
+            <td style="border: 1px solid #e7e7e3; border-radius: 4px; padding: 32px 28px;">
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse: collapse;">
+                <tr>
+                  <td valign="top">
+                    <p style="margin: 0 0 10px; font-size: 15px; font-weight: 600; color: #4f4f49;">{{GROUP}}</p>
+                    <h1 style="margin: 0 0 20px; font-size: 26px; line-height: 32px; font-weight: 400; color: #1b1b1a;">Faltan 3 días</h1>
+                  </td>
+                </tr>
+              </table>
+              <p style="margin: 0 0 14px; font-size: 17px; line-height: 26px; color: #4f4f49;">El intercambio de <strong style="color: #1b1b1a;">{{GROUP}}</strong> es en 3 días. Si aún no tienes el regalo, todavía estás a tiempo.</p>
+              <table role="presentation" cellpadding="0" cellspacing="0" style="border-collapse: collapse; margin: 12px 0 4px;">
+                <tr>
+                  <td style="background-color: #1b1b1a; border-radius: 2px;">
+                    <a href="{{URL}}" style="display: inline-block; padding: 15px 28px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif; font-size: 17px; font-weight: 600; color: #ffffff; text-decoration: none;">Ver el grupo</a>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding: 20px 4px 0;">
+              <p style="margin: 0 0 24px; font-size: 14px; line-height: 21px; color: #7d7d76;">Es el único recordatorio de la fecha que te mandamos.</p>
+              <p style="margin: 0; font-size: 14px; color: #7d7d76;">
+                Fantomio &middot; <a href="https://fantomio.com" style="color: #7d7d76;">fantomio.com</a> &middot; <a href="https://fantomio.com/account#preferencias" style="color: #7d7d76;">Dejar de recibir avisos</a>
+              </p>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>$tpl$),
+  ($tpl$remind_soon_list$tpl$, $tpl$Faltan 3 días para {{GROUP}} y tu lista está vacía$tpl$, $tpl$<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="color-scheme" content="light">
+  <meta name="supported-color-schemes" content="light">
+  <title>Faltan 3 días</title>
+</head>
+<body style="margin: 0; padding: 0; background-color: #ffffff; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif; color: #1b1b1a;">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse: collapse; background-color: #ffffff;">
+    <tr>
+      <td align="center" style="padding: 40px 20px;">
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width: 480px; border-collapse: collapse;">
+          <tr>
+            <td style="padding-bottom: 36px;">
+              <a href="https://fantomio.com" style="text-decoration: none;">
+                <img src="https://fantomio.com/email-logo.png" width="175" height="30" alt="fantomio" style="display: block; border: 0;">
+              </a>
+            </td>
+          </tr>
+          <tr>
+            <td style="border: 1px solid #e7e7e3; border-radius: 4px; padding: 32px 28px;">
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse: collapse;">
+                <tr>
+                  <td valign="top">
+                    <p style="margin: 0 0 10px; font-size: 15px; font-weight: 600; color: #4f4f49;">{{GROUP}}</p>
+                    <h1 style="margin: 0 0 20px; font-size: 26px; line-height: 32px; font-weight: 400; color: #1b1b1a;">Faltan 3 días</h1>
+                  </td>
+                </tr>
+              </table>
+              <p style="margin: 0 0 14px; font-size: 17px; line-height: 26px; color: #4f4f49;">El intercambio de <strong style="color: #1b1b1a;">{{GROUP}}</strong> es en 3 días. Si aún no tienes el regalo, todavía estás a tiempo.</p>
+                <p style="margin: 0 0 14px; font-size: 17px; line-height: 26px; color: #4f4f49;">Tu lista sigue vacía, así que quien te regala no tiene pistas. Con dos o tres ideas le ayudas a acertar.</p>
+              <table role="presentation" cellpadding="0" cellspacing="0" style="border-collapse: collapse; margin: 12px 0 4px;">
+                <tr>
+                  <td style="background-color: #1b1b1a; border-radius: 2px;">
+                    <a href="{{URL}}" style="display: inline-block; padding: 15px 28px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif; font-size: 17px; font-weight: 600; color: #ffffff; text-decoration: none;">Anotar mi lista</a>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding: 20px 4px 0;">
+              <p style="margin: 0 0 24px; font-size: 14px; line-height: 21px; color: #7d7d76;">Es el único recordatorio de la fecha que te mandamos.</p>
+              <p style="margin: 0; font-size: 14px; color: #7d7d76;">
+                Fantomio &middot; <a href="https://fantomio.com" style="color: #7d7d76;">fantomio.com</a> &middot; <a href="https://fantomio.com/account#preferencias" style="color: #7d7d76;">Dejar de recibir avisos</a>
+              </p>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>$tpl$),
+  ($tpl$remind_list$tpl$, $tpl$Quien te regala en {{GROUP}} no tiene pistas$tpl$, $tpl$<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="color-scheme" content="light">
+  <meta name="supported-color-schemes" content="light">
+  <title>Tu lista está vacía</title>
+</head>
+<body style="margin: 0; padding: 0; background-color: #ffffff; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif; color: #1b1b1a;">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse: collapse; background-color: #ffffff;">
+    <tr>
+      <td align="center" style="padding: 40px 20px;">
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width: 480px; border-collapse: collapse;">
+          <tr>
+            <td style="padding-bottom: 36px;">
+              <a href="https://fantomio.com" style="text-decoration: none;">
+                <img src="https://fantomio.com/email-logo.png" width="175" height="30" alt="fantomio" style="display: block; border: 0;">
+              </a>
+            </td>
+          </tr>
+          <tr>
+            <td style="border: 1px solid #e7e7e3; border-radius: 4px; padding: 32px 28px;">
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse: collapse;">
+                <tr>
+                  <td valign="top">
+                    <p style="margin: 0 0 10px; font-size: 15px; font-weight: 600; color: #4f4f49;">{{GROUP}}</p>
+                    <h1 style="margin: 0 0 20px; font-size: 26px; line-height: 32px; font-weight: 400; color: #1b1b1a;">Tu lista está vacía</h1>
+                  </td>
+                </tr>
+              </table>
+              <p style="margin: 0 0 14px; font-size: 17px; line-height: 26px; color: #4f4f49;">Ya se hizo el sorteo de <strong style="color: #1b1b1a;">{{GROUP}}</strong> y todavía no anotas qué te gustaría. Con dos o tres ideas, quien te regala puede acertar.</p>
+              <table role="presentation" cellpadding="0" cellspacing="0" style="border-collapse: collapse; margin: 12px 0 4px;">
+                <tr>
+                  <td style="background-color: #1b1b1a; border-radius: 2px;">
+                    <a href="{{URL}}" style="display: inline-block; padding: 15px 28px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif; font-size: 17px; font-weight: 600; color: #ffffff; text-decoration: none;">Anotar mi lista</a>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding: 20px 4px 0;">
+              <p style="margin: 0 0 24px; font-size: 14px; line-height: 21px; color: #7d7d76;">Te lo recordamos una sola vez.</p>
+              <p style="margin: 0; font-size: 14px; color: #7d7d76;">
+                Fantomio &middot; <a href="https://fantomio.com" style="color: #7d7d76;">fantomio.com</a> &middot; <a href="https://fantomio.com/account#preferencias" style="color: #7d7d76;">Dejar de recibir avisos</a>
               </p>
             </td>
           </tr>
