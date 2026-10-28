@@ -1042,16 +1042,16 @@ function GroupPage() {
             </DialogDescription>
           </DialogHeader>
           {group.previous_group_id && (
-            <label className="flex items-start gap-3 text-[15px]">
+            <label className="flex cursor-pointer items-start gap-3 text-[15px]">
               <input
                 type="checkbox"
-                className="accent-ink mt-1 size-4"
+                className="accent-ink mt-1 size-4 cursor-pointer"
                 checked={avoidPrevious}
                 onChange={(e) => setAvoidPrevious(e.target.checked)}
               />
               <span>
-                Que a nadie le toque la misma persona que la vez anterior. Usamos el sorteo anterior
-                sin mostrárselo a nadie.
+                Que a nadie le toque la misma persona que la vez anterior, cuando se pueda. Usamos
+                el sorteo anterior sin mostrárselo a nadie.
               </span>
             </label>
           )}

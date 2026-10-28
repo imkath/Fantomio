@@ -46,7 +46,6 @@ try:
     req('POST', R + 'exclusions', {'group_id': G1, 'giver_id': ids['a'], 'excluded_receiver_id': ids['b']}, T['a'])
     req('POST', R + 'wishlists', {'group_id': G1, 'user_id': ids['b'], 'items': [{'description': 'libro'}]}, T['b'])
     check('draw edition 1', rpc('draw_group', {'p_group_id': G1}, T['a'])[0] in (200, 204))
-    prev_pairs = {(r['giver_id'], r['receiver_id']) for r in sql(f"select giver_id, receiver_id from matches where group_id='{G1}'")}
 
     # Repeat
     check('non-organizer cannot repeat', rpc('repeat_group', {'p_group_id': G1, 'p_name': 'x', 'p_exchange_date': None, 'p_budget': None}, T['b'])[0] >= 400)
@@ -82,13 +81,22 @@ try:
     check('b can read own previous list', s == 200 and prev and prev[0]['items'] == [{'description': 'libro'}])
 
     # Draw avoiding previous pairs; 3 people (a,b,c) with a-b excluded => only a->c->b->a; check vs previous
+    # L1 (audit 2026-10-27): previous_group_id is only set by repeat_group, never from the app.
+    s, eg = req('POST', R + 'groups', {'name': 'QA ajeno', 'admin_id': ids['e'], 'currency': 'CLP', 'previous_group_id': G1}, T['e'])
+    check('outsider cannot create a group linked to another', s >= 400, f'{s} {str(eg)[:100]}')
+    s, eg = req('POST', R + 'groups', {'name': 'QA ajeno', 'admin_id': ids['e'], 'currency': 'CLP'}, T['e'])
+    EG = eg[0]['id']
+    s, r = req('PATCH', R + f'groups?id=eq.{EG}', {'previous_group_id': G1}, T['e'])
+    check('outsider cannot link own group to another', s >= 400, f'{s} {str(r)[:100]}')
+    s, r = req('PATCH', R + f'groups?id=eq.{G2}', {'previous_group_id': None}, T['a'])
+    check('organizer cannot change the link either', s >= 400, f'{s} {str(r)[:100]}')
+    check('renaming still works', req('PATCH', R + f'groups?id=eq.{G2}', {'name': 'QA Navidad 2027'}, T['a'])[0] < 300)
+    req('DELETE', R + f'groups?id=eq.{EG}', token=T['e'])
+
+    # Avoiding last edition's pairs is a preference: the draw never fails because of them, so
+    # success or failure says nothing about pairs nobody is meant to see.
     s, r = rpc('draw_group', {'p_group_id': G2, 'p_avoid_previous': True}, T['a'])
-    new_pairs = {(r2['giver_id'], r2['receiver_id']) for r2 in sql(f"select giver_id, receiver_id from matches where group_id='{G2}'")}
-    if s in (200, 204):
-        check('avoid previous: no repeated pair', not (new_pairs & prev_pairs), f'{new_pairs & prev_pairs}')
-    else:
-        check('avoid previous impossible -> clear message', 'año pasado' in str(r), str(r)[:120])
-        check('draw without avoid', rpc('draw_group', {'p_group_id': G2}, T['a'])[0] in (200, 204))
+    check('draw avoiding previous always goes ahead', s in (200, 204), f'{s} {str(r)[:120]}')
 
     # History from G2
     s, hist = rpc('group_history', {'p_group_id': G2}, T['b'])
