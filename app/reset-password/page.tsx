@@ -64,6 +64,8 @@ export default function ResetPasswordPage() {
         return
       }
 
+      // Whoever had the old password may still be signed in elsewhere: close those sessions.
+      await supabase.auth.signOut({ scope: 'others' })
       setSuccess(true)
       setTimeout(() => {
         router.push('/login')

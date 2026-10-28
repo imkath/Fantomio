@@ -139,22 +139,23 @@ function PasswordSetting({ state, onChange }: { state: AccessState; onChange: ()
     setSaving(true)
     const supabase = createClient()
     try {
-      if (state.hasPassword) {
-        // Someone who walks up to an open session shouldn't be able to change the password.
-        const { error: checkError } = await supabase.auth.signInWithPassword({
-          email: state.email,
-          password: current,
-        })
-        if (checkError) {
-          setError('La contraseña actual no es correcta.')
-          return
-        }
-      }
-      const { error: updateError } = await supabase.auth.updateUser({ password: next })
+      // Someone who walks up to an open session (or steals one) shouldn't be able to change the
+      // password: the server checks the current one (Auth setting "require current password"),
+      // not just this page. A first password, for someone who signed up with Google, needs none.
+      const { error: updateError } = await supabase.auth.updateUser(
+        state.hasPassword ? { password: next, current_password: current } : { password: next }
+      )
       if (updateError) {
-        setError(getUserFriendlyError(updateError))
+        setError(
+          updateError.code === 'current_password_invalid' ||
+            updateError.code === 'current_password_required'
+            ? 'La contraseña actual no es correcta.'
+            : getUserFriendlyError(updateError)
+        )
         return
       }
+      // Any other device still signed in has to sign in again with the new password.
+      await supabase.auth.signOut({ scope: 'others' })
       // Registers the password as a sign-in method, so Google can be disconnected later.
       const { data: registered } = await supabase.rpc('ensure_email_identity')
       if (!registered) {
