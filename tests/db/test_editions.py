@@ -124,7 +124,7 @@ try:
     check('hide', rpc('set_group_hidden', {'p_group_id': G1, 'p_hidden': True}, T['c'])[0] in (200, 204))
     check('hidden only for c', sql(f"select count(*) filter (where hidden_at is not null) n from members where group_id='{G1}'")[0]['n'] == 1)
     # Auto-archive job
-    sql(f"update groups set exchange_date = current_date - 8, auto_archive = true where id='{G2}'")
+    sql(f"update groups set exchange_date = public.group_today(time_zone) - 8, auto_archive = true where id='{G2}'")
     sql("select public.archive_due_groups()")
     check('auto-archive past exchange', sql(f"select archived_at is not null a from groups where id='{G2}'")[0]['a'])
 finally:
