@@ -6,7 +6,9 @@ Worker con dos crons:
   el proyecto.
 - El dia 1 de cada mes envia un correo a hola@fantomio.com (llega al Gmail de
   Kath) para que Brevo no desactive la clave API por 90 dias sin uso. Si un mes
-  ese correo no llega, hay que revisar la clave.
+  ese correo no llega, hay que revisar la clave. Ese mismo dia manda un segundo
+  correo a hello@nvrkth.com con la clave `nvrkth-contacto` del formulario de
+  nvrkth.com, que vive aca porque la cuenta gratis de Cloudflare ya usa sus 5 crons.
 
 ```bash
 cd keepalive
@@ -14,6 +16,7 @@ npx wrangler deploy
 npx wrangler secret put SUPABASE_URL       # https://<ref>.supabase.co
 npx wrangler secret put SUPABASE_ANON_KEY  # la anon, nunca la service_role
 npx wrangler secret put BREVO_API_KEY      # la misma clave "ghostswap" del sitio
+npx wrangler secret put NVRKTH_BREVO_API_KEY  # la clave "nvrkth-contacto" del portafolio
 ```
 
 Probar a mano: `curl https://ghostswap-keepalive.<subdominio>.workers.dev/`

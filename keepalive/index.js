@@ -7,7 +7,7 @@
 // Ademas Actions deshabilita los workflows programados tras 60 dias sin
 // actividad en el repo, asi que el cron vive aca, donde ya vive el sitio.
 //
-// Secrets: SUPABASE_URL, SUPABASE_ANON_KEY, BREVO_API_KEY (wrangler secret put).
+// Secrets: SUPABASE_URL, SUPABASE_ANON_KEY, BREVO_API_KEY, NVRKTH_BREVO_API_KEY (wrangler secret put).
 
 // La clave anon no tiene permisos sobre las tablas (migracion 20261026e), asi que se
 // llama a keepalive(): una consulta real a Postgres que no devuelve datos de nadie.
@@ -60,11 +60,32 @@ async function smtpHeartbeat(env) {
   if (!res.ok) throw new Error(`latido SMTP fallo: HTTP ${res.status} ${await res.text()}`)
 }
 
+// El formulario de contacto de nvrkth.com usa su propia clave de Brevo (nvrkth-contacto),
+// restringida a correos transaccionales, que tambien muere a los 90 dias sin uso. Vive aca
+// porque la cuenta gratis de Cloudflare ya usa sus 5 crons.
+async function nvrkthHeartbeat(env) {
+  const res = await fetch('https://api.brevo.com/v3/smtp/email', {
+    method: 'POST',
+    headers: { 'api-key': env.NVRKTH_BREVO_API_KEY, 'content-type': 'application/json' },
+    body: JSON.stringify({
+      sender: { name: 'nvrkth.com', email: 'hello@nvrkth.com' },
+      to: [{ email: 'hello@nvrkth.com' }],
+      subject: 'nvrkth.com: el formulario de contacto sigue funcionando',
+      textContent:
+        'Envio mensual automatico para que Brevo no desactive la clave nvrkth-contacto. Si este mes no llego, el formulario de nvrkth.com tampoco esta enviando.',
+    }),
+  })
+  if (!res.ok) throw new Error(`latido de nvrkth.com fallo: HTTP ${res.status} ${await res.text()}`)
+}
+
 export default {
   async scheduled(event, env) {
     if (event.cron === HEARTBEAT_CRON) {
-      await heartbeat(env)
-      return smtpHeartbeat(env)
+      // Cada latido por separado: si uno falla, los otros igual se envian.
+      const results = await Promise.allSettled([heartbeat(env), smtpHeartbeat(env), nvrkthHeartbeat(env)])
+      const failed = results.filter((r) => r.status === 'rejected').map((r) => r.reason.message)
+      if (failed.length) throw new Error(failed.join(' | '))
+      return
     }
     const r = await ping(env)
     if (!r.ok) throw new Error(`keep-alive fallo: HTTP ${r.status} ${r.body}`)
