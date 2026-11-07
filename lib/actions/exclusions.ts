@@ -38,7 +38,7 @@ export async function addExclusion(
   })
 
   if (!validation.success) {
-    return { success: false, error: validation.error.errors[0].message }
+    return { success: false, error: validation.error.issues[0].message }
   }
 
   const supabase = createClient()
@@ -110,7 +110,7 @@ export async function removeExclusion(exclusionId: string): Promise<ExclusionRes
   const validation = removeExclusionSchema.safeParse({ exclusionId })
 
   if (!validation.success) {
-    return { success: false, error: validation.error.errors[0].message }
+    return { success: false, error: validation.error.issues[0].message }
   }
 
   const supabase = createClient()

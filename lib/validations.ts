@@ -3,9 +3,7 @@ import { z } from 'zod'
 // Supported currencies
 export const currencySchema = z.enum(
   ['CLP', 'USD', 'EUR', 'MXN', 'ARS', 'COP', 'PEN', 'BRL', 'GBP'],
-  {
-    errorMap: () => ({ message: 'Moneda no soportada' }),
-  }
+  { error: 'Moneda no soportada' }
 )
 
 // Group schemas

@@ -18,12 +18,12 @@ export async function updateGroup(
   // Validate inputs
   const groupIdResult = groupIdSchema.safeParse(groupId)
   if (!groupIdResult.success) {
-    return { success: false, error: groupIdResult.error.errors[0].message }
+    return { success: false, error: groupIdResult.error.issues[0].message }
   }
 
   const dataResult = updateGroupSchema.safeParse(data)
   if (!dataResult.success) {
-    return { success: false, error: dataResult.error.errors[0].message }
+    return { success: false, error: dataResult.error.issues[0].message }
   }
 
   const supabase = createClient()
@@ -67,7 +67,7 @@ export async function deleteGroup(groupId: string) {
   // Validate input
   const groupIdResult = groupIdSchema.safeParse(groupId)
   if (!groupIdResult.success) {
-    return { success: false, error: groupIdResult.error.errors[0].message }
+    return { success: false, error: groupIdResult.error.issues[0].message }
   }
 
   const supabase = createClient()
@@ -104,7 +104,7 @@ export async function leaveGroup(groupId: string) {
   // Validate input
   const groupIdResult = groupIdSchema.safeParse(groupId)
   if (!groupIdResult.success) {
-    return { success: false, error: groupIdResult.error.errors[0].message }
+    return { success: false, error: groupIdResult.error.issues[0].message }
   }
 
   const supabase = createClient()
@@ -162,12 +162,12 @@ export async function removeMember(groupId: string, memberId: string) {
   // Validate inputs
   const groupIdResult = groupIdSchema.safeParse(groupId)
   if (!groupIdResult.success) {
-    return { success: false, error: groupIdResult.error.errors[0].message }
+    return { success: false, error: groupIdResult.error.issues[0].message }
   }
 
   const memberIdResult = memberIdSchema.safeParse(memberId)
   if (!memberIdResult.success) {
-    return { success: false, error: memberIdResult.error.errors[0].message }
+    return { success: false, error: memberIdResult.error.issues[0].message }
   }
 
   const supabase = createClient()
@@ -232,7 +232,7 @@ export async function getGroupActivities(groupId: string) {
   // Validate input
   const groupIdResult = groupIdSchema.safeParse(groupId)
   if (!groupIdResult.success) {
-    return { success: false, error: groupIdResult.error.errors[0].message, activities: [] }
+    return { success: false, error: groupIdResult.error.issues[0].message, activities: [] }
   }
 
   const supabase = createClient()
@@ -287,7 +287,7 @@ export async function getGroupActivities(groupId: string) {
 export async function transferGroup(groupId: string, newAdminId: string) {
   const groupIdResult = groupIdSchema.safeParse(groupId)
   if (!groupIdResult.success) {
-    return { success: false, error: groupIdResult.error.errors[0].message }
+    return { success: false, error: groupIdResult.error.issues[0].message }
   }
   const newAdminResult = groupIdSchema.safeParse(newAdminId)
   if (!newAdminResult.success) {

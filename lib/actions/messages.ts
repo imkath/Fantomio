@@ -21,7 +21,7 @@ export async function sendAnonymousMessage(
 ): Promise<ActionResult> {
   const parsed = sendMessageSchema.safeParse({ matchId, content, senderRole })
   if (!parsed.success) {
-    return { success: false, error: parsed.error.errors[0].message }
+    return { success: false, error: parsed.error.issues[0].message }
   }
 
   const supabase = createClient()

@@ -16,7 +16,7 @@ async function call(
   extra: Record<string, unknown> = {}
 ): Promise<DrawResult> {
   const parsed = groupIdSchema.safeParse(groupId)
-  if (!parsed.success) return { success: false, error: parsed.error.errors[0].message }
+  if (!parsed.success) return { success: false, error: parsed.error.issues[0].message }
 
   const { error } = await createClient().rpc(fn, { p_group_id: groupId, ...extra })
   // The functions raise readable Spanish messages (not enough people, exclusions, etc.).

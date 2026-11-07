@@ -16,7 +16,7 @@ describe('groupIdSchema', () => {
   it('rejects invalid UUID', () => {
     const result = groupIdSchema.safeParse('invalid-id')
     expect(result.success).toBe(false)
-    expect(result.error?.errors[0].message).toBe('ID de grupo inválido')
+    expect(result.error?.issues[0].message).toBe('ID de grupo inválido')
   })
 
   it('rejects empty string', () => {
@@ -34,7 +34,7 @@ describe('memberIdSchema', () => {
   it('rejects invalid UUID', () => {
     const result = memberIdSchema.safeParse('not-a-uuid')
     expect(result.success).toBe(false)
-    expect(result.error?.errors[0].message).toBe('ID de miembro inválido')
+    expect(result.error?.issues[0].message).toBe('ID de miembro inválido')
   })
 })
 
@@ -56,19 +56,19 @@ describe('updateGroupSchema', () => {
   it('rejects empty name', () => {
     const result = updateGroupSchema.safeParse({ name: '' })
     expect(result.success).toBe(false)
-    expect(result.error?.errors[0].message).toBe('El nombre es requerido')
+    expect(result.error?.issues[0].message).toBe('El nombre es requerido')
   })
 
   it('rejects name over 100 characters', () => {
     const result = updateGroupSchema.safeParse({ name: 'a'.repeat(101) })
     expect(result.success).toBe(false)
-    expect(result.error?.errors[0].message).toBe('El nombre es muy largo')
+    expect(result.error?.issues[0].message).toBe('El nombre es muy largo')
   })
 
   it('rejects negative budget', () => {
     const result = updateGroupSchema.safeParse({ budget: -10 })
     expect(result.success).toBe(false)
-    expect(result.error?.errors[0].message).toBe('El presupuesto debe ser positivo')
+    expect(result.error?.issues[0].message).toBe('El presupuesto debe ser positivo')
   })
 
   it('accepts null budget', () => {
@@ -116,13 +116,13 @@ describe('wishlistItemSchema', () => {
   it('rejects empty name', () => {
     const result = wishlistItemSchema.safeParse({ name: '' })
     expect(result.success).toBe(false)
-    expect(result.error?.errors[0].message).toBe('El nombre es requerido')
+    expect(result.error?.issues[0].message).toBe('El nombre es requerido')
   })
 
   it('rejects name over 200 characters', () => {
     const result = wishlistItemSchema.safeParse({ name: 'a'.repeat(201) })
     expect(result.success).toBe(false)
-    expect(result.error?.errors[0].message).toBe('El nombre es muy largo')
+    expect(result.error?.issues[0].message).toBe('El nombre es muy largo')
   })
 
   it('rejects invalid URL', () => {
@@ -131,7 +131,7 @@ describe('wishlistItemSchema', () => {
       url: 'not-a-url',
     })
     expect(result.success).toBe(false)
-    expect(result.error?.errors[0].message).toBe('URL inválida')
+    expect(result.error?.issues[0].message).toBe('URL inválida')
   })
 
   it('accepts empty string URL', () => {
@@ -148,7 +148,7 @@ describe('wishlistItemSchema', () => {
       description: 'a'.repeat(501),
     })
     expect(result.success).toBe(false)
-    expect(result.error?.errors[0].message).toBe('La descripción es muy larga')
+    expect(result.error?.issues[0].message).toBe('La descripción es muy larga')
   })
 
   it('rejects priority out of range', () => {
@@ -175,6 +175,6 @@ describe('updateWishlistSchema', () => {
     const items = Array.from({ length: 6 }, (_, i) => ({ name: `Item ${i}` }))
     const result = updateWishlistSchema.safeParse(items)
     expect(result.success).toBe(false)
-    expect(result.error?.errors[0].message).toBe('Máximo 5 items permitidos')
+    expect(result.error?.issues[0].message).toBe('Máximo 5 items permitidos')
   })
 })
