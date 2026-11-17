@@ -3,6 +3,7 @@ export const dynamic = 'force-static'
 
 import { MetadataRoute } from 'next'
 import { GUIDES } from '@/lib/guides'
+import { GIFT_LISTS } from '@/lib/regalos'
 
 const baseUrl = 'https://fantomio.com'
 
@@ -14,6 +15,8 @@ export default function sitemap(): MetadataRoute.Sitemap {
     { url: baseUrl, lastModified: '2026-10-27' },
     { url: `${baseUrl}/guias`, lastModified: '2026-10-27' },
     ...GUIDES.map((g) => ({ url: `${baseUrl}/${g.slug}`, lastModified: g.updated })),
+    { url: `${baseUrl}/regalos`, lastModified: '2026-11-17' },
+    ...GIFT_LISTS.map((l) => ({ url: `${baseUrl}/regalos/${l.slug}`, lastModified: l.checked })),
     { url: `${baseUrl}/privacy`, lastModified: '2026-10-27' },
     { url: `${baseUrl}/terms`, lastModified: '2026-10-27' },
   ]

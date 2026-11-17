@@ -22,6 +22,10 @@ export function Footer() {
           Guías
         </Link>
         <span aria-hidden="true">·</span>
+        <Link href="/regalos" className="hover:text-ink underline underline-offset-[3px]">
+          Regalos
+        </Link>
+        <span aria-hidden="true">·</span>
         <Link href="/privacy" className="hover:text-ink underline underline-offset-[3px]">
           Privacidad
         </Link>
