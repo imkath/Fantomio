@@ -14,7 +14,8 @@ Worker con dos crons:
 cd keepalive
 npx wrangler deploy
 npx wrangler secret put SUPABASE_URL       # https://<ref>.supabase.co
-npx wrangler secret put SUPABASE_ANON_KEY  # la anon, nunca la service_role
+npx wrangler secret put SUPABASE_ANON_KEY  # la anon, para el keep-alive
+npx wrangler secret put SUPABASE_SERVICE_ROLE_KEY  # solo para el latido SMTP: el captcha de Auth no deja pedir recuperaciones con la anon
 npx wrangler secret put BREVO_API_KEY      # la misma clave "ghostswap" del sitio
 npx wrangler secret put NVRKTH_BREVO_API_KEY  # la clave "nvrkth-contacto" del portafolio
 ```

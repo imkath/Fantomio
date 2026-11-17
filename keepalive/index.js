@@ -7,7 +7,8 @@
 // Ademas Actions deshabilita los workflows programados tras 60 dias sin
 // actividad en el repo, asi que el cron vive aca, donde ya vive el sitio.
 //
-// Secrets: SUPABASE_URL, SUPABASE_ANON_KEY, BREVO_API_KEY, NVRKTH_BREVO_API_KEY (wrangler secret put).
+// Secrets: SUPABASE_URL, SUPABASE_ANON_KEY, SUPABASE_SERVICE_ROLE_KEY, BREVO_API_KEY,
+// NVRKTH_BREVO_API_KEY (wrangler secret put).
 
 // La clave anon no tiene permisos sobre las tablas (migracion 20261026e), asi que se
 // llama a keepalive(): una consulta real a Postgres que no devuelve datos de nadie.
@@ -54,7 +55,13 @@ async function heartbeat(env) {
 async function smtpHeartbeat(env) {
   const res = await fetch(`${env.SUPABASE_URL}/auth/v1/recover`, {
     method: 'POST',
-    headers: { apikey: env.SUPABASE_ANON_KEY, 'content-type': 'application/json' },
+    // Since 17-nov-2026 Supabase Auth asks for a captcha on recovery; the service key skips it.
+    // It never leaves this Worker.
+    headers: {
+      apikey: env.SUPABASE_SERVICE_ROLE_KEY,
+      Authorization: `Bearer ${env.SUPABASE_SERVICE_ROLE_KEY}`,
+      'content-type': 'application/json',
+    },
     body: JSON.stringify({ email: 'hello@nvrkth.com' }),
   })
   if (!res.ok) throw new Error(`latido SMTP fallo: HTTP ${res.status} ${await res.text()}`)
