@@ -32,7 +32,7 @@ SET LOCAL role authenticated;
 SELECT set_config('request.jwt.claims', '{claims}', true) \\g /dev/null
 {query};
 ROLLBACK;"""
-    p = subprocess.run(['psql', DB_URL, '-At', '-v', 'ON_ERROR_STOP=1'], input=script, capture_output=True, text=True)
+    p = subprocess.run(['psql', DB_URL, '-q', '-At', '-v', 'ON_ERROR_STOP=1'], input=script, capture_output=True, text=True)
     return p.returncode, (p.stdout.strip().splitlines() or [''])[-1], p.stderr
 
 
