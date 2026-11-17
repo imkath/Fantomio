@@ -56,6 +56,8 @@ import {
   transferGroup,
 } from '@/lib/actions/group'
 import { RateApp } from '@/components/rate-app'
+import { OrganizeYourOwn } from '@/components/group/organize-your-own'
+import { inviteMessage, whatsappUrl } from '@/lib/invite'
 import { GhostMark } from '@/components/ghost-mark'
 import { GhostAvatar } from '@/components/ghost-avatar'
 import { celebrate } from '@/lib/confetti'
@@ -612,6 +614,31 @@ function GroupPage() {
           </div>
 
           <div className={`flex flex-wrap items-center gap-3 ${archived ? 'hidden' : ''}`}>
+            {!drawn && (
+              // The invite is how a whole group meets Fantomio: a ready message, not a bare link.
+              <Button
+                variant="outline"
+                onClick={() =>
+                  window.open(
+                    whatsappUrl(
+                      inviteMessage({
+                        name: group.name,
+                        url: `${window.location.origin}/join?code=${group.invite_code}`,
+                        exchangeDate: group.exchange_date,
+                        budget: group.budget,
+                        currency: group.currency,
+                        blind,
+                      })
+                    ),
+                    '_blank',
+                    'noopener'
+                  )
+                }
+              >
+                <MessageCircle aria-hidden="true" />
+                Invitar por WhatsApp
+              </Button>
+            )}
             <Button variant="outline" onClick={handleShare}>
               {copied ? <Check aria-hidden="true" /> : <Link2 aria-hidden="true" />}
               {copied ? 'Link copiado' : 'Copiar link de invitación'}
@@ -622,7 +649,7 @@ function GroupPage() {
                 onClick={() => {
                   const groupUrl = `${window.location.origin}${groupPath(group.id)}`
                   const text = `Ya hicimos el sorteo de *${group.name}*.\n\nEntra para ver a quién le regalas:\n${groupUrl}`
-                  window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank')
+                  window.open(whatsappUrl(text), '_blank', 'noopener')
                 }}
               >
                 <MessageCircle aria-hidden="true" />
@@ -800,6 +827,7 @@ function GroupPage() {
               <AnonymousChat matchId={null} groupId={groupId} role="receiver" />
             )}
             {drawn && exchangeDone && <RevealedGiver groupId={groupId} />}
+            {drawn && (exchangeDone || (blind && !!group.revealed_at)) && <OrganizeYourOwn />}
 
             {currentMember && (
               <section className="border-rule rounded-[4px] border p-6 md:p-8">
@@ -1099,7 +1127,7 @@ function GroupPage() {
               onClick={() => {
                 const url = `${window.location.origin}${groupPath(group.id)}`
                 const text = `Para el amigo secreto a ciegas de *${group.name}* falta que anotes tu lista de deseos. Sin ella no podemos sortear:\n${url}`
-                window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank')
+                window.open(whatsappUrl(text), '_blank', 'noopener')
               }}
             >
               <MessageCircle aria-hidden="true" />

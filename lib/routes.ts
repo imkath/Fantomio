@@ -11,8 +11,16 @@ export function safeRedirect(value: string | null | undefined, fallback = '/dash
   const base = 'https://fantomio.invalid'
   try {
     const url = new URL(value, base)
-    return url.origin === base ? url.pathname + url.search + url.hash : fallback
+    if (url.origin !== base) return fallback
+    // Dot segments collapse after parsing: "/..//evil.com" becomes "//evil.com", which the
+    // router then reads as another domain.
+    const path = url.pathname + url.search + url.hash
+    return path.startsWith('//') ? fallback : path
   } catch {
     return fallback
   }
 }
+
+// "Crear un grupo" from public pages: sign up (or skip it with a session) and land on the
+// dashboard with the create form already open.
+export const CREATE_GROUP_HREF = `/register?redirectTo=${encodeURIComponent('/dashboard?new=1')}`

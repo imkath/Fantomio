@@ -123,6 +123,10 @@ describe('safeRedirect', () => {
     expect(safeRedirect(decodeURIComponent('/%09/evil.example'))).toBe('/dashboard')
     expect(safeRedirect('/join?code=a1b2c3d4e5f6')).toBe('/join?code=a1b2c3d4e5f6')
     expect(safeRedirect('/groups?id=1#lista')).toBe('/groups?id=1#lista')
+    // Dot segments collapse into a protocol-relative path once parsed.
+    expect(safeRedirect('/..//evil.example')).toBe('/dashboard')
+    expect(safeRedirect('/.//evil.example')).toBe('/dashboard')
+    expect(safeRedirect('/dashboard?new=1')).toBe('/dashboard?new=1')
   })
 })
 

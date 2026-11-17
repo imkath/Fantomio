@@ -2,7 +2,8 @@
 
 import { Button } from '@/components/ui/button'
 import { Loader2 } from 'lucide-react'
-import { AuthShell, Field, Notice, PasswordField } from '@/components/auth-shell'
+import { AuthShell, Divider, Field, Notice, PasswordField } from '@/components/auth-shell'
+import { GoogleButton } from '@/components/google-button'
 import { useState } from 'react'
 import { useQuery } from '@/lib/use-query'
 import Link from 'next/link'
@@ -82,7 +83,11 @@ function RegisterForm() {
   }
 
   return (
-    <AuthShell back={`/login${keep}`} title="Crear cuenta" lede="Con tu correo y una contraseña.">
+    <AuthShell back={`/login${keep}`} title="Crear cuenta" lede="Con Google es un toque.">
+      <GoogleButton redirectTo={redirectTo} />
+      <div className="my-6">
+        <Divider>o con tu correo</Divider>
+      </div>
       <form onSubmit={handleRegister} className="space-y-5">
         {error && <Notice>{error}</Notice>}
         <Field
@@ -122,7 +127,19 @@ function RegisterForm() {
         </Button>
       </form>
 
-      <p className="text-graphite mt-6 text-[15px]">
+      <p className="text-faint mt-6 text-sm">
+        Al crear tu cuenta aceptas los{' '}
+        <Link href="/terms" className="hover:text-ink underline underline-offset-[3px]">
+          términos
+        </Link>{' '}
+        y la{' '}
+        <Link href="/privacy" className="hover:text-ink underline underline-offset-[3px]">
+          política de privacidad
+        </Link>
+        .
+      </p>
+
+      <p className="text-graphite mt-4 text-[15px]">
         ¿Ya tienes cuenta?{' '}
         <Link href={`/login${keep}`} className="text-ink underline underline-offset-4">
           Entrar

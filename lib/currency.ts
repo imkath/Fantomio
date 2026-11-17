@@ -67,3 +67,21 @@ export function deviceCurrency(): CurrencyCode {
   }
   return guessCurrency(zone, navigator.languages ?? [navigator.language])
 }
+
+const SYMBOLS: Record<string, string> = {
+  CLP: '$',
+  USD: 'US$',
+  EUR: '€',
+  MXN: 'MX$',
+  ARS: 'AR$',
+  COP: 'COL$',
+  PEN: 'S/',
+  BRL: 'R$',
+  GBP: '£',
+}
+
+// A budget as people write it: "$15.000", "US$20". Whole amounts only; nobody sets cents.
+export function formatMoney(amount: number, currency = 'CLP'): string {
+  const n = amount.toLocaleString('es-CL', { minimumFractionDigits: 0, maximumFractionDigits: 0 })
+  return `${SYMBOLS[currency] ?? currency}${n}`
+}

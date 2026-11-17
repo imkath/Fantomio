@@ -47,13 +47,10 @@ function Callback() {
           type: type as 'signup' | 'email' | 'recovery' | 'invite' | 'email_change',
         })
         if (!error) {
-          router.replace(
-            type === 'recovery'
-              ? '/reset-password'
-              : type === 'email_change'
-                ? next
-                : '/login?verified=true'
-          )
+          // verifyOtp leaves a session open, so the person goes straight on to where they were
+          // headed (for example, creating a group) instead of a sign-in page that would only
+          // send them on again.
+          router.replace(type === 'recovery' ? '/reset-password' : next)
           return
         }
       }

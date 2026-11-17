@@ -15,6 +15,7 @@ import { Button } from '@/components/ui/button'
 import { toast } from 'sonner'
 import { daysBetween, parseLocalDate, todayIn } from '@/lib/utils'
 import { mapsUrl, serviceName, type Place } from '@/lib/place'
+import { formatMoney } from '@/lib/currency'
 
 interface GroupInfoCardProps {
   budget: number | null
@@ -59,31 +60,6 @@ export function GroupInfoCard({
     })
   }
 
-  const formatCurrency = (amount: number, currencyCode: string) => {
-    // Map currency codes to their symbols
-    const currencySymbols: Record<string, string> = {
-      CLP: '$',
-      USD: 'US$',
-      EUR: '€',
-      MXN: 'MX$',
-      ARS: 'AR$',
-      COP: 'COL$',
-      PEN: 'S/',
-      BRL: 'R$',
-      GBP: '£',
-    }
-
-    const symbol = currencySymbols[currencyCode] || currencyCode
-
-    // Format number with locale-specific separators
-    const formattedAmount = amount.toLocaleString('es-CL', {
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0,
-    })
-
-    return `${symbol}${formattedAmount}`
-  }
-
   const days = exchangeDate ? daysBetween(todayIn(timeZone), exchangeDate) : -1
 
   return (
@@ -99,7 +75,7 @@ export function GroupInfoCard({
             </span>
             <div>
               <dt className="text-graphite text-[15px]">Presupuesto</dt>
-              <dd className="text-2xl">{formatCurrency(budget, currency)}</dd>
+              <dd className="text-2xl">{formatMoney(budget, currency)}</dd>
             </div>
           </div>
         )}

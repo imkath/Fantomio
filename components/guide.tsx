@@ -3,6 +3,7 @@ import { LandingHeader } from '@/components/landing-header'
 import { Footer } from '@/components/footer'
 import { Button } from '@/components/ui/button'
 import { GUIDES, guideBySlug } from '@/lib/guides'
+import { CREATE_GROUP_HREF } from '@/lib/routes'
 import { GuideArt, NoteGhost } from '@/components/guide-art'
 import type { LucideIcon } from 'lucide-react'
 
@@ -130,7 +131,7 @@ export function GuideLayout({
               le regala, y es gratis.
             </p>
             <Button asChild size="lg">
-              <Link href="/register">Crear un grupo</Link>
+              <Link href={CREATE_GROUP_HREF}>Crear un grupo</Link>
             </Button>
           </div>
           <GuideArt name="reglas" className="text-ink hidden w-full sm:block" />
