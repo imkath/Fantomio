@@ -24,7 +24,9 @@ json.dump(ids, open('ids6.json','w'))
 s,g=req('POST', R+'groups', {'name':'QA auditoria','admin_id':ids['a'],'currency':'CLP'}, T['a']); G=g[0]['id']; code=g[0]['invite_code']
 ids['G']=G; json.dump(ids, open('ids6.json','w'))
 check('a adds self as organizer', req('POST', R+'members', {'group_id':G,'user_id':ids['a'],'is_admin':True}, T['a']), rows(1))
-check('a logs GROUP_CREATED', req('POST', R+'activities', {'group_id':G,'user_id':ids['a'],'type':'GROUP_CREATED','message':'creó'}, T['a']), rows(1))
+check('even the organizer cannot write the history', req('POST', R+'activities', {'group_id':G,'user_id':ids['a'],'type':'GROUP_CREATED','message':'creó'}, T['a']), denied)
+auto=sql(f"select count(*) n from activities where group_id='{G}' and type='GROUP_CREATED'")[0]['n']
+check('the database logged the new group', (200, auto), lambda s,b: b==1)
 check('b direct insert into members', req('POST', R+'members', {'group_id':G,'user_id':ids['b'],'is_admin':False}, T['b']), denied)
 check('b joins with wrong code', req('POST', R+'rpc/join_group', {'p_code':'000000000000'}, T['b']), denied)
 check('b joins with code', req('POST', R+'rpc/join_group', {'p_code':code}, T['b']), lambda s,b: s==200 and b==G)

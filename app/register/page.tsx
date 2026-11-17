@@ -100,6 +100,7 @@ function RegisterForm() {
           hint="Así te verán en los grupos."
           autoComplete="name"
           value={name}
+          maxLength={300}
           onChange={(e) => setName(e.target.value)}
           required
         />

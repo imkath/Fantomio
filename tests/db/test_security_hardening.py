@@ -51,7 +51,7 @@ try:
 
     # 1. Group history: the organizer can log; a member can't, not even under their own name.
     s, _ = req('POST', R + 'activities', {'group_id': G, 'user_id': ids['a'], 'type': 'GROUP_UPDATED', 'message': 'ok'}, T['a'])
-    check('organizer logs a group change', s < 300, s)
+    check('the history is written only by the database (organizer included)', s >= 400, s)
     s, _ = req('POST', R + 'activities', {'group_id': G, 'user_id': ids['b'], 'type': 'GROUP_UPDATED', 'message': 'falso'}, T['b'])
     check('member cannot write the group history', s >= 400, s)
 

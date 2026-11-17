@@ -56,6 +56,8 @@ import {
   transferGroup,
 } from '@/lib/actions/group'
 import { RateApp } from '@/components/rate-app'
+import { getExclusions } from '@/lib/actions/exclusions'
+import { forcedGivers } from '@/lib/guessable'
 import { OrganizeYourOwn } from '@/components/group/organize-your-own'
 import { inviteMessage, whatsappUrl } from '@/lib/invite'
 import { GhostMark } from '@/components/ghost-mark'
@@ -87,7 +89,6 @@ interface Member {
   hidden: boolean
   profile: {
     full_name: string | null
-    email: string
     avatar_url: string | null
   }
 }
@@ -97,7 +98,6 @@ interface Match {
   receiver_id: string
   receiver: {
     full_name: string | null
-    email: string
     avatar_url: string | null
   }
   receiver_wishlist: Array<{ description: string; url?: string }>
@@ -150,6 +150,8 @@ function GroupPage() {
   const [match, setMatch] = useState<Match | null>(null)
   const [showMatch, setShowMatch] = useState(false)
   const [showDrawConfirm, setShowDrawConfirm] = useState(false)
+  // People whose pair anyone who knows the exclusions could work out (see lib/guessable.ts).
+  const [guessable, setGuessable] = useState<string[]>([])
   const [avoidPrevious, setAvoidPrevious] = useState(true)
   const [missingLists, setMissingLists] = useState<string[]>([])
   const [showMissingLists, setShowMissingLists] = useState(false)
@@ -168,7 +170,7 @@ function GroupPage() {
       type: string
       message: string
       created_at: string
-      profiles: { full_name: string | null; email: string; avatar_url: string | null }
+      profiles: { full_name: string | null; avatar_url: string | null }
     }>
   >([])
   const [isLoadingActivities, setIsLoadingActivities] = useState(false)
@@ -211,15 +213,11 @@ function GroupPage() {
         supabase.from('groups').select('*').eq('id', groupId).single(),
         supabase
           .from('members')
-          .select(
-            'id, user_id, is_admin, hidden_at, profiles:user_id (full_name, email, avatar_url)'
-          )
+          .select('id, user_id, is_admin, hidden_at, profiles:user_id (full_name, avatar_url)')
           .eq('group_id', groupId),
         supabase
           .from('matches')
-          .select(
-            'id, receiver_id, revealed_at, receiver:receiver_id (full_name, email, avatar_url)'
-          )
+          .select('id, receiver_id, revealed_at, receiver:receiver_id (full_name, avatar_url)')
           .eq('group_id', groupId)
           .eq('giver_id', user.id)
           .maybeSingle(),
@@ -290,7 +288,6 @@ function GroupPage() {
           receiver: (() => {
             const r = matchData.receiver as unknown as {
               full_name: string | null
-              email: string
               avatar_url: string | null
             }
             return { ...r, full_name: formatName(r.full_name) || null }
@@ -368,6 +365,25 @@ function GroupPage() {
 
     setIsDrawing(false)
   }
+
+  useEffect(() => {
+    if (!showDrawConfirm) return setGuessable([])
+    let cancelled = false
+    getExclusions(groupId).then((res) => {
+      if (cancelled || !res.success || !res.exclusions?.length) return
+      const ids = members.map((m) => m.user_id)
+      const forced = forcedGivers(
+        ids,
+        res.exclusions.map((e) => ({ giver: e.giver_id, receiver: e.excluded_receiver_id }))
+      )
+      setGuessable(
+        forced.map((id) => members.find((m) => m.user_id === id)?.profile.full_name || 'Sin nombre')
+      )
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [showDrawConfirm, groupId, members])
 
   const handleShare = async () => {
     if (!group) return
@@ -713,7 +729,7 @@ function GroupPage() {
                   .filter((m) => m.user_id !== currentUserId)
                   .map((m) => ({
                     id: m.user_id,
-                    name: m.profile.full_name || m.profile.email,
+                    name: m.profile.full_name || 'Sin nombre',
                   }))}
                 revealAt={group.reveal_at}
                 isAdmin={isAdmin}
@@ -757,7 +773,7 @@ function GroupPage() {
                       />
                       <div className="min-w-0">
                         <p className="text-[28px] leading-tight font-bold break-words">
-                          {match.receiver.full_name || match.receiver.email}
+                          {match.receiver.full_name || 'Sin nombre'}
                         </p>
                         <p className="text-graphite text-[17px]">Le regalas tú</p>
                       </div>
@@ -804,7 +820,7 @@ function GroupPage() {
                     {exchangeDone && (
                       <RevealYourself
                         groupId={groupId}
-                        receiverName={match.receiver.full_name || match.receiver.email}
+                        receiverName={match.receiver.full_name || 'Sin nombre'}
                         revealed={match.revealed}
                         onChange={fetchGroupData}
                       />
@@ -972,7 +988,7 @@ function GroupPage() {
               <ul className="divide-rule divide-y">
                 {members.map((member) => {
                   const me = member.user_id === currentUserId
-                  const name = me ? 'Tú' : member.profile.full_name || member.profile.email
+                  const name = me ? 'Tú' : member.profile.full_name || 'Sin nombre'
                   return (
                     <li key={member.id} className="flex items-center justify-between gap-3 py-3">
                       <span className="flex min-w-0 items-center gap-3">
@@ -1006,7 +1022,7 @@ function GroupPage() {
                             onClick={() =>
                               setNewOrganizer({
                                 userId: member.user_id,
-                                name: member.profile.full_name || member.profile.email,
+                                name: member.profile.full_name || 'Sin nombre',
                               })
                             }
                             aria-label={`Pasarle la organización a ${name}`}
@@ -1022,7 +1038,7 @@ function GroupPage() {
                             onClick={() => {
                               setMemberToRemove({
                                 id: member.id,
-                                name: member.profile.full_name || member.profile.email,
+                                name: member.profile.full_name || 'Sin nombre',
                               })
                               setShowRemoveMemberDialog(true)
                             }}
@@ -1071,6 +1087,15 @@ function GroupPage() {
               </div>
             </DialogDescription>
           </DialogHeader>
+          {guessable.length > 0 && (
+            <Notice>
+              Con estas restricciones, a{' '}
+              {guessable.length === 1 ? guessable[0] : `${guessable.length} personas`} le puede
+              tocar solo una persona, en cualquier sorteo. Quien conozca las restricciones podría
+              adivinar {guessable.length === 1 ? 'esa pareja' : 'esas parejas'}. Si no quieres que
+              pase, quita alguna restricción antes de sortear. Si te da lo mismo, sortea igual.
+            </Notice>
+          )}
           {group.previous_group_id && (
             <label className="flex cursor-pointer items-start gap-3 text-[15px]">
               <input
@@ -1154,6 +1179,7 @@ function GroupPage() {
               <Input
                 id="edit-name"
                 value={editName}
+                maxLength={100}
                 onChange={(e) => setEditName(e.target.value)}
               />
             </div>

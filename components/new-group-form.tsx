@@ -125,14 +125,7 @@ export function NewGroupForm({
         return
       }
 
-      // Log activity
-      await supabase.from('activities').insert({
-        group_id: group.id,
-        user_id: user.id,
-        type: 'GROUP_CREATED',
-        message: `Grupo "${name}" creado`,
-      })
-
+      // The database writes "group created" in the history by itself (log_group_change).
       router.push(groupPath(group.id))
     } catch (err) {
       setError(getUserFriendlyError(err as { code?: string; message?: string }))
@@ -156,6 +149,7 @@ export function NewGroupForm({
             ref={nameInputRef}
             placeholder="Navidad familia 2026"
             value={name}
+            maxLength={100}
             onChange={(e) => {
               setName(e.target.value)
               if (error && e.target.value.trim()) setError('')

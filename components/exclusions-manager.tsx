@@ -26,7 +26,6 @@ interface Member {
   user_id: string
   profile: {
     full_name: string | null
-    email: string
     avatar_url: string | null
   }
 }
@@ -113,7 +112,7 @@ export function ExclusionsManager({ groupId, members, isAdmin, isDrawn }: Exclus
     return members.find((m) => m.user_id === userId)
   }
 
-  const nameOf = (m: Member) => m.profile.full_name || m.profile.email
+  const nameOf = (m: Member) => m.profile.full_name || 'Sin nombre'
 
   const getAvailableReceivers = () => {
     if (!selectedGiver) return members
