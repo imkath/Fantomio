@@ -21,6 +21,22 @@ CREATE TABLE IF NOT EXISTS public.email_pending (
 ALTER TABLE public.email_pending ENABLE ROW LEVEL SECURITY;
 REVOKE ALL ON public.email_pending FROM PUBLIC, anon, authenticated;
 
+-- Emails that count against the day: attempts Brevo didn't refuse (failed ones don't use quota).
+CREATE OR REPLACE FUNCTION public.emails_sent_today()
+ RETURNS integer
+ LANGUAGE sql
+ STABLE
+ SECURITY DEFINER
+ SET search_path TO 'public'
+AS $function$
+  SELECT count(*)::int FROM email_log l
+  WHERE l.created_at > now() - interval '24 hours'
+    AND NOT EXISTS (SELECT 1 FROM net._http_response r WHERE r.id = l.request_id
+                    AND (r.timed_out OR r.error_msg IS NOT NULL
+                         OR coalesce(r.status_code, 0) NOT BETWEEN 200 AND 299))
+$function$;
+REVOKE ALL ON FUNCTION public.emails_sent_today() FROM PUBLIC, anon, authenticated;
+
 -- Sentry, at most once per key and period, so a long queue doesn't burn the free event quota.
 CREATE TABLE IF NOT EXISTS public.email_alerts (
   key text PRIMARY KEY,
@@ -107,6 +123,7 @@ BEGIN
 
   rid := net.http_post(
     url := 'https://api.brevo.com/v3/smtp/email',
+    timeout_milliseconds := 20000,
     headers := jsonb_build_object('api-key', api_key, 'content-type', 'application/json'),
     body := jsonb_build_object(
       'sender', jsonb_build_object('name', 'Fantomio', 'email', 'hola@fantomio.com'),
@@ -145,8 +162,9 @@ DECLARE
   sent INT := 0;
 BEGIN
   FOR p IN SELECT notification_id, attempts FROM email_pending
-           WHERE last_request IS NULL AND next_try <= now() ORDER BY created_at LOOP
-    EXIT WHEN (SELECT count(*) FROM email_log WHERE created_at > now() - interval '24 hours') >= 240;
+           WHERE last_request IS NULL AND next_try <= now() ORDER BY created_at
+           FOR UPDATE SKIP LOCKED LOOP
+    EXIT WHEN emails_sent_today() >= 240;
     BEGIN
       rid := send_notification_email(p.notification_id);
     EXCEPTION WHEN OTHERS THEN
@@ -156,7 +174,7 @@ BEGIN
     UPDATE email_pending
     SET attempts = attempts + 1, last_request = rid,
         next_try = now() + least(interval '15 minutes' * power(2, p.attempts), interval '6 hours')
-    WHERE notification_id = p.notification_id;
+    WHERE notification_id = p.notification_id AND last_request IS NULL;
     IF rid IS NULL THEN
       PERFORM alert_once('email-config', 'error',
         'Un correo de sorteo, revelación o invitación no se pudo armar (¿falta la clave de Brevo en Vault o la plantilla?). Sigue en cola.',
@@ -183,7 +201,11 @@ BEGIN
   -- Essential: into the outbox, and out right away if the day has room.
   IF NEW.type IN ('draw', 'unveil', 'invitation') THEN
     INSERT INTO email_pending (notification_id) VALUES (NEW.id) ON CONFLICT DO NOTHING;
-    PERFORM flush_pending_emails();
+    BEGIN
+      PERFORM flush_pending_emails();
+    EXCEPTION WHEN OTHERS THEN
+      NULL;
+    END;
     RETURN NEW;
   END IF;
 
@@ -205,7 +227,7 @@ BEGIN
   END IF;
 
   -- Everyday notices stop at 200 a day and stay in the bell.
-  IF (SELECT count(*) FROM email_log WHERE created_at > NOW() - INTERVAL '24 hours') >= 200 THEN
+  IF emails_sent_today() >= 200 THEN
     RETURN NEW;
   END IF;
 
@@ -243,17 +265,17 @@ DECLARE
 BEGIN
   -- Outbox: delivered when Brevo answered 2xx.
   DELETE FROM email_pending p USING net._http_response r
-  WHERE r.id = p.last_request AND r.status_code BETWEEN 200 AND 299 AND NOT r.timed_out;
+  WHERE r.id = p.last_request AND coalesce(r.status_code, 0) BETWEEN 200 AND 299
+    AND NOT coalesce(r.timed_out, false);
 
-  -- Refused (bad request for that address): three tries, then given up and reported.
-  WITH bad AS (
-    DELETE FROM email_pending p USING net._http_response r
-    WHERE r.id = p.last_request AND r.status_code IN (400, 422) AND p.attempts >= 3
-    RETURNING p.notification_id)
-  SELECT count(*) INTO failed FROM bad;
+  -- Refused as a bad request: could be the address or our own setup. Reported, and retried like
+  -- any other failure until the 72-hour limit (never dropped earlier: a setup error must not
+  -- empty the queue).
+  SELECT count(*) INTO failed FROM email_pending p JOIN net._http_response r ON r.id = p.last_request
+  WHERE r.status_code IN (400, 422);
   IF failed > 0 THEN
-    PERFORM alert_once('email-undeliverable', 'error',
-      failed || ' correo(s) esenciales rechazados por Brevo tres veces (¿dirección inválida?). Se dejaron de intentar.',
+    PERFORM alert_once('email-refused', 'error',
+      failed || ' correo(s) esenciales rechazados por Brevo como inválidos (¿dirección o configuración?). Se siguen intentando hasta 72 horas.',
       interval '1 hour');
   END IF;
 
@@ -261,7 +283,8 @@ BEGIN
   UPDATE email_pending p SET last_request = NULL
   WHERE p.last_request IS NOT NULL AND (
     EXISTS (SELECT 1 FROM net._http_response r WHERE r.id = p.last_request
-            AND (r.timed_out OR r.error_msg IS NOT NULL OR r.status_code NOT BETWEEN 200 AND 299))
+            AND (r.timed_out OR r.error_msg IS NOT NULL
+                 OR coalesce(r.status_code, 0) NOT BETWEEN 200 AND 299))
     OR (NOT EXISTS (SELECT 1 FROM net._http_response r WHERE r.id = p.last_request)
         AND p.next_try < now() - interval '15 minutes'));
 
@@ -301,7 +324,7 @@ BEGIN
     AND (EXISTS (SELECT 1 FROM net._http_response r WHERE r.id = l.request_id)
          OR l.created_at < NOW() - INTERVAL '6 hours');
 
-  SELECT count(*) INTO sent_today FROM email_log WHERE created_at > NOW() - INTERVAL '24 hours';
+  sent_today := emails_sent_today();
   IF sent_today >= 200 THEN
     PERFORM alert_once('email-reserve', 'warning',
       'Se enviaron ' || sent_today || ' correos en 24 horas: los avisos del día a día quedan en la campanita; sorteos, revelaciones e invitaciones siguen hasta 240 y después esperan en cola.',

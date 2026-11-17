@@ -104,6 +104,14 @@ try:
     check('when the day frees up it goes out', pending(f) and pending(f)['last_request'])
     sql('delete from email_pending')
 
+    # 5b. Failed attempts don't use up the day.
+    sql("""delete from email_log where kind = 'test';
+      insert into email_log (request_id, kind, created_at) select -5000 - g, 'test', now() - interval '1 hour' from generate_series(1, 240) g;
+      insert into net._http_response (id, status_code, timed_out, created) select -5000 - g, 429, false, now() from generate_series(1, 240) g;""")
+    f2 = notify('draw')
+    check('240 refused attempts leave the day free', pending(f2) and pending(f2)['last_request'])
+    sql("delete from email_log where kind = 'test'; delete from email_pending;")
+
     # 6. Without the Brevo key it is kept in the outbox, never dropped.
     sql("delete from vault.secrets where name = 'brevo_api_key'")
     g = notify('unveil')
@@ -118,7 +126,9 @@ try:
     sql('select public.flush_pending_emails()')
     answer(g, 400)
     sql('select public.check_email_delivery()')
-    check('refused three times as a bad address: given up', pending(g) is None)
+    p = pending(g)
+    check('refused as invalid: never dropped before 72 hours, tried again', p is not None and p['last_request'] is None, p)
+    check('and the refusal is reported', one("select count(*) n from email_alerts where key = 'email-refused'")['n'] == 1)
     h = notify('draw')
     sql(f"update email_pending set created_at = now() - interval '73 hours' where notification_id = '{h}'")
     sql('select public.check_email_delivery()')
