@@ -67,7 +67,8 @@ try:
     check('more than 10 items is refused', save([{'description': f'n{i}'} for i in range(11)]) >= 400)
 
     # 3. Email placeholders: names are escaped before the template is filled.
-    body = sql("select pg_get_functiondef('public.email_notification()'::regprocedure) d")[0]['d']
+    # Since 18-nov-2026 the sending half lives in send_notification_email.
+    body = sql("select pg_get_functiondef('public.send_notification_email(uuid)'::regprocedure) d")[0]['d']
     check('email names are neutralized before filling the template', "regexp_replace(group_name" in body and "regexp_replace(other_name" in body)
     out = sql("select regexp_replace('{{{NAME}}', '\\{(?=\\{)', '{ ', 'g') r")[0]['r']
     check('no run of braces rebuilds a placeholder', '{{' not in out, out)
