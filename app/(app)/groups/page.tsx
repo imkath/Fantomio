@@ -152,6 +152,8 @@ function GroupPage() {
   const [showDrawConfirm, setShowDrawConfirm] = useState(false)
   // People whose pair anyone who knows the exclusions could work out (see lib/guessable.ts).
   const [guessable, setGuessable] = useState<string[]>([])
+  // For the organizer only: the start of each member's email, to tell namesakes apart.
+  const [emailHints, setEmailHints] = useState<Map<string, string>>(new Map())
   const [avoidPrevious, setAvoidPrevious] = useState(true)
   const [missingLists, setMissingLists] = useState<string[]>([])
   const [showMissingLists, setShowMissingLists] = useState(false)
@@ -384,6 +386,30 @@ function GroupPage() {
       cancelled = true
     }
   }, [showDrawConfirm, groupId, members])
+
+  useEffect(() => {
+    if (!isAdmin) return
+    createClient()
+      .rpc('group_email_hints', { p_group_id: groupId })
+      .then(({ data }) => {
+        const rows = (data ?? []) as Array<{ user_id: string; hint: string }>
+        setEmailHints(new Map(rows.map((r) => [r.user_id, r.hint])))
+      })
+  }, [isAdmin, groupId, members.length])
+
+  // Names shared by two or more members (compared without case or extra spaces).
+  const sameName = (name: string | null) => (name ?? '').trim().replace(/\s+/g, ' ').toLowerCase()
+  const repeatedNames = Array.from(
+    members.reduce((seen, m) => {
+      const key = sameName(m.profile.full_name)
+      seen.set(key, (seen.get(key) ?? 0) + 1)
+      return seen
+    }, new Map<string, number>())
+  )
+    .filter(([key, n]) => key && n > 1)
+    .map(([key]) => members.find((m) => sameName(m.profile.full_name) === key)!.profile.full_name!)
+  const myName = members.find((m) => m.user_id === currentUserId)?.profile.full_name ?? null
+  const iShareMyName = !!myName && repeatedNames.some((n) => sameName(n) === sameName(myName))
 
   const handleShare = async () => {
     if (!group) return
@@ -985,6 +1011,17 @@ function GroupPage() {
                   </>
                 )}
               </p>
+              {iShareMyName && !archived && (
+                <div className="mb-4">
+                  <Notice tone="ok">
+                    Hay otra persona llamada {myName} en el grupo. Para que no los confundan, agrega
+                    tu apellido o un apodo.{' '}
+                    <Link href="/account#perfil" className="font-bold underline underline-offset-4">
+                      Cambiar mi nombre
+                    </Link>
+                  </Notice>
+                </div>
+              )}
               <ul className="divide-rule divide-y">
                 {members.map((member) => {
                   const me = member.user_id === currentUserId
@@ -999,6 +1036,11 @@ function GroupPage() {
                         />
                         <span className="min-w-0">
                           <span className={`block truncate ${me ? 'font-bold' : ''}`}>{name}</span>
+                          {isAdmin && !me && emailHints.get(member.user_id) && (
+                            <span className="text-faint block truncate text-[14px] leading-tight">
+                              {emailHints.get(member.user_id)}
+                            </span>
+                          )}
                           {member.is_admin && (
                             <span className="text-graphite block text-[15px] leading-tight">
                               Organiza
@@ -1087,6 +1129,12 @@ function GroupPage() {
               </div>
             </DialogDescription>
           </DialogHeader>
+          {repeatedNames.length > 0 && (
+            <Notice>
+              Hay más de una persona llamada {repeatedNames.join(' y ')}. Revisa que no sea la misma
+              persona con dos cuentas: debajo de cada nombre ves el inicio de su correo.
+            </Notice>
+          )}
           {guessable.length > 0 && (
             <Notice>
               Con estas restricciones, a{' '}
