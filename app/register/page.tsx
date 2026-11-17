@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button'
 import { Loader2 } from 'lucide-react'
 import { AuthShell, Divider, Field, Notice, PasswordField } from '@/components/auth-shell'
 import { GoogleButton } from '@/components/google-button'
+import { CAPTCHA_WAIT, useTurnstile } from '@/components/turnstile'
 import { useState } from 'react'
 import { useQuery } from '@/lib/use-query'
 import Link from 'next/link'
@@ -22,9 +23,11 @@ function RegisterForm() {
   const [error, setError] = useState('')
   const [isLoading, setIsLoading] = useState(false)
   const [emailSent, setEmailSent] = useState(false)
+  const captcha = useTurnstile()
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault()
+    if (!captcha.token) return setError(CAPTCHA_WAIT)
     setIsLoading(true)
     setError('')
 
@@ -50,8 +53,10 @@ function RegisterForm() {
           data: {
             name,
           },
+          captchaToken: captcha.token,
         },
       })
+      captcha.reset()
 
       if (error) {
         setError(error.message)
@@ -122,6 +127,7 @@ function RegisterForm() {
           onChange={(e) => setConfirmPassword(e.target.value)}
           required
         />
+        {captcha.widget}
         <Button type="submit" size="lg" className="w-full" disabled={isLoading}>
           {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Crear cuenta'}
         </Button>

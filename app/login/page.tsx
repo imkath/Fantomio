@@ -12,6 +12,7 @@ import { safeRedirect } from '@/lib/routes'
 import { useSignedInRedirect } from '@/lib/use-signed-in-redirect'
 import { readMerge } from '@/lib/merge-session'
 import { GoogleButton } from '@/components/google-button'
+import { CAPTCHA_WAIT, useTurnstile } from '@/components/turnstile'
 
 function LoginForm() {
   const router = useRouter()
@@ -35,9 +36,11 @@ function LoginForm() {
     if (urlError) setError(urlError)
   }, [urlError])
   const [isLoading, setIsLoading] = useState(false)
+  const captcha = useTurnstile()
 
   const handleCredentialsSignIn = async (e: React.FormEvent) => {
     e.preventDefault()
+    if (!captcha.token) return setError(CAPTCHA_WAIT)
     setIsLoading(true)
     setError('')
 
@@ -45,7 +48,10 @@ function LoginForm() {
     const { error } = await supabase.auth.signInWithPassword({
       email,
       password,
+      options: { captchaToken: captcha.token },
     })
+    // Each token works once: a failed attempt needs a new one.
+    captcha.reset()
 
     if (error) {
       setError(
@@ -97,6 +103,7 @@ function LoginForm() {
             onChange={(e) => setPassword(e.target.value)}
             required
           />
+          {captcha.widget}
           <Button type="submit" size="lg" className="w-full" disabled={isLoading}>
             {isLoading ? (
               <Loader2 className="animate-spin" />

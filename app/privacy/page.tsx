@@ -193,9 +193,11 @@ export default function PrivacyPage() {
                 </li>
                 <li>
                   <strong>Proveedores que operan el servicio por nuestra cuenta:</strong> Supabase
-                  (base de datos y autenticación), Cloudflare (alojamiento del sitio), Brevo (envío
-                  de correos) y Sentry, de Functional Software, Inc. (reportes de errores). Solo
-                  pueden usar los datos para prestarnos ese servicio.
+                  (base de datos y autenticación), Cloudflare (alojamiento del sitio y la
+                  comprobación contra robots al crear tu cuenta, entrar o recuperar la contraseña,
+                  que revisa señales técnicas de tu navegador y no usa cookies de publicidad), Brevo
+                  (envío de correos) y Sentry, de Functional Software, Inc. (reportes de errores).
+                  Solo pueden usar los datos para prestarnos ese servicio.
                 </li>
                 <li>
                   <strong>Google</strong>, si eliges entrar con tu cuenta de Google. En ese caso

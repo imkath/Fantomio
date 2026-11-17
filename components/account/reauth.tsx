@@ -6,6 +6,7 @@ import { Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Divider, Notice, PasswordField } from '@/components/auth-shell'
 import { GoogleButton } from '@/components/google-button'
+import { CAPTCHA_WAIT, useTurnstile } from '@/components/turnstile'
 import {
   Dialog,
   DialogContent,
@@ -35,6 +36,7 @@ export function useReauth({
   const [password, setPassword] = useState('')
   const [checking, setChecking] = useState(false)
   const [error, setError] = useState('')
+  const captcha = useTurnstile()
   const pending = useRef<Promise<boolean> | null>(null)
   const resolver = useRef<((ok: boolean) => void) | null>(null)
 
@@ -66,13 +68,16 @@ export function useReauth({
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault()
+    if (!captcha.token) return setError(CAPTCHA_WAIT)
     setChecking(true)
     setError('')
     try {
       const { error: signInError } = await createClient().auth.signInWithPassword({
         email,
         password,
+        options: { captchaToken: captcha.token },
       })
+      captcha.reset()
       if (!signInError) return settle(true)
       setError(
         signInError.code === 'invalid_credentials'
@@ -109,6 +114,7 @@ export function useReauth({
                 onChange={(e) => setPassword(e.target.value)}
                 required
               />
+              {captcha.widget}
               <Link
                 href="/forgot-password"
                 className="text-graphite hover:text-ink inline-block text-[15px] underline underline-offset-4"
