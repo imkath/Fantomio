@@ -774,8 +774,10 @@ function GroupPage() {
                               key={index}
                               className="bg-slip flex items-baseline justify-between gap-4 rounded-[3px] px-4 py-3"
                             >
-                              <span className="min-w-0 break-words">{item.description}</span>
-                              {item.url && (
+                              <span className="min-w-0 break-words">
+                                {String(item.description ?? '')}
+                              </span>
+                              {typeof item.url === 'string' && item.url && (
                                 <a
                                   href={
                                     item.url.startsWith('http') ? item.url : `https://${item.url}`
@@ -847,7 +849,7 @@ function GroupPage() {
                       <ul className="mt-4 grid gap-2">
                         {myWishlist.map((item, i) => (
                           <li key={i} className="bg-slip rounded-[3px] px-4 py-3 break-words">
-                            {item.description}
+                            {String(item.description ?? '')}
                           </li>
                         ))}
                       </ul>

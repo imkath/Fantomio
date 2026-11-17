@@ -3,6 +3,8 @@
   "name": "ghostswap-keepalive",
   "main": "index.js",
   "compatibility_date": "2026-08-24",
+  // Solo cron: sin URL publica en workers.dev.
+  "workers_dev": false,
   "triggers": {
     // cada 6 horas: Supabase pide actividad varias veces al dia, no cada 3 dias.
     // el dia 1 de cada mes: latido de Brevo (ver index.js)

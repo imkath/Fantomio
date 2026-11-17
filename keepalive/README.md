@@ -19,7 +19,8 @@ npx wrangler secret put BREVO_API_KEY      # la misma clave "ghostswap" del siti
 npx wrangler secret put NVRKTH_BREVO_API_KEY  # la clave "nvrkth-contacto" del portafolio
 ```
 
-Probar a mano: `curl https://ghostswap-keepalive.<subdominio>.workers.dev/`
-devuelve `{"ok":true,"status":200}`.
+Probar a mano: en el panel de Cloudflare, Workers > ghostswap-keepalive > Settings >
+Triggers, disparar el cron y revisar los logs. No tiene URL publica (`workers_dev: false`
+y sin handler `fetch`), para que nadie de afuera lo pueda llamar.
 
 Se despliega aparte del sitio: no lo toca el workflow de deploy de la raiz.

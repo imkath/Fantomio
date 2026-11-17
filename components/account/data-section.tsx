@@ -14,6 +14,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { AccountSection, Setting } from '@/components/account/section'
+import { useReauth } from '@/components/account/reauth'
 import { clearAvatarFiles } from '@/components/account/profile-section'
 import { createClient } from '@/lib/supabase'
 import { getUserFriendlyError } from '@/lib/errors'
@@ -22,10 +23,12 @@ import { todayIn } from '@/lib/utils'
 export function DataSection({
   userId,
   email,
+  hasPassword,
   drawnGroups,
 }: {
   userId: string
   email: string
+  hasPassword: boolean
   drawnGroups: string[]
 }) {
   const router = useRouter()
@@ -55,7 +58,11 @@ export function DataSection({
     URL.revokeObjectURL(link.href)
   }
 
+  const reauth = useReauth({ email, hasPassword, returnTo: '/account#datos' })
+
   const deleteAccount = async () => {
+    // Before anything is removed: photos go first, so a refused deletion must not get that far.
+    if (!(await reauth.confirm())) return
     setBusy('delete')
     setDeleteError('')
     const supabase = createClient()
@@ -73,6 +80,7 @@ export function DataSection({
 
   return (
     <AccountSection id="datos" title="Seguridad y datos">
+      {reauth.dialog}
       {error && <Notice>{error}</Notice>}
 
       <Setting

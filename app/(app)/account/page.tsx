@@ -171,6 +171,7 @@ function AccountPage() {
               <DataSection
                 userId={account.userId}
                 email={account.email}
+                hasPassword={account.hasPassword}
                 drawnGroups={account.drawnGroups}
               />
             </div>

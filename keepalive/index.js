@@ -1,4 +1,4 @@
-/* global fetch, Response */
+/* global fetch */
 // Mantiene despierto el proyecto de Supabase en el plan gratuito.
 //
 // Supabase pausa un proyecto que no recibe "a few user requests to the database
@@ -82,7 +82,11 @@ export default {
   async scheduled(event, env) {
     if (event.cron === HEARTBEAT_CRON) {
       // Cada latido por separado: si uno falla, los otros igual se envian.
-      const results = await Promise.allSettled([heartbeat(env), smtpHeartbeat(env), nvrkthHeartbeat(env)])
+      const results = await Promise.allSettled([
+        heartbeat(env),
+        smtpHeartbeat(env),
+        nvrkthHeartbeat(env),
+      ])
       const failed = results.filter((r) => r.status === 'rejected').map((r) => r.reason.message)
       if (failed.length) throw new Error(failed.join(' | '))
       return
@@ -90,13 +94,6 @@ export default {
     const r = await ping(env)
     if (!r.ok) throw new Error(`keep-alive fallo: HTTP ${r.status} ${r.body}`)
   },
-
-  // Para probarlo a mano: curl https://<worker>.workers.dev/
-  async fetch(request, env) {
-    const r = await ping(env)
-    return new Response(JSON.stringify(r), {
-      status: r.ok ? 200 : 500,
-      headers: { 'content-type': 'application/json' },
-    })
-  },
+  // Sin handler fetch y sin workers.dev: nadie de afuera puede dispararlo. Para probarlo a mano,
+  // "Trigger" en Workers > ghostswap-keepalive > Settings > Triggers, y mirar los logs.
 }
