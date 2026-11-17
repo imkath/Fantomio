@@ -1,7 +1,7 @@
 from _env import ANON, SRV, U, R, sql  # noqa: E402
 import json, urllib.request, secrets, subprocess
-def req(method, url, body=None, token=None, key=ANON):
-    h = {'apikey': key, 'Authorization': 'Bearer ' + (token or key), 'Content-Type': 'application/json', 'Prefer': 'return=representation'}
+def req(method, url, body=None, token=None, key=ANON, prefer='return=representation'):
+    h = {'apikey': key, 'Authorization': 'Bearer ' + (token or key), 'Content-Type': 'application/json', 'Prefer': prefer}
     r = urllib.request.Request(url, data=None if body is None else json.dumps(body).encode(), headers=h, method=method)
     try:
         with urllib.request.urlopen(r) as resp: return resp.status, json.loads(resp.read() or 'null')
@@ -35,9 +35,9 @@ check('c joins with code', req('POST', R+'rpc/join_group', {'p_code':code}, T['c
 check('d joins with code', req('POST', R+'rpc/join_group', {'p_code':code}, T['d']), okay)
 check('b fakes activity as a', req('POST', R+'activities', {'group_id':G,'user_id':ids['a'],'type':'GROUP_UPDATED','message':'x'}, T['b']), denied)
 check('b fakes DRAW_RESET type', req('POST', R+'activities', {'group_id':G,'user_id':ids['b'],'type':'DRAW_RESET','message':'x'}, T['b']), denied)
-check('b changes own email', req('PATCH', R+f"profiles?id=eq.{ids['b']}", {'email':'a@x.com'}, T['b']), denied)
-check('b changes own name', req('PATCH', R+f"profiles?id=eq.{ids['b']}", {'full_name':'Prueba B2'}, T['b']), rows(1))
-check('b sets http avatar', req('PATCH', R+f"profiles?id=eq.{ids['b']}", {'avatar_url':'http://x.com/a.png'}, T['b']), denied)
+check('b changes own email', req('PATCH', R+f"profiles?id=eq.{ids['b']}", {'email':'a@x.com'}, T['b'], prefer='return=minimal'), denied)
+check('b changes own name', req('PATCH', R+f"profiles?id=eq.{ids['b']}", {'full_name':'Prueba B2'}, T['b'], prefer='return=minimal'), okay)
+check('b sets http avatar', req('PATCH', R+f"profiles?id=eq.{ids['b']}", {'avatar_url':'http://x.com/a.png'}, T['b'], prefer='return=minimal'), denied)
 check('d leaves', req('DELETE', R+f"members?group_id=eq.{G}&user_id=eq.{ids['d']}", token=T['d']), rows(1))
 check('anon reads profiles', req('GET', R+'profiles?select=id'), denied)
 check('anon invite preview', req('POST', R+'rpc/get_group_by_invite_code', {'p_code':code} if False else {'code':code}), rows(1))

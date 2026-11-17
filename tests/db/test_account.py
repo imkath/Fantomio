@@ -136,7 +136,8 @@ try:
     st = sql(f"select (select count(*) from auth.users where id='{c}') c_left, (select count(*) from members where group_id='{X}') members_x")[0]
     check('C gone with its membership', st['c_left'] == 0 and st['members_x'] == 1, str(st))
     # preferences
-    check('theme update', req('PATCH', R + f'profiles?id=eq.{g}', {'theme': 'dark', 'email_notifications': False}, gt)[0] == 200)
+    # return=minimal, as the app does: the full row includes the email, which no session can read.
+    check('theme update', req('PATCH', R + f'profiles?id=eq.{g}', {'theme': 'dark', 'email_notifications': False}, gt, prefer='return=minimal')[0] == 204)
     check('bad theme rejected', req('PATCH', R + f'profiles?id=eq.{g}', {'theme': 'pink'}, gt)[0] >= 400)
     check('foreign avatar rejected', req('PATCH', R + f'profiles?id=eq.{g}', {'avatar_url': 'https://evil.example/a.png'}, gt)[0] >= 400)
 finally:

@@ -89,9 +89,9 @@ try:
     check('the email column is closed for everyone (own email comes from the session)', s >= 400, s)
 
     # 6. Name ceiling.
-    s, _ = req('PATCH', R + f"profiles?id=eq.{ids['d']}", {'full_name': 'María del Carmen de la Santísima Trinidad González Pérez'}, T['d'])
+    s, _ = req('PATCH', R + f"profiles?id=eq.{ids['d']}", {'full_name': 'María del Carmen de la Santísima Trinidad González Pérez'}, T['d'], prefer='return=minimal')
     check('a long real name is fine', s < 300, s)
-    s, _ = req('PATCH', R + f"profiles?id=eq.{ids['d']}", {'full_name': 'x' * 301}, T['d'])
+    s, _ = req('PATCH', R + f"profiles?id=eq.{ids['d']}", {'full_name': 'x' * 301}, T['d'], prefer='return=minimal')
     check('301 characters is refused', s >= 400, s)
     s, _ = req('POST', R + 'groups', {'name': 'y' * 301, 'admin_id': ids['d'], 'currency': 'CLP'}, T['d'])
     check('a 301-character group name is refused', s >= 400, s)
