@@ -16,29 +16,31 @@ CREATE POLICY "Organizers log their own group changes" ON public.activities
 
 -- 2. Wish lists: every item is an object with a text description and, optionally, a text link,
 --    of sensible length. A malformed item used to break the page of whoever gives the gift.
---    NOT VALID: it applies to every write from now on without failing on old rows.
+--    Production had no malformed list on 17-nov-2026, so the rule is validated for every row.
 CREATE OR REPLACE FUNCTION public.wishlist_items_valid(p_items jsonb)
  RETURNS boolean
  LANGUAGE sql
  IMMUTABLE
  SET search_path TO 'public'
 AS $function$
-  SELECT jsonb_typeof(p_items) = 'array'
-    AND jsonb_array_length(p_items) <= 10
-    AND NOT EXISTS (
-      SELECT 1 FROM jsonb_array_elements(p_items) e
-      WHERE jsonb_typeof(e) <> 'object'
-         OR jsonb_typeof(e -> 'description') IS DISTINCT FROM 'string'
-         OR char_length(e ->> 'description') > 1000
-         OR coalesce(jsonb_typeof(e -> 'url'), 'null') NOT IN ('string', 'null')
-         OR char_length(coalesce(e ->> 'url', '')) > 2048
-    )
+  SELECT CASE WHEN jsonb_typeof(p_items) <> 'array' THEN false
+    ELSE jsonb_array_length(p_items) <= 10
+      AND NOT EXISTS (
+        SELECT 1 FROM jsonb_array_elements(p_items) e
+        WHERE jsonb_typeof(e) <> 'object'
+           OR jsonb_typeof(e -> 'description') IS DISTINCT FROM 'string'
+           OR char_length(e ->> 'description') > 1000
+           OR coalesce(jsonb_typeof(e -> 'url'), 'null') NOT IN ('string', 'null')
+           OR char_length(coalesce(e ->> 'url', '')) > 2048
+      )
+  END
 $function$;
 REVOKE ALL ON FUNCTION public.wishlist_items_valid(jsonb) FROM PUBLIC, anon;
 GRANT EXECUTE ON FUNCTION public.wishlist_items_valid(jsonb) TO authenticated;
 
 ALTER TABLE public.wishlists
   ADD CONSTRAINT wishlists_items_shape CHECK (public.wishlist_items_valid(items)) NOT VALID;
+ALTER TABLE public.wishlists VALIDATE CONSTRAINT wishlists_items_shape;
 
 -- 3. Emails: names are inserted as data, never read again as template placeholders.
 CREATE OR REPLACE FUNCTION public.email_notification()
@@ -109,8 +111,9 @@ BEGIN
     WHERE mt.group_id = NEW.group_id AND mt.giver_id = NEW.user_id;
   END IF;
   -- Names are data, never template: a group or a person called "{{NAME}}" must stay as written.
-  group_name := replace(group_name, '{{', '{ {');
-  other_name := replace(other_name, '{{', '{ {');
+  -- Every brace followed by another gets a space, so no run of braces can rebuild "{{".
+  group_name := regexp_replace(group_name, '\{(?=\{)', '{ ', 'g');
+  other_name := regexp_replace(other_name, '\{(?=\{)', '{ ', 'g');
   url := CASE WHEN NEW.type = 'invitation' THEN 'https://fantomio.com/dashboard'
               ELSE 'https://fantomio.com/groups?id=' || NEW.group_id END;
 
@@ -151,6 +154,42 @@ $function$;
 REVOKE ALL ON FUNCTION public.signed_in_recently(integer) FROM PUBLIC, anon;
 GRANT EXECUTE ON FUNCTION public.signed_in_recently(integer) TO authenticated;
 
+-- A sign-in method linked to the account in the last day (not the one it was created with) also
+-- blocks these actions: with a stolen session someone could link their own Google, sign in
+-- with it and get a "recent" sign-in. The real owner gets an email when that happens.
+CREATE OR REPLACE FUNCTION public.identity_linked_recently()
+ RETURNS boolean
+ LANGUAGE sql
+ STABLE
+ SECURITY DEFINER
+ SET search_path TO 'public'
+AS $function$
+  SELECT EXISTS (
+    SELECT 1 FROM auth.identities i JOIN auth.users u ON u.id = i.user_id
+    WHERE i.user_id = auth.uid()
+      AND i.created_at > now() - interval '24 hours'
+      AND i.created_at > u.created_at + interval '5 minutes'
+  )
+$function$;
+REVOKE ALL ON FUNCTION public.identity_linked_recently() FROM PUBLIC, anon, authenticated;
+
+-- What would stop the account from being deleted, asked before anything is removed (the page
+-- deletes profile photos first, and those can't come back).
+CREATE OR REPLACE FUNCTION public.account_deletion_blockers()
+ RETURNS text
+ LANGUAGE sql
+ STABLE
+ SECURITY DEFINER
+ SET search_path TO 'public'
+AS $function$
+  SELECT string_agg(g.name, ', ')
+  FROM groups g
+  WHERE g.admin_id = auth.uid()
+    AND EXISTS (SELECT 1 FROM members m WHERE m.group_id = g.id AND m.user_id <> auth.uid())
+$function$;
+REVOKE ALL ON FUNCTION public.account_deletion_blockers() FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.account_deletion_blockers() TO authenticated;
+
 ALTER FUNCTION public.delete_my_account() RENAME TO delete_my_account_now;
 REVOKE ALL ON FUNCTION public.delete_my_account_now() FROM PUBLIC, anon, authenticated;
 CREATE FUNCTION public.delete_my_account()
@@ -160,6 +199,9 @@ CREATE FUNCTION public.delete_my_account()
  SET search_path TO 'public'
 AS $function$
 BEGIN
+  IF identity_linked_recently() THEN
+    RAISE EXCEPTION 'Hace menos de un día se conectó una forma nueva de entrar a tu cuenta. Por seguridad, espera hasta mañana para esto.';
+  END IF;
   IF NOT signed_in_recently() THEN
     RAISE EXCEPTION 'Por seguridad, vuelve a confirmar que eres tú antes de borrar la cuenta.'
       USING HINT = 'reauthentication_needed';
@@ -179,6 +221,9 @@ CREATE FUNCTION public.start_merge()
  SET search_path TO 'public'
 AS $function$
 BEGIN
+  IF identity_linked_recently() THEN
+    RAISE EXCEPTION 'Hace menos de un día se conectó una forma nueva de entrar a tu cuenta. Por seguridad, espera hasta mañana para esto.';
+  END IF;
   IF NOT signed_in_recently() THEN
     RAISE EXCEPTION 'Por seguridad, vuelve a confirmar que eres tú antes de unir cuentas.'
       USING HINT = 'reauthentication_needed';
@@ -198,6 +243,9 @@ CREATE FUNCTION public.confirm_merge(p_code text)
  SET search_path TO 'public'
 AS $function$
 BEGIN
+  IF identity_linked_recently() THEN
+    RAISE EXCEPTION 'Hace menos de un día se conectó una forma nueva de entrar a tu cuenta. Por seguridad, espera hasta mañana para esto.';
+  END IF;
   IF NOT signed_in_recently() THEN
     RAISE EXCEPTION 'Por seguridad, vuelve a confirmar que eres tú antes de unir cuentas.'
       USING HINT = 'reauthentication_needed';

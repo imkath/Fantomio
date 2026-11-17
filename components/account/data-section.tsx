@@ -24,11 +24,13 @@ export function DataSection({
   userId,
   email,
   hasPassword,
+  hasGoogle,
   drawnGroups,
 }: {
   userId: string
   email: string
   hasPassword: boolean
+  hasGoogle: boolean
   drawnGroups: string[]
 }) {
   const router = useRouter()
@@ -58,14 +60,22 @@ export function DataSection({
     URL.revokeObjectURL(link.href)
   }
 
-  const reauth = useReauth({ email, hasPassword, returnTo: '/account#datos' })
+  const reauth = useReauth({ email, hasPassword, hasGoogle, returnTo: '/account#datos' })
 
   const deleteAccount = async () => {
-    // Before anything is removed: photos go first, so a refused deletion must not get that far.
-    if (!(await reauth.confirm())) return
-    setBusy('delete')
     setDeleteError('')
     const supabase = createClient()
+    // Everything that could refuse the deletion is asked first: photos go before the account
+    // and can't come back.
+    const { data: blocking } = await supabase.rpc('account_deletion_blockers')
+    if (blocking) {
+      setDeleteError(
+        `Organizas grupos con más personas (${blocking}). Pasa la organización a alguien o elimina esos grupos primero.`
+      )
+      return
+    }
+    if (!(await reauth.confirm())) return
+    setBusy('delete')
     // Photos live in storage, outside the database: remove them first.
     await clearAvatarFiles(userId).catch(() => {})
     const { error: rpcError } = await supabase.rpc('delete_my_account')

@@ -28,6 +28,7 @@ export function getUserFriendlyError(error: { code?: string; message?: string } 
     '23503': 'No se puede completar la acción porque hay datos relacionados.',
     '23502': 'Faltan datos requeridos.',
     '22P02': 'El formato de los datos es incorrecto.',
+    '23514': 'Algún dato es demasiado largo o no tiene el formato esperado.',
     '42P17': 'Error de configuración. Por favor, contacta soporte.',
     '42501': 'No tienes permisos para realizar esta acción.',
     PGRST116: 'No se encontró el registro solicitado.',

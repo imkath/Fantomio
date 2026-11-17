@@ -50,7 +50,11 @@ export function AccessSection({
       <EmailSetting state={state} status={status} />
       <PasswordSetting state={state} onChange={onChange} />
       <GoogleSetting state={state} status={status} onChange={onChange} />
-      <MergeSetting email={state.email} hasPassword={state.hasPassword} />
+      <MergeSetting
+        email={state.email}
+        hasPassword={state.hasPassword}
+        hasGoogle={state.providers.includes('google')}
+      />
     </AccountSection>
   )
 }
@@ -134,6 +138,7 @@ function PasswordSetting({ state, onChange }: { state: AccessState; onChange: ()
   const reauth = useReauth({
     email: state.email,
     hasPassword: state.hasPassword,
+    hasGoogle: state.providers.includes('google'),
     returnTo: '/account#acceso',
   })
 
@@ -143,8 +148,9 @@ function PasswordSetting({ state, onChange }: { state: AccessState; onChange: ()
     if (next.length < MIN_PASSWORD)
       return setError(`La contraseña debe tener al menos ${MIN_PASSWORD} caracteres.`)
     if (next !== repeat) return setError('Las dos contraseñas nuevas no coinciden.')
-    // A first password has no current one to check, so it asks for a recent sign-in instead.
-    if (!state.hasPassword && !(await reauth.confirm())) return
+    // A recent sign-in, always: Supabase asks for it too ("secure password change"), and a first
+    // password has no current one to check.
+    if (!(await reauth.confirm())) return
     setSaving(true)
     const supabase = createClient()
     try {
@@ -255,6 +261,7 @@ function GoogleSetting({
   const reauth = useReauth({
     email: state.email,
     hasPassword: state.hasPassword,
+    hasGoogle: state.providers.includes('google'),
     returnTo: '/account#acceso',
   })
 
@@ -338,13 +345,21 @@ function GoogleSetting({
   )
 }
 
-function MergeSetting({ email, hasPassword }: { email: string; hasPassword: boolean }) {
+function MergeSetting({
+  email,
+  hasPassword,
+  hasGoogle,
+}: {
+  email: string
+  hasPassword: boolean
+  hasGoogle: boolean
+}) {
   const router = useRouter()
   const [open, setOpen] = useState(false)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
 
-  const reauth = useReauth({ email, hasPassword, returnTo: '/account#acceso' })
+  const reauth = useReauth({ email, hasPassword, hasGoogle, returnTo: '/account#acceso' })
 
   const start = async () => {
     if (!(await reauth.confirm())) return

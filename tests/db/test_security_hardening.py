@@ -68,7 +68,9 @@ try:
 
     # 3. Email placeholders: names are escaped before the template is filled.
     body = sql("select pg_get_functiondef('public.email_notification()'::regprocedure) d")[0]['d']
-    check('email names are neutralized before filling the template', "replace(group_name, '{{', '{ {')" in body and "replace(other_name, '{{', '{ {')" in body)
+    check('email names are neutralized before filling the template', "regexp_replace(group_name" in body and "regexp_replace(other_name" in body)
+    out = sql("select regexp_replace('{{{NAME}}', '\\{(?=\\{)', '{ ', 'g') r")[0]['r']
+    check('no run of braces rebuilds a placeholder', '{{' not in out, out)
 
     # 4. Recent sign-in for deleting and merging.
     now, old = int(time.time()), int(time.time()) - 2 * 3600
@@ -86,6 +88,33 @@ try:
     check('the unchecked deletion is not callable', s >= 400, s)
     s, _ = req('POST', R + 'rpc/start_merge', {}, T['a'])
     check('fresh session still starts a merge', s == 200, s)
+
+    # 4b. A refreshed session keeps the original sign-in time: a stolen refresh token can't
+    #     make itself "recent".
+    import base64
+    def amr_time(token):
+        part = token.split('.')[1]
+        claims = json.loads(base64.urlsafe_b64decode(part + '=' * (-len(part) % 4)))
+        return max(a['timestamp'] for a in claims.get('amr', []))
+    s, first = req('POST', U + '/auth/v1/token?grant_type=password', {'email': 'fantomio-prueba-sec-a@example.com', 'password': pw})
+    time.sleep(2)
+    s, again = req('POST', U + '/auth/v1/token?grant_type=refresh_token', {'refresh_token': first['refresh_token']})
+    check('refreshing keeps the sign-in time', s == 200 and amr_time(again['access_token']) == amr_time(first['access_token']), s)
+
+    # 4c. A sign-in method linked in the last day blocks deletion and merges, even when fresh.
+    fresh = req('POST', U + '/auth/v1/token?grant_type=password', {'email': 'fantomio-prueba-sec-a@example.com', 'password': pw})[1]['access_token']
+    sql(f"""update auth.users set created_at = now() - interval '10 days' where id = '{ids['a']}';
+insert into auth.identities (provider_id, user_id, identity_data, provider, created_at, updated_at)
+values ('linked-{ids['a']}', '{ids['a']}', jsonb_build_object('sub','linked-{ids['a']}'), 'google', now(), now());""")
+    s, r = req('POST', R + 'rpc/start_merge', {}, fresh)
+    check('recently linked Google blocks a merge', s >= 400 and 'forma nueva de entrar' in json.dumps(r, ensure_ascii=False), s)
+    sql(f"delete from auth.identities where provider_id = 'linked-{ids['a']}'")
+
+    # 4d. What blocks a deletion is asked before anything is removed.
+    s, r = req('POST', R + 'rpc/account_deletion_blockers', {}, T['a'])
+    check('organizer of a group with others is told first', s == 200 and isinstance(r, str) and 'NAME' in r, r)
+    s, r = req('POST', R + 'rpc/account_deletion_blockers', {}, T['b'])
+    check('a plain member has nothing blocking', s == 200 and r is None, r)
 
     # 5. Unused grants are gone.
     s, _ = req('GET', R + 'email_templates?select=name', token=T['a'])
