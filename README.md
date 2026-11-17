@@ -66,7 +66,7 @@ Cómo se sostiene eso:
   con un redirect validado (`safeRedirect`), sin open redirects.
 - Sin analítica y sin cookies de terceros.
 
-El esquema completo, con todas las políticas, está en [supabase/schema.sql](supabase/schema.sql).
+El esquema completo, con todas las políticas, está en las migraciones de [supabase/migrations](supabase/migrations), que son la fuente de verdad: se aplican en orden en las pruebas y en producción.
 
 ---
 
@@ -214,7 +214,6 @@ fantomio/
 ├── supabase/
 │   ├── migrations/       # Línea base y cambios desde el 27-oct-2026
 │   ├── migrations_history/ # Cambios anteriores, solo como registro
-│   ├── schema.sql        # Foto del esquema, generada desde la base
 │   └── templates/        # Correos de Auth y de notificaciones
 ├── tests/db/             # Pruebas de la base contra un Supabase local
 ├── scripts/db-push.ts    # Aplica migraciones pendientes a producción
