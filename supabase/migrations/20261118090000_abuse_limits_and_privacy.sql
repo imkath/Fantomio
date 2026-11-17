@@ -1,5 +1,5 @@
 -- Second batch after the security review of 17-nov-2026: automatic history, frozen exclusions,
--- daily limits, an email share per organizer, hidden emails between members and length caps.
+-- daily limits, an email share per organizer and length caps.
 
 -- 1. The group history is written only by the database. "Created" and "updated" lines come from
 --    a trigger on groups; nobody (organizer included) can insert, edit or delete history rows.
@@ -52,7 +52,8 @@ CREATE POLICY "Admin can delete exclusions" ON public.exclusions
     WHERE groups.id = exclusions.group_id AND groups.admin_id = auth.uid()
       AND groups.archived_at IS NULL AND groups.status = 'PLANNING'));
 
--- 3. Daily limits no real use reaches: 10 groups a day per person (5 of them repeated editions),
+-- 3. Daily limits no real use reaches: 25 groups a day per person (15 of them repeated editions,
+--    for someone who runs one per team),
 --    20 draws a day per organizer, 30 anonymous messages an hour per side of a pair.
 CREATE OR REPLACE FUNCTION public.limit_new_groups()
  RETURNS trigger
@@ -62,12 +63,12 @@ CREATE OR REPLACE FUNCTION public.limit_new_groups()
 AS $function$
 BEGIN
   IF (SELECT count(*) FROM groups WHERE admin_id = NEW.admin_id
-      AND created_at > NOW() - INTERVAL '24 hours') >= 10 THEN
+      AND created_at > NOW() - INTERVAL '24 hours') >= 25 THEN
     RAISE EXCEPTION 'Ya creaste muchos grupos hoy. Vuelve a intentarlo mañana.';
   END IF;
   IF NEW.previous_group_id IS NOT NULL AND (SELECT count(*) FROM groups
       WHERE admin_id = NEW.admin_id AND previous_group_id IS NOT NULL
-        AND created_at > NOW() - INTERVAL '24 hours') >= 5 THEN
+        AND created_at > NOW() - INTERVAL '24 hours') >= 15 THEN
     RAISE EXCEPTION 'Ya repetiste muchos grupos hoy. Vuelve a intentarlo mañana.';
   END IF;
   RETURN NEW;
@@ -122,11 +123,23 @@ DROP POLICY "Avatars: owners upload to their folder" ON storage.objects;
 CREATE POLICY "Avatars: owners upload to their folder" ON storage.objects FOR INSERT TO authenticated
   WITH CHECK (bucket_id = 'avatars' AND (storage.foldername(name))[1] = auth.uid()::text
     AND (SELECT count(*) FROM storage.objects o WHERE o.bucket_id = 'avatars'
-         AND (storage.foldername(o.name))[1] = auth.uid()::text) < 5);
+         AND o.name LIKE auth.uid()::text || '/%') < 5);
 
 -- 4. Email: a share per organizer (in email_notification) and an early warning at 70%.
+-- The organizer is kept at send time, so deleting a group or handing it over doesn't reset or
+-- move the count. Ids only: the log still holds no address or name.
 ALTER TABLE public.email_log ADD COLUMN IF NOT EXISTS group_id uuid;
-CREATE INDEX IF NOT EXISTS email_log_group ON public.email_log (group_id, created_at);
+ALTER TABLE public.email_log ADD COLUMN IF NOT EXISTS organizer_id uuid;
+CREATE INDEX IF NOT EXISTS email_log_organizer ON public.email_log (organizer_id, created_at);
+
+-- One Sentry warning per organizer and day when their share runs out.
+CREATE TABLE IF NOT EXISTS public.email_cap_alerts (
+  organizer_id uuid NOT NULL,
+  day date NOT NULL,
+  PRIMARY KEY (organizer_id, day)
+);
+ALTER TABLE public.email_cap_alerts ENABLE ROW LEVEL SECURITY;
+REVOKE ALL ON public.email_cap_alerts FROM PUBLIC, anon, authenticated;
 
 CREATE OR REPLACE FUNCTION public.email_notification()
  RETURNS trigger
@@ -142,6 +155,7 @@ DECLARE
   api_key TEXT;
   url TEXT;
   quiet INTERVAL;
+  organizer UUID;
 BEGIN
   quiet := CASE NEW.type
     WHEN 'wishlist' THEN INTERVAL '12 hours'
@@ -168,10 +182,20 @@ BEGIN
   END IF;
 
   -- Each organizer has their own share of that: the groups they run can't send more than 60
-  -- notices a day. Past it, theirs stay in the bell and everyone else's still go out.
-  IF (SELECT count(*) FROM email_log l JOIN groups g ON g.id = l.group_id
-      WHERE l.created_at > NOW() - INTERVAL '24 hours'
-        AND g.admin_id = (SELECT admin_id FROM groups WHERE id = NEW.group_id)) >= 60 THEN
+  -- everyday notices (questions, replies, list changes, reminders) a day. Past it, theirs stay in
+  -- the bell and everyone else's still go out. The draw, the reveal and invitations always go:
+  -- they are what the group is waiting for, and a big office alone needs more than 60.
+  organizer := (SELECT admin_id FROM groups WHERE id = NEW.group_id);
+  IF NEW.type NOT IN ('draw', 'unveil', 'invitation') AND (
+      SELECT count(*) FROM email_log
+      WHERE organizer_id = organizer AND created_at > NOW() - INTERVAL '24 hours'
+        AND kind NOT IN ('draw', 'unveil', 'invitation')) >= 60 THEN
+    INSERT INTO email_cap_alerts (organizer_id, day) VALUES (organizer, current_date)
+      ON CONFLICT DO NOTHING;
+    IF FOUND THEN
+      PERFORM report_to_sentry('email-organizer-cap', 'warning',
+        'Un organizador llegó a sus 60 avisos del día; los siguientes quedan solo en la campanita.');
+    END IF;
     RETURN NEW;
   END IF;
 
@@ -210,7 +234,7 @@ BEGIN
   url := CASE WHEN NEW.type = 'invitation' THEN 'https://fantomio.com/dashboard'
               ELSE 'https://fantomio.com/groups?id=' || NEW.group_id END;
 
-  INSERT INTO email_log (request_id, kind, group_id) VALUES (net.http_post(
+  INSERT INTO email_log (request_id, kind, group_id, organizer_id) VALUES (net.http_post(
     url := 'https://api.brevo.com/v3/smtp/email',
     headers := jsonb_build_object('api-key', api_key, 'content-type', 'application/json'),
     body := jsonb_build_object(
@@ -226,7 +250,7 @@ BEGIN
                        '{{NAME}}', html_escape(coalesce(other_name, ''))),
                        '{{URL}}', url)
     )
-  ), NEW.type, NEW.group_id);
+  ), NEW.type, NEW.group_id, organizer);
   RETURN NEW;
 END;
 $function$
@@ -276,11 +300,8 @@ END;
 $function$;
 REVOKE ALL ON FUNCTION public.check_email_delivery() FROM PUBLIC, anon, authenticated;
 
--- 5. Members see each other's name and photo, not their email. The app never needed it; the
---    database functions (definer) still read it to send the notices.
-REVOKE SELECT ON public.profiles FROM authenticated;
-GRANT SELECT (id, full_name, avatar_url, created_at, updated_at, theme, email_notifications)
-  ON public.profiles TO authenticated;
+-- 5. Hiding members' emails from each other goes in a later migration (20261120090000), once
+--    no open tab runs the previous version of the site, which still asked for them.
 
 -- 6. A technical ceiling for names: no real name gets near 300 characters (the longest on
 --    18-nov-2026 was 32), but a huge text would travel in every email.
@@ -290,3 +311,22 @@ ALTER TABLE public.groups VALIDATE CONSTRAINT groups_name_length;
 ALTER TABLE public.profiles
   ADD CONSTRAINT profiles_full_name_length CHECK (char_length(full_name) <= 300) NOT VALID;
 ALTER TABLE public.profiles VALIDATE CONSTRAINT profiles_full_name_length;
+
+-- New accounts: a name from sign-up or Google is cut at the same ceiling instead of failing.
+CREATE OR REPLACE FUNCTION public.handle_new_user()
+ RETURNS trigger
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public'
+AS $function$
+BEGIN
+  INSERT INTO public.profiles (id, email, full_name, avatar_url)
+  VALUES (
+    NEW.id,
+    NEW.email,
+    left(COALESCE(NEW.raw_user_meta_data->>'name', NEW.raw_user_meta_data->>'full_name', split_part(NEW.email, '@', 1)), 300),
+    NEW.raw_user_meta_data->>'avatar_url'
+  );
+  RETURN NEW;
+END;
+$function$;

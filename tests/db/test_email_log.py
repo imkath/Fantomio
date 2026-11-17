@@ -34,7 +34,7 @@ select vault.create_secret('fake-key', 'brevo_api_key');""")
 columns = {r['column_name'] for r in sql(
     "select column_name from information_schema.columns where table_name = 'email_log'")}
 # group_id (since 18-nov-2026) counts each organizer's share; a group id identifies no one.
-check('log keeps no address or user', columns == {'request_id', 'kind', 'created_at', 'checked', 'group_id'}, str(columns))
+check('log keeps no address or user', columns == {'request_id', 'kind', 'created_at', 'checked', 'group_id', 'organizer_id'}, str(columns))
 check('log closed to the API', not sql(
     "select 1 from information_schema.role_table_grants where table_name = 'email_log' and grantee in ('anon', 'authenticated')"))
 

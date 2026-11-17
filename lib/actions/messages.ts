@@ -2,6 +2,7 @@
 
 import { createClient } from '@/lib/supabase'
 import { z } from 'zod'
+import { getUserFriendlyError } from '@/lib/errors'
 
 const sendMessageSchema = z.object({
   matchId: z.string().uuid(),
@@ -42,7 +43,8 @@ export async function sendAnonymousMessage(
 
   if (error) {
     console.error('Error sending anonymous message:', error)
-    return { success: false, error: 'Error al enviar mensaje' }
+    // Our own database messages (the hourly limit, for instance) are readable as they are.
+    return { success: false, error: getUserFriendlyError(error) }
   }
 
   return { success: true }

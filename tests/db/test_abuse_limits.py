@@ -66,10 +66,10 @@ try:
     check('after a reset exclusions can change again', s < 300 and r != [], (s, r))
 
     # 3. Daily limits.
-    for i in range(9):  # a already created 1 today
+    for i in range(24):  # a already created 1 today
         req('POST', R + 'groups', {'name': f'QA lote {i}', 'admin_id': ids['a'], 'currency': 'CLP'}, T['a'])
     s, r = req('POST', R + 'groups', {'name': 'QA uno de mas', 'admin_id': ids['a'], 'currency': 'CLP'}, T['a'])
-    check('11th group of the day is refused', s >= 400 and 'muchos grupos' in json.dumps(r, ensure_ascii=False), s)
+    check('26th group of the day is refused', s >= 400 and 'muchos grupos' in json.dumps(r, ensure_ascii=False), s)
     sql(f"insert into activities (group_id, user_id, type, message) select '{G}', '{ids['a']}', 'DRAW', 'x' from generate_series(1, 20)")
     s, r = req('POST', R + 'rpc/draw_group', {'p_group_id': G}, T['a'])
     check('21st draw of the day is refused', s >= 400 and 'muchos sorteos' in json.dumps(r, ensure_ascii=False), s)
@@ -79,14 +79,6 @@ try:
     sql(f"insert into anonymous_messages (match_id, sender_role, content) select '{m}', 'giver', 'hola' from generate_series(1, 30)")
     s, r = req('POST', R + 'anonymous_messages', {'match_id': m, 'sender_role': 'giver', 'content': 'otra'}, T['b'])
     check('31st message in an hour is refused', s >= 400 and 'muchos mensajes' in json.dumps(r, ensure_ascii=False), s)
-
-    # 5. Members see each other's name, not their email.
-    s, r = req('GET', R + f"profiles?id=eq.{ids['c']}&select=full_name,avatar_url", token=T['b'])
-    check('a member reads the name of another', s == 200 and r and r[0]['full_name'], (s, r))
-    s, r = req('GET', R + f"profiles?id=eq.{ids['c']}&select=email", token=T['b'])
-    check('a member cannot read the email of another', s >= 400, s)
-    s, r = req('GET', R + f"profiles?id=eq.{ids['b']}&select=email", token=T['b'])
-    check('the email column is closed for everyone (own email comes from the session)', s >= 400, s)
 
     # 6. Name ceiling.
     s, _ = req('PATCH', R + f"profiles?id=eq.{ids['d']}", {'full_name': 'María del Carmen de la Santísima Trinidad González Pérez'}, T['d'], prefer='return=minimal')
@@ -98,7 +90,7 @@ try:
 
     # 4. Email share per organizer (needs Brevo, so only checked in the function).
     body = sql("select pg_get_functiondef('public.email_notification()'::regprocedure) d")[0]['d']
-    check('notices count against the organizer share', '>= 60' in body and 'l.group_id' in body)
+    check('everyday notices count against the organizer share', '>= 60' in body and 'organizer_id = organizer' in body and "NOT IN ('draw', 'unveil', 'invitation')" in body)
 finally:
     sql("delete from groups where admin_id in (" + ",".join(f"'{v}'" for v in ids.values()) + ")") if ids else None
     for uid in ids.values():
