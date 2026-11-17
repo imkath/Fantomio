@@ -39,7 +39,11 @@ CREATE OR REPLACE FUNCTION public.group_email_hints(p_group_id uuid)
  SET search_path TO 'public'
 AS $function$
   SELECT m.user_id,
-         left(split_part(p.email, '@', 1), 2) || '***@' || split_part(p.email, '@', 2)
+         -- First two letters and the last one: "an***a@gmail.com" (short ones keep only the first).
+         CASE WHEN char_length(split_part(p.email, '@', 1)) >= 4
+              THEN left(split_part(p.email, '@', 1), 2) || '***' || right(split_part(p.email, '@', 1), 1)
+              ELSE left(split_part(p.email, '@', 1), 1) || '***' END
+         || '@' || split_part(p.email, '@', 2)
   FROM members m JOIN profiles p ON p.id = m.user_id
   WHERE m.group_id = p_group_id
     AND EXISTS (SELECT 1 FROM groups g WHERE g.id = p_group_id AND g.admin_id = auth.uid())

@@ -50,7 +50,7 @@ try:
     s, hints = req('POST', R + 'rpc/group_email_hints', {'p_group_id': G}, T['a'])
     by = {h['user_id']: h['hint'] for h in (hints or [])}
     check('the organizer gets a hint per member', s == 200 and len(by) == 3, (s, hints))
-    check('the hint shows only the start of the address', by.get(ids['b']) == 'fa***@example.com', by.get(ids['b']))
+    check('the hint shows only the start of the address', by.get(ids['b']) == 'fa***b@example.com', by.get(ids['b']))
     s, hints = req('POST', R + 'rpc/group_email_hints', {'p_group_id': G}, T['b'])
     check('a member who does not organize gets nothing', s == 200 and hints == [], (s, hints))
     s, _ = req('POST', R + 'rpc/group_email_hints', {'p_group_id': G})
