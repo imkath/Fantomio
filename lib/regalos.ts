@@ -49,12 +49,12 @@ export const GIFT_LISTS: GiftList[] = [
         affiliate: false,
       },
       {
-        name: 'Perfume Kingsman 30 ml',
-        why: 'Para el Tulio, en formato de viaje: le alcanza para lucirse toda la temporada.',
-        price: 5990,
+        name: 'Perfume Natura Homem Potence, mini de 25 ml',
+        why: 'Para el Tulio: un perfume de marca conocida en formato chico, que cabe en el monto y en el bolsillo de la chaqueta.',
+        price: 13990,
         store: 'Mercado Libre',
-        url: 'https://www.mercadolibre.cl/perfume-maison-alhambra-kingsman-edp-30-ml-hombre/up/MLCU3803483523',
-        image: '/regalos/segun-31-minutos/perfume-kingsman-30-ml.webp',
+        url: 'https://www.mercadolibre.cl/perfume-homen-potence-mini-para-hombre-natura-25-ml-edp/p/MLC24032936',
+        image: '/regalos/segun-31-minutos/perfume-natura-homem-potence-mini.webp',
         affiliate: false,
       },
       {
