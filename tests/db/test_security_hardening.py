@@ -68,7 +68,7 @@ try:
 
     # 3. Email placeholders: names are escaped before the template is filled.
     # Since 18-nov-2026 the sending half lives in send_notification_email.
-    body = sql("select pg_get_functiondef('public.send_notification_email(uuid)'::regprocedure) d")[0]['d']
+    body = sql("select pg_get_functiondef('public.send_notification_email(uuid,text)'::regprocedure) d")[0]['d']
     check('email names are neutralized before filling the template', "regexp_replace(group_name" in body and "regexp_replace(other_name" in body)
     out = sql("select regexp_replace('{{{NAME}}', '\\{(?=\\{)', '{ ', 'g') r")[0]['r']
     check('no run of braces rebuilds a placeholder', '{{' not in out, out)
