@@ -288,10 +288,16 @@ BEGIN
   END IF;
 
   -- Anything else (refused, quota, error, timeout, or no answer after 30 minutes): try again.
-  -- After a Brevo failure the next try goes through SES at once; after an SES failure, Brevo
-  -- waits its turn.
+  -- When Brevo clearly said no (an error status or a failed connection), the next try goes
+  -- through SES at once. Silence or a timeout waits its normal turn: Brevo may still have taken
+  -- that email, and sending it through SES as well would deliver it twice.
   UPDATE email_pending p SET last_request = NULL,
-    next_try = CASE WHEN p.last_provider = 'brevo' AND ses_ready() THEN now() ELSE p.next_try END
+    next_try = CASE WHEN p.last_provider = 'brevo' AND ses_ready() AND ses_sent_today() < 1000
+                      AND EXISTS (SELECT 1 FROM net._http_response r WHERE r.id = p.last_request
+                                  AND NOT coalesce(r.timed_out, false)
+                                  AND (r.error_msg IS NOT NULL
+                                       OR coalesce(r.status_code, 0) NOT BETWEEN 200 AND 299))
+                    THEN now() ELSE p.next_try END
   WHERE p.last_request IS NOT NULL AND (
     EXISTS (SELECT 1 FROM net._http_response r WHERE r.id = p.last_request
             AND (r.timed_out OR r.error_msg IS NOT NULL

@@ -60,12 +60,13 @@ def answer(nid, status):
 
 
 def fill(provider, n):
+    base = -900000 if provider == 'brevo' else -800000
     sql(f"""insert into email_log (request_id, kind, created_at, provider)
-      select -900000 - g, 'test', now() - interval '1 hour', '{provider}' from generate_series(1, {n}) g""")
+      select {base} - g, 'test', now() - interval '1 hour', '{provider}' from generate_series(1, {n}) g""")
 
 
 def clear():
-    sql("delete from email_log where kind = 'test'; delete from email_pending;")
+    sql("delete from email_log; delete from email_pending;")
 
 
 # 1. The signature matches the AWS algorithm, byte for byte, with non-ASCII text in the body.
@@ -135,11 +136,10 @@ try:
 
     # 7. Brevo's free day is full: straight to SES, and SES never eats into Brevo's count.
     fill('brevo', 240)
-    before = one('select public.emails_sent_today() n')['n']
     d = notify('invitation')
     p = pending(d)
     check('with the Brevo day full it goes through SES at once', p and p['last_provider'] == 'ses' and p['last_request'], p)
-    check('SES emails do not count against the Brevo day', one('select public.emails_sent_today() n')['n'] == before)
+    check('SES emails do not count against the Brevo day', one('select public.emails_sent_today() n')['n'] == 240)
     clear()
 
     # 8. Spending ceiling: with Brevo full and 1000 SES emails in the day, it waits unsent.
@@ -150,10 +150,24 @@ try:
     check('past the SES ceiling it waits unsent', p and p['last_request'] is None and p['attempts'] == 0, p)
     clear()
 
-    # 9. Everyday notices never use SES, even with Brevo full for them.
+    # 9. Everyday notices never use SES: with room they go through Brevo, without it they wait in the bell.
     notify('question')
-    check('everyday notices never go through SES',
-          one("select count(*) n from email_log where provider = 'ses' and kind = 'question'")['n'] == 0)
+    check('an everyday notice goes through Brevo',
+          one("select count(*) n from email_log where kind = 'question' and provider = 'brevo'")['n'] == 1)
+    fill('brevo', 240)
+    notify('reply')
+    check('and with Brevo full it is not sent at all, never through SES',
+          one("select count(*) n from email_log where kind = 'reply'")['n'] == 0)
+    clear()
+
+    # 10. Brevo timed out: it may still have taken the email, so no hurry to SES (never twice).
+    f = notify('draw')
+    sql(f"update email_pending set next_try = now() + interval '1 hour' where notification_id = '{f}'")
+    answer(f, 0)
+    sql(f"update net._http_response set status_code = null, timed_out = true where id = (select last_request from email_pending where notification_id = '{f}')")
+    sql('select public.check_email_delivery()')
+    p = pending(f)
+    check('a Brevo timeout waits its turn instead of rushing to SES', p and p['last_request'] is None and not p['ready'], p)
 finally:
     sql(f"""delete from email_log where kind = 'test' or request_id < 0;
 delete from net._http_response where id < 0;
