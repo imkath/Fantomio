@@ -31,6 +31,98 @@ export interface GiftList {
 
 export const GIFT_LISTS: GiftList[] = [
   {
+    slug: 'regalo-amigo-secreto-segun-personaje-31-minutos',
+    title: '¿Qué le regalo según qué personaje de 31 Minutos es?',
+    short: 'Según 31 Minutos',
+    description:
+      'Regalos de amigo secreto para el Tulio, el Bodoque, el Juanín y la Patana de tu grupo: ideas de menos de $15.000 en Chile, ordenadas por personaje.',
+    checked: '2026-11-18',
+    cover: '/regalos/segun-31-minutos/portada.webp',
+    products: [
+      {
+        name: 'Happy Socks, pack de 2',
+        why: 'Para el Tulio: calcetines con dibujos de comida, talla 41 a 46. Se notan desde lejos.',
+        price: 8990,
+        store: 'Mercado Libre',
+        url: 'https://articulo.mercadolibre.cl/MLC-1976942699-pack-2-calcetines-happy-socks-divertidos-comida-41-46-regalo-_JM',
+        image: '/regalos/regalos-15000/happy-socks-pack-de-2.webp',
+        affiliate: false,
+      },
+      {
+        name: 'Perfume Kingsman 30 ml',
+        why: 'Para el Tulio, en formato de viaje: le alcanza para lucirse toda la temporada.',
+        price: 5990,
+        store: 'Mercado Libre',
+        url: 'https://www.mercadolibre.cl/perfume-maison-alhambra-kingsman-edp-30-ml-hombre/up/MLCU3803483523',
+        image: '/regalos/segun-31-minutos/perfume-kingsman-30-ml.webp',
+        affiliate: false,
+      },
+      {
+        name: 'Exploding Kittens',
+        why: 'Para el Bodoque: un juego de cartas de pura suerte y traición, de partidas cortas.',
+        price: 13990,
+        store: 'Mercado Libre',
+        url: 'https://www.mercadolibre.cl/juego-de-cartas-exploding-kittens-original/p/MLC20752996',
+        image: '/regalos/segun-31-minutos/exploding-kittens.webp',
+        affiliate: false,
+      },
+      {
+        name: 'Salsa Valentina etiqueta negra',
+        why: 'Para el Bodoque que dice que nada le pica. La etiqueta negra es la versión más picante.',
+        price: 3290,
+        store: 'Mercado Libre',
+        url: 'https://articulo.mercadolibre.cl/MLC-1521942439',
+        image: '/regalos/segun-31-minutos/salsa-valentina-etiqueta-negra.webp',
+        affiliate: false,
+      },
+      {
+        name: 'Antifaz para dormir 3D',
+        why: 'Para el Juanín: no aprieta los ojos y sirve para la siesta en el bus.',
+        price: 2738,
+        store: 'Mercado Libre',
+        url: 'https://articulo.mercadolibre.cl/MLC-1836296762',
+        image: '/regalos/segun-31-minutos/antifaz-para-dormir-3d.webp',
+        affiliate: false,
+      },
+      {
+        name: 'Vela de soya Casa Viva',
+        why: 'Para el Juanín, aroma algodón de azúcar. Una vela que no huele a supermercado.',
+        price: 7490,
+        store: 'Mercado Libre',
+        url: 'https://www.mercadolibre.cl/vela-aromatica-de-soya-casa-viva-140-grs/up/MLCU3633127942',
+        image: '/regalos/segun-31-minutos/vela-de-soya-casa-viva.webp',
+        affiliate: false,
+      },
+      {
+        name: 'Té negro Ceylán en hojas, 250 g',
+        why: 'Para el Juanín: té en hojas, de ese que se toma con calma.',
+        price: 2955,
+        store: 'Mercado Libre',
+        url: 'https://www.mercadolibre.cl/te-negro-te-superior-en-hojas-ceylan-250-g/p/MLC40235162',
+        image: '/regalos/segun-31-minutos/te-negro-ceylan-en-hojas.webp',
+        affiliate: false,
+      },
+      {
+        name: 'Asesinato en el Orient Express',
+        why: 'Para la Patana: el clásico de Agatha Christie, para leer con lápiz y adivinar antes del final.',
+        price: 10485,
+        store: 'Mercado Libre',
+        url: 'https://articulo.mercadolibre.cl/MLC-3307463156',
+        image: '/regalos/segun-31-minutos/asesinato-en-el-orient-express.webp',
+        affiliate: false,
+      },
+      {
+        name: 'Rompecabezas de 1000 piezas, constelaciones',
+        why: 'Para la Patana: redondo, de mil piezas y sin esquinas que ayuden.',
+        price: 8670,
+        store: 'Mercado Libre',
+        url: 'https://www.mercadolibre.cl/rompecabezas-12-constelaciones-1000-piezas-circular/p/MLC2055909993',
+        image: '/regalos/segun-31-minutos/rompecabezas-12-constelaciones.webp',
+        affiliate: false,
+      },
+    ],
+  },
+  {
     slug: 'que-regalar-amigo-secreto-15000',
     title: '¿Qué le regalo a mi amigo secreto con $15.000?',
     short: 'Regalos con $15.000',
@@ -164,6 +256,11 @@ export interface Post {
 }
 
 export const POSTS: Post[] = [
+  {
+    title: '¿Qué le regalo según qué personaje de 31 Minutos es?',
+    href: '/regalos/regalo-amigo-secreto-segun-personaje-31-minutos',
+    cover: '/regalos/segun-31-minutos/portada.webp',
+  },
   {
     title: '¿Qué le regalo al de la pega que no conozco?',
     href: '/regalos/regalo-amigo-secreto-companero-de-trabajo',
