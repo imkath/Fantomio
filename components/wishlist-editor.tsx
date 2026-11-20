@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { Button, buttonVariants } from '@/components/ui/button'
 import {
   AlertDialog,
@@ -51,6 +51,62 @@ const PLACEHOLDERS = [
 const MAX_WISHLIST_ITEMS = 10
 const DEFAULT_VISIBLE_ITEMS = 5
 
+// What's being written is kept as a draft in this browser until it's saved. Without it, a list
+// that wasn't saved yet was lost when the page reloaded (Edge puts background tabs to sleep and
+// reloads them on return) or when the group's data was fetched again.
+const draftKey = (groupId: string, userId: string) => `fantomio:lista:${groupId}:${userId}`
+
+const readDraft = (key: string): LocalWishlistItem[] | null => {
+  try {
+    const parsed: unknown = JSON.parse(window.localStorage.getItem(key) ?? 'null')
+    return Array.isArray(parsed) ? (parsed as LocalWishlistItem[]) : null
+  } catch {
+    return null
+  }
+}
+
+const writeDraft = (key: string, items: LocalWishlistItem[]) => {
+  try {
+    window.localStorage.setItem(key, JSON.stringify(items))
+  } catch {
+    // Private mode or full storage: the list still works, it just isn't kept on reload.
+  }
+}
+
+const clearDraft = (key: string) => {
+  try {
+    window.localStorage.removeItem(key)
+  } catch {
+    // Nothing to clear.
+  }
+}
+
+// Only what was written counts: empty rows and their order of creation don't.
+const contentOf = (list: Array<{ description?: string; url?: string }>) =>
+  JSON.stringify(
+    list
+      .filter((item) => (item.description ?? '').trim())
+      .map((item) => [(item.description ?? '').trim(), (item.url ?? '').trim()])
+  )
+
+// Rows for the form: the given ones plus empty ones up to the default.
+const toRows = (list: Array<{ description?: string; url?: string }>): LocalWishlistItem[] => {
+  const rows = list.slice(0, MAX_WISHLIST_ITEMS).map((item, index) => ({
+    id: `item-${index}`,
+    description: item.description || '',
+    url: item.url || '',
+  }))
+  while (rows.length < DEFAULT_VISIBLE_ITEMS)
+    rows.push({ id: `new-${rows.length}`, description: '', url: '' })
+  return rows
+}
+
+const visibleFor = (rows: LocalWishlistItem[]) =>
+  Math.max(
+    DEFAULT_VISIBLE_ITEMS,
+    Math.min(rows.filter((item) => item.description.trim()).length, MAX_WISHLIST_ITEMS)
+  )
+
 export function WishlistEditor({
   groupId,
   userId,
@@ -82,6 +138,7 @@ export function WishlistEditor({
     while (copied.length < DEFAULT_VISIBLE_ITEMS)
       copied.push({ id: `new-${copied.length}`, description: '', url: '' })
     setItems(copied)
+    markDirty(true)
     setVisibleCount(Math.max(DEFAULT_VISIBLE_ITEMS, previousItems.length))
     setPreviousItems([])
     toast.success('Copiamos tu lista anterior. Revísala y guárdala.')
@@ -92,37 +149,49 @@ export function WishlistEditor({
   const [lastSaved, setLastSaved] = useState<Date | null>(null)
   const [error, setError] = useState('')
   const [toDelete, setToDelete] = useState<LocalWishlistItem | null>(null)
+  // Changes not saved yet. The ref is read by the effect below without re-running it.
+  const [dirty, setDirty] = useState(false)
+  const dirtyRef = useRef(false)
+  const markDirty = (value: boolean) => {
+    dirtyRef.current = value
+    setDirty(value)
+  }
+  const [restored, setRestored] = useState(false)
+  const key = draftKey(groupId, userId)
 
-  // Initialize items from props or create empty slots
+  // Initialize items from the saved list, or from a draft this browser kept. Unsaved changes
+  // are never replaced: the group's data is fetched again after many actions.
   useEffect(() => {
-    if (initialItems.length > 0) {
-      const mappedItems = initialItems.map((item, index) => ({
-        id: `item-${index}`,
-        description: item.description || '',
-        url: item.url || '',
-      }))
-      // Pad to default visible items
-      while (mappedItems.length < DEFAULT_VISIBLE_ITEMS) {
-        mappedItems.push({
-          id: `new-${mappedItems.length}`,
-          description: '',
-          url: '',
-        })
-      }
-      setItems(mappedItems.slice(0, MAX_WISHLIST_ITEMS))
-      // Set visible count based on how many items have content
-      const filledCount = mappedItems.filter((item) => item.description.trim()).length
-      setVisibleCount(Math.max(DEFAULT_VISIBLE_ITEMS, Math.min(filledCount, MAX_WISHLIST_ITEMS)))
-    } else {
-      // Create default visible items
-      const defaultItems = Array.from({ length: DEFAULT_VISIBLE_ITEMS }, (_, i) => ({
-        id: `new-${i}`,
-        description: '',
-        url: '',
-      }))
-      setItems(defaultItems)
+    if (dirtyRef.current) return
+    const draft = readDraft(key)
+    if (draft && contentOf(draft) !== contentOf(initialItems)) {
+      const rows = toRows(draft)
+      setItems(rows)
+      setVisibleCount(visibleFor(rows))
+      markDirty(true)
+      setRestored(true)
+      return
     }
-  }, [initialItems])
+    if (draft) clearDraft(key)
+    const rows = toRows(initialItems)
+    setItems(rows)
+    setVisibleCount(visibleFor(rows))
+  }, [initialItems, key])
+
+  useEffect(() => {
+    if (dirty) writeDraft(key, items)
+  }, [dirty, items, key])
+
+  // Closing or reloading the tab with changes not saved asks first.
+  useEffect(() => {
+    if (!dirty) return
+    const warn = (event: BeforeUnloadEvent) => {
+      event.preventDefault()
+      event.returnValue = ''
+    }
+    window.addEventListener('beforeunload', warn)
+    return () => window.removeEventListener('beforeunload', warn)
+  }, [dirty])
 
   // Extract URL from text that might contain extra words
   const extractUrl = (text: string): string => {
@@ -142,10 +211,12 @@ export function WishlistEditor({
     // If changing URL field, extract the URL from text that might contain extra words
     const processedValue = field === 'url' ? extractUrl(value) : value
     setItems(items.map((item) => (item.id === id ? { ...item, [field]: processedValue } : item)))
+    markDirty(true)
   }
 
   const handleClearItem = (id: string) => {
     setItems(items.map((item) => (item.id === id ? { ...item, description: '', url: '' } : item)))
+    markDirty(true)
   }
 
   const handleAddMoreItems = () => {
@@ -199,6 +270,9 @@ export function WishlistEditor({
       }
 
       setLastSaved(new Date())
+      markDirty(false)
+      setRestored(false)
+      clearDraft(key)
       toast.success('Lista guardada')
 
       // Adjust visible count to match filled items (minimum 5)
@@ -249,6 +323,12 @@ export function WishlistEditor({
       </div>
 
       {error && <Notice>{error}</Notice>}
+
+      {restored && dirty && (
+        <div className="bg-slip rounded-[3px] px-4 py-3 text-[15px]" role="status">
+          Recuperamos lo que habías escrito y todavía no guardabas. Revísalo y guarda la lista.
+        </div>
+      )}
 
       {previousItems.length > 0 && filledItemsCount === 0 && (
         <div className="bg-slip flex flex-col gap-3 rounded-[3px] px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
@@ -333,9 +413,9 @@ export function WishlistEditor({
           <span />
         )}
         <div className="flex items-center gap-4">
-          {lastSaved && !isSaving && (
+          {!isSaving && (dirty || lastSaved) && (
             <span className="text-graphite text-[15px]" role="status">
-              Guardada
+              {dirty ? 'Sin guardar' : 'Guardada'}
             </span>
           )}
           <Button onClick={handleSave} disabled={isSaving}>
