@@ -34,6 +34,21 @@ describe('WishlistEditor', () => {
 
     expect(firstRow().value).toBe('Unos audífonos')
     expect(screen.getByText('Sin guardar')).toBeTruthy()
+    // Kept because it wasn't replaced, not because it was restored from the draft.
+    expect(screen.queryByText(/Recuperamos/)).toBeNull()
+  })
+
+  it('drops a draft written over a list that was saved again elsewhere', () => {
+    render(<WishlistEditor {...props} initialItems={[]} />)
+    fireEvent.change(firstRow(), { target: { value: 'Borrador viejo' } })
+    cleanup()
+
+    // Meanwhile another device saved a different list.
+    render(<WishlistEditor {...props} initialItems={[{ description: 'Lista nueva' }]} />)
+
+    expect(firstRow().value).toBe('Lista nueva')
+    expect(screen.queryByText(/Recuperamos/)).toBeNull()
+    expect(window.localStorage.getItem('fantomio:lista:g1:u1')).toBeNull()
   })
 
   it('brings back an unsaved list after the page reloads', () => {

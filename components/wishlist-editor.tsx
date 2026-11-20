@@ -51,23 +51,30 @@ const PLACEHOLDERS = [
 const MAX_WISHLIST_ITEMS = 10
 const DEFAULT_VISIBLE_ITEMS = 5
 
-// What's being written is kept as a draft in this browser until it's saved. Without it, a list
+// What's being written is kept as a draft in this browser until it's saved, together with the
+// saved list it started from: if that list changed since (saved from another device), the
+// draft is old and is dropped. Without it, a list
 // that wasn't saved yet was lost when the page reloaded (Edge puts background tabs to sleep and
 // reloads them on return) or when the group's data was fetched again.
 const draftKey = (groupId: string, userId: string) => `fantomio:lista:${groupId}:${userId}`
 
-const readDraft = (key: string): LocalWishlistItem[] | null => {
+interface Draft {
+  items: LocalWishlistItem[]
+  base: string
+}
+
+const readDraft = (key: string): Draft | null => {
   try {
-    const parsed: unknown = JSON.parse(window.localStorage.getItem(key) ?? 'null')
-    return Array.isArray(parsed) ? (parsed as LocalWishlistItem[]) : null
+    const parsed = JSON.parse(window.localStorage.getItem(key) ?? 'null') as Draft | null
+    return parsed && Array.isArray(parsed.items) && typeof parsed.base === 'string' ? parsed : null
   } catch {
     return null
   }
 }
 
-const writeDraft = (key: string, items: LocalWishlistItem[]) => {
+const writeDraft = (key: string, draft: Draft) => {
   try {
-    window.localStorage.setItem(key, JSON.stringify(items))
+    window.localStorage.setItem(key, JSON.stringify(draft))
   } catch {
     // Private mode or full storage: the list still works, it just isn't kept on reload.
   }
@@ -119,13 +126,19 @@ export function WishlistEditor({
   )
   useEffect(() => {
     if (!previousGroupId || initialItems.length > 0) return
+    let cancelled = false
     createClient()
       .from('wishlists')
       .select('items')
       .eq('group_id', previousGroupId)
       .eq('user_id', userId)
       .maybeSingle()
-      .then(({ data }) => setPreviousItems((data?.items ?? []) as typeof previousItems))
+      .then(({ data }) => {
+        if (!cancelled) setPreviousItems((data?.items ?? []) as typeof previousItems)
+      })
+    return () => {
+      cancelled = true
+    }
   }, [previousGroupId, userId, initialItems.length])
 
   // Fills the form with last time's list; nothing is saved until "Guardar".
@@ -158,14 +171,18 @@ export function WishlistEditor({
   }
   const [restored, setRestored] = useState(false)
   const key = draftKey(groupId, userId)
+  // The saved list the current edits started from.
+  const baseRef = useRef(contentOf(initialItems))
 
   // Initialize items from the saved list, or from a draft this browser kept. Unsaved changes
   // are never replaced: the group's data is fetched again after many actions.
   useEffect(() => {
     if (dirtyRef.current) return
+    const saved = contentOf(initialItems)
+    baseRef.current = saved
     const draft = readDraft(key)
-    if (draft && contentOf(draft) !== contentOf(initialItems)) {
-      const rows = toRows(draft)
+    if (draft && draft.base === saved && contentOf(draft.items) !== saved) {
+      const rows = toRows(draft.items)
       setItems(rows)
       setVisibleCount(visibleFor(rows))
       markDirty(true)
@@ -179,7 +196,7 @@ export function WishlistEditor({
   }, [initialItems, key])
 
   useEffect(() => {
-    if (dirty) writeDraft(key, items)
+    if (dirty) writeDraft(key, { items, base: baseRef.current })
   }, [dirty, items, key])
 
   // Closing or reloading the tab with changes not saved asks first.
@@ -357,6 +374,7 @@ export function WishlistEditor({
                   value={item.description}
                   maxLength={1000}
                   onChange={(e) => handleItemChange(item.id, 'description', e.target.value)}
+                  disabled={isSaving}
                 />
                 <span className="flex w-11 shrink-0 justify-end sm:w-20">
                   {(item.description || item.url) && (
@@ -381,6 +399,7 @@ export function WishlistEditor({
                     value={item.url}
                     maxLength={2048}
                     onChange={(e) => handleItemChange(item.id, 'url', e.target.value)}
+                    disabled={isSaving}
                     className="h-10 text-[15px]"
                   />
                   <span className="flex shrink-0 justify-end sm:w-20">

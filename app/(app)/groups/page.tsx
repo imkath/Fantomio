@@ -901,6 +901,9 @@ function GroupPage() {
                   </div>
                 ) : (
                   <WishlistEditor
+                    // A fresh editor per group and person, so an unsaved list never follows
+                    // someone to another group.
+                    key={`${groupId}:${currentMember.user_id}`}
                     groupId={groupId}
                     userId={currentMember.user_id}
                     initialItems={myWishlist}
