@@ -14,12 +14,14 @@ Worker con dos crons:
 cd keepalive
 npx wrangler deploy
 npx wrangler secret put SUPABASE_URL       # https://<ref>.supabase.co
-npx wrangler secret put SUPABASE_ANON_KEY  # la anon, nunca la service_role
+npx wrangler secret put SUPABASE_ANON_KEY  # la anon, para el keep-alive
+npx wrangler secret put SUPABASE_SERVICE_ROLE_KEY  # solo para el latido SMTP: el captcha de Auth no deja pedir recuperaciones con la anon
 npx wrangler secret put BREVO_API_KEY      # la misma clave "ghostswap" del sitio
 npx wrangler secret put NVRKTH_BREVO_API_KEY  # la clave "nvrkth-contacto" del portafolio
 ```
 
-Probar a mano: `curl https://ghostswap-keepalive.<subdominio>.workers.dev/`
-devuelve `{"ok":true,"status":200}`.
+Probar a mano: en el panel de Cloudflare, Workers > ghostswap-keepalive > Settings >
+Triggers, disparar el cron y revisar los logs. No tiene URL publica (`workers_dev: false`
+y sin handler `fetch`), para que nadie de afuera lo pueda llamar.
 
 Se despliega aparte del sitio: no lo toca el workflow de deploy de la raiz.

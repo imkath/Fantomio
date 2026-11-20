@@ -1,4 +1,4 @@
-/* global fetch, Response */
+/* global fetch */
 // Mantiene despierto el proyecto de Supabase en el plan gratuito.
 //
 // Supabase pausa un proyecto que no recibe "a few user requests to the database
@@ -7,7 +7,8 @@
 // Ademas Actions deshabilita los workflows programados tras 60 dias sin
 // actividad en el repo, asi que el cron vive aca, donde ya vive el sitio.
 //
-// Secrets: SUPABASE_URL, SUPABASE_ANON_KEY, BREVO_API_KEY, NVRKTH_BREVO_API_KEY (wrangler secret put).
+// Secrets: SUPABASE_URL, SUPABASE_ANON_KEY, SUPABASE_SERVICE_ROLE_KEY, BREVO_API_KEY,
+// NVRKTH_BREVO_API_KEY (wrangler secret put).
 
 // La clave anon no tiene permisos sobre las tablas (migracion 20261026e), asi que se
 // llama a keepalive(): una consulta real a Postgres que no devuelve datos de nadie.
@@ -54,7 +55,13 @@ async function heartbeat(env) {
 async function smtpHeartbeat(env) {
   const res = await fetch(`${env.SUPABASE_URL}/auth/v1/recover`, {
     method: 'POST',
-    headers: { apikey: env.SUPABASE_ANON_KEY, 'content-type': 'application/json' },
+    // Since 17-nov-2026 Supabase Auth asks for a captcha on recovery; the service key skips it.
+    // It never leaves this Worker.
+    headers: {
+      apikey: env.SUPABASE_SERVICE_ROLE_KEY,
+      Authorization: `Bearer ${env.SUPABASE_SERVICE_ROLE_KEY}`,
+      'content-type': 'application/json',
+    },
     body: JSON.stringify({ email: 'hello@nvrkth.com' }),
   })
   if (!res.ok) throw new Error(`latido SMTP fallo: HTTP ${res.status} ${await res.text()}`)
@@ -82,7 +89,11 @@ export default {
   async scheduled(event, env) {
     if (event.cron === HEARTBEAT_CRON) {
       // Cada latido por separado: si uno falla, los otros igual se envian.
-      const results = await Promise.allSettled([heartbeat(env), smtpHeartbeat(env), nvrkthHeartbeat(env)])
+      const results = await Promise.allSettled([
+        heartbeat(env),
+        smtpHeartbeat(env),
+        nvrkthHeartbeat(env),
+      ])
       const failed = results.filter((r) => r.status === 'rejected').map((r) => r.reason.message)
       if (failed.length) throw new Error(failed.join(' | '))
       return
@@ -90,13 +101,6 @@ export default {
     const r = await ping(env)
     if (!r.ok) throw new Error(`keep-alive fallo: HTTP ${r.status} ${r.body}`)
   },
-
-  // Para probarlo a mano: curl https://<worker>.workers.dev/
-  async fetch(request, env) {
-    const r = await ping(env)
-    return new Response(JSON.stringify(r), {
-      status: r.ok ? 200 : 500,
-      headers: { 'content-type': 'application/json' },
-    })
-  },
+  // Sin handler fetch y sin workers.dev: nadie de afuera puede dispararlo. Para probarlo a mano,
+  // "Trigger" en Workers > ghostswap-keepalive > Settings > Triggers, y mirar los logs.
 }

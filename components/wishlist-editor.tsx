@@ -275,6 +275,7 @@ export function WishlistEditor({
                   aria-label={`Deseo ${index + 1}`}
                   placeholder={PLACEHOLDERS[index]}
                   value={item.description}
+                  maxLength={1000}
                   onChange={(e) => handleItemChange(item.id, 'description', e.target.value)}
                 />
                 <span className="flex w-11 shrink-0 justify-end sm:w-20">
@@ -298,6 +299,7 @@ export function WishlistEditor({
                     aria-label={`Link del deseo ${index + 1} (opcional)`}
                     placeholder="Link, si tienes uno (opcional)"
                     value={item.url}
+                    maxLength={2048}
                     onChange={(e) => handleItemChange(item.id, 'url', e.target.value)}
                     className="h-10 text-[15px]"
                   />

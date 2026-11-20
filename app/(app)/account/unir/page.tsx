@@ -85,6 +85,14 @@ export default function MergePage() {
     const { data: ids } = await supabase.auth.getUserIdentities()
     const google = ids?.identities.find((i) => i.provider === 'google')
     const googleEmail = google ? String(google.identity_data?.email ?? step.current) : null
+    // The merge asks for a recent sign-in. This account just signed in, but check before its
+    // photos go: they can't come back if the merge is then refused.
+    const { data: recent } = await supabase.rpc('signed_in_recently')
+    if (recent !== true) {
+      setError('Por seguridad, vuelve a entrar con esta cuenta y repite la unión.')
+      setBusy(false)
+      return
+    }
     // Photos live in storage, outside the database: remove this account's before it goes.
     await clearAvatarFiles(step.userId).catch(() => {})
     const { data, error: rpcError } = await supabase.rpc('confirm_merge', {

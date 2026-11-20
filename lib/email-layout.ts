@@ -140,6 +140,43 @@ export const AUTH_EMAILS = {
       note: 'Si no lo pediste, no confirmes nada y tu correo seguirá igual. Te conviene cambiar tu contraseña.',
     }),
   },
+  // Security notices: Supabase sends them after the change, to the account's address. They are
+  // how the owner learns that someone used an open session to add a way in.
+  identity_linked_notification: {
+    subject: 'Se conectó una nueva forma de entrar a tu cuenta de Fantomio',
+    html: emailLayout({
+      label: 'Seguridad',
+      title: 'Nueva forma de entrar',
+      paragraphs: [
+        'Se conectó <strong style="color: #1b1b1a;">{{ .Provider }}</strong> a tu cuenta de Fantomio ({{ .Email }}).',
+        'Si fuiste tú, no tienes que hacer nada.',
+      ],
+      cta: { text: 'Revisar mi cuenta', href: 'https://fantomio.com/account#acceso' },
+      note: 'Si no fuiste tú, entra, desconéctalo y cierra la sesión en todas partes. También puedes escribirnos a hola@fantomio.com.',
+    }),
+  },
+  password_changed_notification: {
+    subject: 'Cambió la contraseña de tu cuenta de Fantomio',
+    html: emailLayout({
+      label: 'Seguridad',
+      title: 'Tu contraseña cambió',
+      paragraphs: ['La contraseña de tu cuenta de Fantomio ({{ .Email }}) se acaba de cambiar.'],
+      cta: { text: 'Revisar mi cuenta', href: 'https://fantomio.com/account#acceso' },
+      note: 'Si no fuiste tú, recupera tu cuenta con "Olvidé mi contraseña" y escríbenos a hola@fantomio.com.',
+    }),
+  },
+  email_changed_notification: {
+    subject: 'Cambió el correo de tu cuenta de Fantomio',
+    html: emailLayout({
+      label: 'Seguridad',
+      title: 'Tu correo cambió',
+      paragraphs: [
+        'El correo de tu cuenta de Fantomio cambió de {{ .OldEmail }} a <strong style="color: #1b1b1a;">{{ .Email }}</strong>.',
+      ],
+      cta: { text: 'Revisar mi cuenta', href: 'https://fantomio.com/account#acceso' },
+      note: 'Si no fuiste tú, escríbenos de inmediato a hola@fantomio.com.',
+    }),
+  },
 }
 
 // Sent by the database (see the notifications and draw migrations) through Brevo, so the app

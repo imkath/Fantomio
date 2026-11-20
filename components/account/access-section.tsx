@@ -15,6 +15,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { AccountSection, Setting } from '@/components/account/section'
+import { useReauth } from '@/components/account/reauth'
 import { createClient } from '@/lib/supabase'
 import { getUserFriendlyError } from '@/lib/errors'
 import { LEGAL } from '@/lib/legal'
@@ -49,7 +50,11 @@ export function AccessSection({
       <EmailSetting state={state} status={status} />
       <PasswordSetting state={state} onChange={onChange} />
       <GoogleSetting state={state} status={status} onChange={onChange} />
-      <MergeSetting email={state.email} />
+      <MergeSetting
+        email={state.email}
+        hasPassword={state.hasPassword}
+        hasGoogle={state.providers.includes('google')}
+      />
     </AccountSection>
   )
 }
@@ -130,12 +135,22 @@ function PasswordSetting({ state, onChange }: { state: AccessState; onChange: ()
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
 
+  const reauth = useReauth({
+    email: state.email,
+    hasPassword: state.hasPassword,
+    hasGoogle: state.providers.includes('google'),
+    returnTo: '/account#acceso',
+  })
+
   const submit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError('')
     if (next.length < MIN_PASSWORD)
       return setError(`La contraseña debe tener al menos ${MIN_PASSWORD} caracteres.`)
     if (next !== repeat) return setError('Las dos contraseñas nuevas no coinciden.')
+    // A recent sign-in, always: Supabase asks for it too ("secure password change"), and a first
+    // password has no current one to check.
+    if (!(await reauth.confirm())) return
     setSaving(true)
     const supabase = createClient()
     try {
@@ -184,6 +199,7 @@ function PasswordSetting({ state, onChange }: { state: AccessState; onChange: ()
           : 'Entras con Google. Si creas una contraseña, también podrás entrar con tu correo y ella.'
       }
     >
+      {reauth.dialog}
       {error && <Notice>{error}</Notice>}
       <form onSubmit={submit} className="grid max-w-md gap-4">
         {state.hasPassword && (
@@ -242,7 +258,15 @@ function GoogleSetting({
   // Google can only go if there is another way in: a password registered as a sign-in method.
   const canDisconnect = state.hasPassword && state.providers.includes('email')
 
+  const reauth = useReauth({
+    email: state.email,
+    hasPassword: state.hasPassword,
+    hasGoogle: state.providers.includes('google'),
+    returnTo: '/account#acceso',
+  })
+
   const connect = async () => {
+    if (!(await reauth.confirm())) return
     setBusy(true)
     setError('')
     const { error: linkError } = await createClient().auth.linkIdentity({
@@ -256,6 +280,7 @@ function GoogleSetting({
   }
 
   const disconnect = async () => {
+    if (!(await reauth.confirm())) return
     setBusy(true)
     setError('')
     const supabase = createClient()
@@ -283,6 +308,7 @@ function GoogleSetting({
           : 'Conéctalo para entrar con un toque, sin escribir la contraseña.'
       }
     >
+      {reauth.dialog}
       {status === 'conectado' && connected && <Notice tone="ok">Google quedó conectado.</Notice>}
       {pendingLink && !connected && (
         <Notice>
@@ -319,13 +345,24 @@ function GoogleSetting({
   )
 }
 
-function MergeSetting({ email }: { email: string }) {
+function MergeSetting({
+  email,
+  hasPassword,
+  hasGoogle,
+}: {
+  email: string
+  hasPassword: boolean
+  hasGoogle: boolean
+}) {
   const router = useRouter()
   const [open, setOpen] = useState(false)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
 
+  const reauth = useReauth({ email, hasPassword, hasGoogle, returnTo: '/account#acceso' })
+
   const start = async () => {
+    if (!(await reauth.confirm())) return
     setBusy(true)
     setError('')
     const supabase = createClient()
@@ -353,6 +390,7 @@ function MergeSetting({ email }: { email: string }) {
       title="Unir otra cuenta"
       hint="Si te creaste dos cuentas (por ejemplo una con tu correo y otra con Google), puedes juntarlas en esta."
     >
+      {reauth.dialog}
       {error && <Notice>{error}</Notice>}
       <Button variant="outline" onClick={() => setOpen(true)}>
         <Merge aria-hidden="true" />

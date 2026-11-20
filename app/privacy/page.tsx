@@ -193,9 +193,13 @@ export default function PrivacyPage() {
                 </li>
                 <li>
                   <strong>Proveedores que operan el servicio por nuestra cuenta:</strong> Supabase
-                  (base de datos y autenticación), Cloudflare (alojamiento del sitio), Brevo (envío
-                  de correos) y Sentry, de Functional Software, Inc. (reportes de errores). Solo
-                  pueden usar los datos para prestarnos ese servicio.
+                  (base de datos y autenticación), Cloudflare (alojamiento del sitio y la
+                  comprobación contra robots al crear tu cuenta, entrar o recuperar la contraseña,
+                  que revisa señales técnicas de tu navegador y no usa cookies de publicidad), Brevo
+                  (envío de correos), Amazon Web Services (envío de los correos del sorteo, la
+                  revelación y las invitaciones cuando Brevo no puede) y Sentry, de Functional
+                  Software, Inc. (reportes de errores). Solo pueden usar los datos para prestarnos
+                  ese servicio.
                 </li>
                 <li>
                   <strong>Google</strong>, si eliges entrar con tu cuenta de Google. En ese caso
@@ -209,11 +213,13 @@ export default function PrivacyPage() {
               <p>
                 Tus datos se almacenan en Estados Unidos (Supabase) y pasan por servidores de
                 Cloudflare en distintos países. Los correos se envían a través de Brevo, y los
-                reportes de errores se guardan en Sentry, ambos en la Unión Europea. A la fecha de
-                esta versión, la Agencia de Protección de Datos Personales no ha determinado si esos
-                países ofrecen un nivel adecuado de protección. Las transferencias se amparan en los
-                acuerdos de tratamiento de datos de cada proveedor, que incluyen cláusulas
-                contractuales estándar.
+                reportes de errores se guardan en Sentry, ambos en la Unión Europea. Cuando Brevo no
+                puede enviar un correo del sorteo, la revelación o una invitación, sale por Amazon
+                Web Services desde Estados Unidos, que recibe tu dirección y el contenido de ese
+                correo. A la fecha de esta versión, la Agencia de Protección de Datos Personales no
+                ha determinado si esos países ofrecen un nivel adecuado de protección. Las
+                transferencias se amparan en los acuerdos de tratamiento de datos de cada proveedor,
+                que incluyen cláusulas contractuales estándar.
               </p>
             </Section>
 

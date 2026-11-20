@@ -171,6 +171,8 @@ function AccountPage() {
               <DataSection
                 userId={account.userId}
                 email={account.email}
+                hasPassword={account.hasPassword}
+                hasGoogle={account.providers.includes('google')}
                 drawnGroups={account.drawnGroups}
               />
             </div>

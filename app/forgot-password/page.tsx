@@ -6,22 +6,27 @@ import { AuthShell, Field, Notice } from '@/components/auth-shell'
 import { useState } from 'react'
 import Link from 'next/link'
 import { supabase } from '@/lib/supabase'
+import { CAPTCHA_WAIT, useTurnstile } from '@/components/turnstile'
 
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState('')
   const [isLoading, setIsLoading] = useState(false)
   const [sent, setSent] = useState(false)
   const [error, setError] = useState('')
+  const captcha = useTurnstile()
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    if (!captcha.token) return setError(CAPTCHA_WAIT)
     setIsLoading(true)
     setError('')
 
     try {
       const { error: supabaseError } = await supabase.auth.resetPasswordForEmail(email, {
         redirectTo: `${window.location.origin}/auth/callback?next=/reset-password`,
+        captchaToken: captcha.token,
       })
+      captcha.reset()
 
       if (supabaseError) {
         setError(supabaseError.message)
@@ -68,6 +73,7 @@ export default function ForgotPasswordPage() {
           onChange={(e) => setEmail(e.target.value)}
           required
         />
+        {captcha.widget}
         <Button type="submit" size="lg" className="w-full" disabled={isLoading}>
           {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Enviar enlace'}
         </Button>

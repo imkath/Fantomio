@@ -169,7 +169,7 @@ export function ProfileSection({
             <Field
               label="Tu nombre"
               autoComplete="name"
-              maxLength={60}
+              maxLength={300}
               value={fullName}
               onChange={(e) => setFullName(e.target.value)}
             />

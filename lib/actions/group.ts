@@ -52,14 +52,7 @@ export async function updateGroup(
     return { success: false, error: getUserFriendlyError(error) }
   }
 
-  // Log activity
-  await supabase.from('activities').insert({
-    group_id: groupId,
-    user_id: user.id,
-    type: 'GROUP_UPDATED',
-    message: `Grupo actualizado`,
-  })
-
+  // The database writes "group updated" in the history by itself (log_group_change).
   return { success: true }
 }
 
@@ -266,7 +259,6 @@ export async function getGroupActivities(groupId: string) {
       created_at,
       profiles:user_id (
         full_name,
-        email,
         avatar_url
       )
     `

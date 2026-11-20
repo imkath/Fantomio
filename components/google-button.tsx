@@ -8,7 +8,14 @@ import { createClient } from '@/lib/supabase'
 
 // Google is the shortest way in: one tap creates the account the first time and signs in after
 // that, so it sits first on both the sign-in and the sign-up page.
-export function GoogleButton({ redirectTo }: { redirectTo: string }) {
+export function GoogleButton({
+  redirectTo,
+  loginHint,
+}: {
+  redirectTo: string
+  // Suggests this account in Google's chooser (used when confirming it's you).
+  loginHint?: string
+}) {
   const [loading, setLoading] = useState(false)
   // On success the browser leaves for Google, so loading only ends when something failed.
   const signIn = async () => {
@@ -18,6 +25,7 @@ export function GoogleButton({ redirectTo }: { redirectTo: string }) {
         provider: 'google',
         options: {
           redirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent(redirectTo)}`,
+          ...(loginHint ? { queryParams: { login_hint: loginHint } } : {}),
         },
       })
       if (error) throw error

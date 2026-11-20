@@ -86,7 +86,7 @@ export function PreferencesSection({
 
       <Setting
         title="Avisos por correo"
-        hint="Cuando se hace el sorteo, te preguntan algo, te responden, tu amigo secreto cambia su lista o se acerca el intercambio. Si los apagas, igual los ves en la campanita."
+        hint="Cuando te preguntan algo, te responden, tu amigo secreto cambia su lista o se acerca el intercambio. Si los apagas, igual los ves en la campanita. Los correos del sorteo y las invitaciones te llegan siempre."
       >
         <label className="flex items-center gap-3">
           <Switch checked={emails} onCheckedChange={toggleEmails} aria-label="Avisos por correo" />

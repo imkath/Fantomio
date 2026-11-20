@@ -172,7 +172,7 @@ describe('Collision Probability Analysis', () => {
     // and the insert would fail, triggering a retry with a new code
 
     // This is a documentation test - the real protection is in the DB
-    const hasUniqueConstraint = true // from schema.sql line 60
+    const hasUniqueConstraint = true // invite_code is UNIQUE in the baseline migration
     expect(hasUniqueConstraint).toBe(true)
   })
 })

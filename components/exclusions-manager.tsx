@@ -26,7 +26,6 @@ interface Member {
   user_id: string
   profile: {
     full_name: string | null
-    email: string
     avatar_url: string | null
   }
 }
@@ -113,7 +112,13 @@ export function ExclusionsManager({ groupId, members, isAdmin, isDrawn }: Exclus
     return members.find((m) => m.user_id === userId)
   }
 
-  const nameOf = (m: Member) => m.profile.full_name || m.profile.email
+  // Without emails, two people can share a name: the second "Ana" shows as "Ana (2)", so an
+  // exclusion is never set on the wrong person.
+  const nameOf = (m: Member) => {
+    const base = m.profile.full_name || 'Sin nombre'
+    const same = members.filter((o) => (o.profile.full_name || 'Sin nombre') === base)
+    return same.length > 1 ? `${base} (${same.indexOf(m) + 1})` : base
+  }
 
   const getAvailableReceivers = () => {
     if (!selectedGiver) return members

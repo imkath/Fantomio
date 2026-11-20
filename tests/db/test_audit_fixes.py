@@ -1,7 +1,7 @@
 from _env import ANON, SRV, U, R, sql  # noqa: E402
 import json, urllib.request, secrets, subprocess
-def req(method, url, body=None, token=None, key=ANON):
-    h = {'apikey': key, 'Authorization': 'Bearer ' + (token or key), 'Content-Type': 'application/json', 'Prefer': 'return=representation'}
+def req(method, url, body=None, token=None, key=ANON, prefer='return=representation'):
+    h = {'apikey': key, 'Authorization': 'Bearer ' + (token or key), 'Content-Type': 'application/json', 'Prefer': prefer}
     r = urllib.request.Request(url, data=None if body is None else json.dumps(body).encode(), headers=h, method=method)
     try:
         with urllib.request.urlopen(r) as resp: return resp.status, json.loads(resp.read() or 'null')
@@ -24,7 +24,9 @@ json.dump(ids, open('ids6.json','w'))
 s,g=req('POST', R+'groups', {'name':'QA auditoria','admin_id':ids['a'],'currency':'CLP'}, T['a']); G=g[0]['id']; code=g[0]['invite_code']
 ids['G']=G; json.dump(ids, open('ids6.json','w'))
 check('a adds self as organizer', req('POST', R+'members', {'group_id':G,'user_id':ids['a'],'is_admin':True}, T['a']), rows(1))
-check('a logs GROUP_CREATED', req('POST', R+'activities', {'group_id':G,'user_id':ids['a'],'type':'GROUP_CREATED','message':'creó'}, T['a']), rows(1))
+check('even the organizer cannot write the history', req('POST', R+'activities', {'group_id':G,'user_id':ids['a'],'type':'GROUP_CREATED','message':'creó'}, T['a']), denied)
+auto=sql(f"select count(*) n from activities where group_id='{G}' and type='GROUP_CREATED'")[0]['n']
+check('the database logged the new group', (200, auto), lambda s,b: b==1)
 check('b direct insert into members', req('POST', R+'members', {'group_id':G,'user_id':ids['b'],'is_admin':False}, T['b']), denied)
 check('b joins with wrong code', req('POST', R+'rpc/join_group', {'p_code':'000000000000'}, T['b']), denied)
 check('b joins with code', req('POST', R+'rpc/join_group', {'p_code':code}, T['b']), lambda s,b: s==200 and b==G)
@@ -33,9 +35,9 @@ check('c joins with code', req('POST', R+'rpc/join_group', {'p_code':code}, T['c
 check('d joins with code', req('POST', R+'rpc/join_group', {'p_code':code}, T['d']), okay)
 check('b fakes activity as a', req('POST', R+'activities', {'group_id':G,'user_id':ids['a'],'type':'GROUP_UPDATED','message':'x'}, T['b']), denied)
 check('b fakes DRAW_RESET type', req('POST', R+'activities', {'group_id':G,'user_id':ids['b'],'type':'DRAW_RESET','message':'x'}, T['b']), denied)
-check('b changes own email', req('PATCH', R+f"profiles?id=eq.{ids['b']}", {'email':'a@x.com'}, T['b']), denied)
-check('b changes own name', req('PATCH', R+f"profiles?id=eq.{ids['b']}", {'full_name':'Prueba B2'}, T['b']), rows(1))
-check('b sets http avatar', req('PATCH', R+f"profiles?id=eq.{ids['b']}", {'avatar_url':'http://x.com/a.png'}, T['b']), denied)
+check('b changes own email', req('PATCH', R+f"profiles?id=eq.{ids['b']}", {'email':'a@x.com'}, T['b'], prefer='return=minimal'), denied)
+check('b changes own name', req('PATCH', R+f"profiles?id=eq.{ids['b']}", {'full_name':'Prueba B2'}, T['b'], prefer='return=minimal'), okay)
+check('b sets http avatar', req('PATCH', R+f"profiles?id=eq.{ids['b']}", {'avatar_url':'http://x.com/a.png'}, T['b'], prefer='return=minimal'), denied)
 check('d leaves', req('DELETE', R+f"members?group_id=eq.{G}&user_id=eq.{ids['d']}", token=T['d']), rows(1))
 check('anon reads profiles', req('GET', R+'profiles?select=id'), denied)
 check('anon invite preview', req('POST', R+'rpc/get_group_by_invite_code', {'p_code':code} if False else {'code':code}), rows(1))
