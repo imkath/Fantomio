@@ -65,19 +65,26 @@ import type { PlaceKind } from '@/lib/place'
 import { toast } from 'sonner'
 import type { Activity } from '@/components/group/group-dialogs'
 import { useOpenedOnce } from '@/hooks/use-opened-once'
+import { orReloadNotice } from '@/lib/lazy-component'
+import { createLatestRequest } from '@/lib/latest-request'
 
-// Dialogs load the first time one opens: none of them is needed to draw the group.
+// Dialogs load the first time one opens: none of them is needed to draw the group. If the
+// download fails, a toast asks to reload instead of the page breaking.
 const dialogs = () => import('@/components/group/group-dialogs')
-const DrawConfirmDialog = dynamic(() => dialogs().then((m) => m.DrawConfirmDialog))
-const MissingListsDialog = dynamic(() => dialogs().then((m) => m.MissingListsDialog))
-const EditGroupDialog = dynamic(() => dialogs().then((m) => m.EditGroupDialog))
-const DeleteGroupDialog = dynamic(() => dialogs().then((m) => m.DeleteGroupDialog))
-const LeaveGroupDialog = dynamic(() => dialogs().then((m) => m.LeaveGroupDialog))
-const RemoveMemberDialog = dynamic(() => dialogs().then((m) => m.RemoveMemberDialog))
-const TransferDialog = dynamic(() => dialogs().then((m) => m.TransferDialog))
-const ResetDrawDialog = dynamic(() => dialogs().then((m) => m.ResetDrawDialog))
-const ActivityDialog = dynamic(() => dialogs().then((m) => m.ActivityDialog))
-const RepeatGroupDialog = dynamic(() => dialogs().then((m) => m.RepeatGroupDialog))
+const DrawConfirmDialog = dynamic(orReloadNotice(() => dialogs().then((m) => m.DrawConfirmDialog)))
+const MissingListsDialog = dynamic(
+  orReloadNotice(() => dialogs().then((m) => m.MissingListsDialog))
+)
+const EditGroupDialog = dynamic(orReloadNotice(() => dialogs().then((m) => m.EditGroupDialog)))
+const DeleteGroupDialog = dynamic(orReloadNotice(() => dialogs().then((m) => m.DeleteGroupDialog)))
+const LeaveGroupDialog = dynamic(orReloadNotice(() => dialogs().then((m) => m.LeaveGroupDialog)))
+const RemoveMemberDialog = dynamic(
+  orReloadNotice(() => dialogs().then((m) => m.RemoveMemberDialog))
+)
+const TransferDialog = dynamic(orReloadNotice(() => dialogs().then((m) => m.TransferDialog)))
+const ResetDrawDialog = dynamic(orReloadNotice(() => dialogs().then((m) => m.ResetDrawDialog)))
+const ActivityDialog = dynamic(orReloadNotice(() => dialogs().then((m) => m.ActivityDialog)))
+const RepeatGroupDialog = dynamic(orReloadNotice(() => dialogs().then((m) => m.RepeatGroupDialog)))
 
 interface Member {
   id: string
@@ -158,6 +165,11 @@ function GroupPage() {
   // The group's mode as last seen (cache or real data), to ask for blind-only data up front.
   const knownMode = useRef<{ groupId: string; mode: GroupMode } | null>(null)
   const [error, setError] = useState('')
+  // The error on screen came from loading the group, so a later load that works clears it.
+  const loadFailed = useRef(false)
+  // Only the latest load may touch the page: a slow answer for the group left behind (or an
+  // older load of this one) is dropped.
+  const requests = useRef(createLatestRequest())
   const [copied, setCopied] = useState(false)
   const [isDrawing, setIsDrawing] = useState(false)
 
@@ -173,7 +185,9 @@ function GroupPage() {
   const [missingLists, setMissingLists] = useState<string[]>([])
   const [showMissingLists, setShowMissingLists] = useState(false)
   const [listCount, setListCount] = useState<{ with_list: number; total: number } | null>(null)
-  const wasHidden = useRef<boolean | null>(null)
+  // Whether the blind draw was still hidden at the last load, per group: confetti only when
+  // this same group goes from hidden to revealed.
+  const wasHidden = useRef<{ groupId: string; hidden: boolean } | null>(null)
   const [showRepeat, setShowRepeat] = useState(false)
 
   // Group management dialogs
@@ -196,6 +210,19 @@ function GroupPage() {
   const [showResetDialog, setShowResetDialog] = useState(false)
   const [isResetting, setIsResetting] = useState(false)
 
+  // Another group in the same page (the id in the URL changed): start from a clean slate, so
+  // nothing from the previous one (an open match, an error) carries over.
+  const [pageFor, setPageFor] = useState(groupId)
+  if (pageFor !== groupId) {
+    setPageFor(groupId)
+    setIsLoading(true)
+    setStale(false)
+    setGroup(null)
+    setMatch(null)
+    setShowMatch(false)
+    setError('')
+  }
+
   const applySnapshot = useCallback((s: GroupSnapshot, userId: string) => {
     knownMode.current = { groupId: s.group.id, mode: s.group.mode }
     setGroup(s.group)
@@ -214,10 +241,13 @@ function GroupPage() {
 
   const fetchGroupData = useCallback(async () => {
     const supabase = createClient()
+    const request = requests.current.start()
+    const isLatest = () => requests.current.isLatest(request)
     let showingCache = false
 
     try {
       const user = await getSessionUser()
+      if (!isLatest()) return
       if (!user) {
         router.push('/login')
         return
@@ -268,6 +298,7 @@ function GroupPage() {
           supabase.rpc('wishlist_status', { p_group_id: groupId }),
           knownClassic ? null : blindData(),
         ])
+      if (!isLatest()) return
 
       const groupData = groupRes.data as Group | null
       if (groupRes.error && !NOT_FOUND_CODES.has(groupRes.error.code)) throw groupRes.error
@@ -279,18 +310,28 @@ function GroupPage() {
         setError('Grupo no encontrado')
         return
       }
+      // Half an answer is worse than none: with the lists missing, the editor would start empty
+      // and its autosave could overwrite the real list.
+      const failed = [membersRes, matchRes, listsRes, statusRes, ...(earlyBlindRes ?? [])].find(
+        (res) => res.error
+      )
+      if (failed) throw failed.error
 
       let missing: string[] = []
       let listCount: GroupSnapshot['listCount'] = null
       if (groupData.mode === 'blind') {
         // Only a group that just turned blind (it was classic last time) needs a second trip.
         const [missingRes, countRes] = earlyBlindRes ?? (await blindData())
+        if (!isLatest()) return
+        if (missingRes.error) throw missingRes.error
+        if (countRes.error) throw countRes.error
         missing = groupData.status === 'PLANNING' ? ((missingRes.data ?? []) as string[]) : []
         listCount = countRes.data as { with_list: number; total: number }
         // Confetti for everyone watching when the blind draw is revealed.
         const hidden = !groupData.revealed_at
-        if (wasHidden.current === true && !hidden) celebrate()
-        wasHidden.current = hidden
+        const before = wasHidden.current
+        if (before?.groupId === groupId && before.hidden && !hidden) celebrate()
+        wasHidden.current = { groupId, hidden }
       }
 
       const lists = new Map<string, Items>(
@@ -346,12 +387,18 @@ function GroupPage() {
       applySnapshot(snapshot, user.id)
       freshFor.current = groupId
       setStale(false)
+      if (loadFailed.current) {
+        loadFailed.current = false
+        setError('')
+      }
       if (formattedMembers.some((m) => m.user_id === user.id)) {
         writeGroupCache(groupId, user.id, snapshot)
       } else {
         clearGroupCache(groupId, user.id)
       }
     } catch {
+      if (!isLatest()) return
+      loadFailed.current = true
       // With last visit's copy on screen it stays visible but locked, and says why.
       setError(
         showingCache
@@ -359,7 +406,7 @@ function GroupPage() {
           : 'Error al cargar el grupo'
       )
     } finally {
-      setIsLoading(false)
+      if (isLatest()) setIsLoading(false)
     }
   }, [groupId, router, applySnapshot])
 
@@ -505,6 +552,7 @@ function GroupPage() {
     const result = await deleteGroup(group.id)
 
     if (result.success) {
+      if (currentUserId) clearGroupCache(group.id, currentUserId)
       toast.success('Grupo eliminado')
       router.push('/dashboard')
     } else {
@@ -520,6 +568,7 @@ function GroupPage() {
     const result = await leaveGroup(group.id)
 
     if (result.success) {
+      if (currentUserId) clearGroupCache(group.id, currentUserId)
       toast.success('Saliste del grupo')
       router.push('/dashboard')
     } else {
@@ -613,7 +662,9 @@ function GroupPage() {
   const resetOpened = useOpenedOnce(showResetDialog)
   const activityOpened = useOpenedOnce(showActivityDialog)
 
-  if (isLoading) {
+  // Data still from another group (its answer landed as the id changed): show the loading
+  // state rather than one group's people under another's id.
+  if (isLoading || (group && group.id !== groupId)) {
     return (
       <div className="bg-paper min-h-[calc(100vh-69px)]">
         <main className="mx-auto max-w-[1040px] px-4 py-10 md:px-8">

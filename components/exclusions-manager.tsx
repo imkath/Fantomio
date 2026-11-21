@@ -2,13 +2,14 @@
 
 import { useState } from 'react'
 import dynamic from 'next/dynamic'
+import { orReloadNotice } from '@/lib/lazy-component'
 import { Button } from '@/components/ui/button'
 import { UserX } from 'lucide-react'
 import { useOpenedOnce } from '@/hooks/use-opened-once'
 import type { ExclusionsDialogProps } from '@/components/exclusions-dialog'
 
-const ExclusionsDialog = dynamic(() =>
-  import('@/components/exclusions-dialog').then((m) => m.ExclusionsDialog)
+const ExclusionsDialog = dynamic(
+  orReloadNotice(() => import('@/components/exclusions-dialog').then((m) => m.ExclusionsDialog))
 )
 
 interface ExclusionsManagerProps {
