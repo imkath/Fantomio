@@ -4,14 +4,7 @@ import { useEffect, useState } from 'react'
 import { ExternalLink, Eye, Loader2, PartyPopper } from 'lucide-react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog'
+import { LazyConfirmDialog } from '@/components/lazy-confirm-dialog'
 import { GhostMark } from '@/components/ghost-mark'
 import { AnonymousChat } from '@/components/anonymous-chat'
 import { createClient } from '@/lib/supabase'
@@ -177,26 +170,17 @@ function RevealNowButton({ groupId, onRevealed }: { groupId: string; onRevealed:
         <Eye aria-hidden="true" />
         Revelar ahora
       </Button>
-      <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>¿Revelamos el sorteo?</DialogTitle>
-            <DialogDescription>
-              Todos verán a quién le regalan y si acertaron. Las apuestas se cierran y no se puede
-              volver a ocultar.
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter className="gap-2">
-            <Button variant="outline" onClick={() => setOpen(false)}>
-              Todavía no
-            </Button>
-            <Button onClick={reveal} disabled={busy}>
-              {busy ? <Loader2 className="animate-spin" /> : <Eye aria-hidden="true" />}
-              Revelar
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <LazyConfirmDialog
+        open={open}
+        onOpenChange={setOpen}
+        title="¿Revelamos el sorteo?"
+        description="Todos verán a quién le regalan y si acertaron. Las apuestas se cierran y no se puede volver a ocultar."
+        cancelLabel="Todavía no"
+        confirmLabel="Revelar"
+        icon={<Eye aria-hidden="true" />}
+        busy={busy}
+        onConfirm={reveal}
+      />
     </div>
   )
 }

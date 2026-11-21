@@ -3,14 +3,6 @@
 import { groupPath } from '@/lib/routes'
 import { Button } from '@/components/ui/button'
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog'
-import {
   Check,
   Crown,
   ExternalLink,
@@ -25,15 +17,15 @@ import {
   Repeat,
   RotateCcw,
   Shuffle,
-  Trash2,
   UserMinus,
 } from 'lucide-react'
 import { useRouter, useSearchParams } from 'next/navigation'
+import dynamic from 'next/dynamic'
 import { useEffect, useRef, useState, useCallback, Suspense } from 'react'
 import GroupLoading from './loading'
 import Link from 'next/link'
 import { Breadcrumbs } from '@/components/breadcrumbs'
-import { ModePicker, type GroupMode } from '@/components/group/mode-picker'
+import type { GroupMode } from '@/components/group/mode-picker'
 import { BlindAssignment, BlindListsNotice, BlindResults } from '@/components/group/blind'
 import {
   ArchiveButton,
@@ -41,7 +33,6 @@ import {
   EditionHistory,
   HideButton,
   PendingInvitations,
-  RepeatGroupDialog,
   RevealedGiver,
   RevealYourself,
 } from '@/components/group/editions'
@@ -49,7 +40,6 @@ import { createClient, getSessionUser } from '@/lib/supabase'
 import { clearGroupCache, readGroupCache, writeGroupCache } from '@/lib/group-cache'
 import { drawNames, resetDraw } from '@/lib/actions/draw'
 import {
-  updateGroup,
   deleteGroup,
   leaveGroup,
   getGroupActivities,
@@ -70,16 +60,24 @@ import { GroupPageSkeleton } from '@/components/skeletons'
 import { GroupInfoCard } from '@/components/group-info-card'
 import { ExclusionsManager } from '@/components/exclusions-manager'
 import { AnonymousChat } from '@/components/anonymous-chat'
-import { Input } from '@/components/ui/input'
 import { formatName, todayIn } from '@/lib/utils'
-import {
-  PlaceFields,
-  placeError,
-  placeToSave,
-  type PlaceDraft,
-} from '@/components/group/place-fields'
 import type { PlaceKind } from '@/lib/place'
 import { toast } from 'sonner'
+import type { Activity } from '@/components/group/group-dialogs'
+import { useOpenedOnce } from '@/hooks/use-opened-once'
+
+// Dialogs load the first time one opens: none of them is needed to draw the group.
+const dialogs = () => import('@/components/group/group-dialogs')
+const DrawConfirmDialog = dynamic(() => dialogs().then((m) => m.DrawConfirmDialog))
+const MissingListsDialog = dynamic(() => dialogs().then((m) => m.MissingListsDialog))
+const EditGroupDialog = dynamic(() => dialogs().then((m) => m.EditGroupDialog))
+const DeleteGroupDialog = dynamic(() => dialogs().then((m) => m.DeleteGroupDialog))
+const LeaveGroupDialog = dynamic(() => dialogs().then((m) => m.LeaveGroupDialog))
+const RemoveMemberDialog = dynamic(() => dialogs().then((m) => m.RemoveMemberDialog))
+const TransferDialog = dynamic(() => dialogs().then((m) => m.TransferDialog))
+const ResetDrawDialog = dynamic(() => dialogs().then((m) => m.ResetDrawDialog))
+const ActivityDialog = dynamic(() => dialogs().then((m) => m.ActivityDialog))
+const RepeatGroupDialog = dynamic(() => dialogs().then((m) => m.RepeatGroupDialog))
 
 interface Member {
   id: string
@@ -140,12 +138,6 @@ interface GroupSnapshot {
 // Errors that mean "this group isn't there for you" (no row under RLS, or a malformed id).
 const NOT_FOUND_CODES = new Set(['PGRST116', '22P02'])
 
-// "2026-12-24T20:00" for <input type="datetime-local">, in the viewer's time zone.
-const toLocalInput = (iso: string) => {
-  const d = new Date(iso)
-  return new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 16)
-}
-
 function GroupPage() {
   const params = useSearchParams()
   const router = useRouter()
@@ -189,26 +181,11 @@ function GroupPage() {
   const [showDeleteDialog, setShowDeleteDialog] = useState(false)
   const [showLeaveDialog, setShowLeaveDialog] = useState(false)
   const [showActivityDialog, setShowActivityDialog] = useState(false)
-  const [activities, setActivities] = useState<
-    Array<{
-      id: string
-      type: string
-      message: string
-      created_at: string
-      profiles: { full_name: string | null; avatar_url: string | null }
-    }>
-  >([])
+  const [activities, setActivities] = useState<Activity[]>([])
   const [isLoadingActivities, setIsLoadingActivities] = useState(false)
 
-  // Edit form state
-  const [editName, setEditName] = useState('')
-  const [editBudget, setEditBudget] = useState('')
-  const [editCurrency, setEditCurrency] = useState('CLP')
-  const [editDate, setEditDate] = useState('')
-  const [editPlace, setEditPlace] = useState<PlaceDraft>({ kind: null, name: '', detail: '' })
-  const [editMode, setEditMode] = useState<GroupMode>('classic')
-  const [editRevealAt, setEditRevealAt] = useState('')
-  const [isSaving, setIsSaving] = useState(false)
+  // Bumped on every open, so the edit form starts again from the group as it is.
+  const [editKey, setEditKey] = useState(0)
   const [isDeleting, setIsDeleting] = useState(false)
   const [isLeaving, setIsLeaving] = useState(false)
   const [removingMemberId, setRemovingMemberId] = useState<string | null>(null)
@@ -515,58 +492,9 @@ function GroupPage() {
   }
 
   const handleOpenEdit = () => {
-    if (group) {
-      setEditName(group.name)
-      setEditBudget(group.budget?.toString() || '')
-      setEditCurrency(group.currency || 'CLP')
-      setEditDate(group.exchange_date || '')
-      setEditPlace({
-        kind: group.place_kind,
-        name: group.place_name ?? '',
-        detail: group.place_detail ?? '',
-      })
-      setEditMode(group.mode)
-      setEditRevealAt(group.reveal_at ? toLocalInput(group.reveal_at) : '')
-      setShowEditDialog(true)
-    }
-  }
-
-  const handleSaveEdit = async () => {
     if (!group) return
-    // Never a silent no: a bad call link says why right where it is typed.
-    const badPlace = placeError(editPlace)
-    if (badPlace) {
-      toast.error(badPlace)
-      document.getElementById('place-detail')?.focus()
-      return
-    }
-    setIsSaving(true)
-
-    const result = await updateGroup(group.id, {
-      name: editName,
-      budget: editBudget ? parseFloat(editBudget) : null,
-      currency: editCurrency,
-      exchange_date: editDate || null,
-      ...placeToSave(editPlace),
-      // The mode is locked once there is a draw (the database refuses it too).
-      ...(group.status === 'PLANNING' ? { mode: editMode } : {}),
-      ...(group.revealed_at
-        ? {}
-        : {
-            reveal_at:
-              editMode === 'blind' && editRevealAt ? new Date(editRevealAt).toISOString() : null,
-          }),
-    })
-
-    if (result.success) {
-      toast.success('Grupo actualizado')
-      setShowEditDialog(false)
-      await fetchGroupData()
-    } else {
-      toast.error(result.error || 'Error al actualizar')
-    }
-
-    setIsSaving(false)
+    setEditKey((k) => k + 1)
+    setShowEditDialog(true)
   }
 
   const handleDelete = async () => {
@@ -672,6 +600,17 @@ function GroupPage() {
 
     setIsResetting(false)
   }
+
+  const drawOpened = useOpenedOnce(showDrawConfirm)
+  const repeatOpened = useOpenedOnce(showRepeat)
+  const missingOpened = useOpenedOnce(showMissingLists)
+  const editOpened = useOpenedOnce(showEditDialog)
+  const deleteOpened = useOpenedOnce(showDeleteDialog)
+  const leaveOpened = useOpenedOnce(showLeaveDialog)
+  const removeOpened = useOpenedOnce(showRemoveMemberDialog)
+  const transferOpened = useOpenedOnce(!!newOrganizer)
+  const resetOpened = useOpenedOnce(showResetDialog)
+  const activityOpened = useOpenedOnce(showActivityDialog)
 
   if (isLoading) {
     return (
@@ -1201,384 +1140,109 @@ function GroupPage() {
         </div>
       </main>
 
-      {/* Draw confirmation */}
-      <Dialog open={showDrawConfirm} onOpenChange={setShowDrawConfirm}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>¿Hacemos el sorteo?</DialogTitle>
-            <DialogDescription asChild>
-              <div className="space-y-2">
-                <p>Cuando lo hagas:</p>
-                <ul className="list-inside list-disc space-y-1">
-                  <li>a cada persona le aparece a quién le regala</li>
-                  <li>ya no se puede sumar gente al grupo</li>
-                  <li>si algo sale mal, puedes reiniciarlo, pero todos pierden lo que vieron</li>
-                  <li>quien no haya respondido la invitación queda fuera de esta vuelta</li>
-                  {blind && (
-                    <li>
-                      es a ciegas: cada uno verá solo una lista, sin nombre, hasta que la reveles
-                    </li>
-                  )}
-                </ul>
-              </div>
-            </DialogDescription>
-          </DialogHeader>
-          {repeatedNames.length > 0 && (
-            <Notice>
-              Hay más de una persona llamada {repeatedNames.join(' y ')}. Revisa que no sea la misma
-              persona con dos cuentas: debajo de cada nombre ves el inicio de su correo.
-            </Notice>
-          )}
-          {guessable.length > 0 && (
-            <Notice>
-              Con estas restricciones, a{' '}
-              {guessable.length === 1 ? guessable[0] : `${guessable.length} personas`} le puede
-              tocar solo una persona, en cualquier sorteo. Quien conozca las restricciones podría
-              adivinar {guessable.length === 1 ? 'esa pareja' : 'esas parejas'}. Si no quieres que
-              pase, quita alguna restricción antes de sortear. Si te da lo mismo, sortea igual.
-            </Notice>
-          )}
-          {group.previous_group_id && (
-            <label className="flex cursor-pointer items-start gap-3 text-[15px]">
-              <input
-                type="checkbox"
-                className="accent-ink mt-1 size-4 cursor-pointer"
-                checked={avoidPrevious}
-                onChange={(e) => setAvoidPrevious(e.target.checked)}
-              />
-              <span>
-                Que a nadie le toque la misma persona que la vez anterior, cuando se pueda. Usamos
-                el sorteo anterior sin mostrárselo a nadie.
-              </span>
-            </label>
-          )}
-          <DialogFooter className="gap-2">
-            <Button variant="outline" onClick={() => setShowDrawConfirm(false)}>
-              Todavía no
-            </Button>
-            <Button onClick={handleDraw}>
-              <Shuffle aria-hidden="true" />
-              Sortear ahora
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      {drawOpened && (
+        <DrawConfirmDialog
+          open={showDrawConfirm}
+          onOpenChange={setShowDrawConfirm}
+          blind={blind}
+          repeatedNames={repeatedNames}
+          guessable={guessable}
+          hasPrevious={!!group.previous_group_id}
+          avoidPrevious={avoidPrevious}
+          onAvoidPreviousChange={setAvoidPrevious}
+          onConfirm={handleDraw}
+        />
+      )}
 
-      <RepeatGroupDialog group={group} open={showRepeat} onOpenChange={setShowRepeat} />
+      {repeatOpened && (
+        <RepeatGroupDialog group={group} open={showRepeat} onOpenChange={setShowRepeat} />
+      )}
 
-      {/* Blind draw blocked: say why and help fix it */}
-      <Dialog open={showMissingLists} onOpenChange={setShowMissingLists}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Todavía falta que anoten su lista</DialogTitle>
-            <DialogDescription>
-              En el sorteo a ciegas, la lista es la única pista de quien regala, así que se puede
-              sortear cuando todos hayan anotado al menos una cosa.
-            </DialogDescription>
-          </DialogHeader>
-          <div>
-            <p className="text-graphite mb-2 text-[15px]">
-              {missingLists.length === 1
-                ? 'Falta 1 persona'
-                : `Faltan ${missingLists.length} personas`}
-            </p>
-            <ul className="divide-rule divide-y">
-              {missingLists.map((name) => (
-                <li key={name} className="py-2.5">
-                  {name}
-                </li>
-              ))}
-            </ul>
-          </div>
-          <DialogFooter className="gap-2">
-            <Button
-              variant="outline"
-              onClick={() => {
-                const url = `${window.location.origin}${groupPath(group.id)}`
-                const text = `Para el amigo secreto a ciegas de *${group.name}* falta que anotes tu lista de deseos. Sin ella no podemos sortear:\n${url}`
-                window.open(whatsappUrl(text), '_blank', 'noopener')
-              }}
-            >
-              <MessageCircle aria-hidden="true" />
-              Avisarles por WhatsApp
-            </Button>
-            <Button onClick={() => setShowMissingLists(false)}>Entendido</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      {missingOpened && (
+        <MissingListsDialog
+          open={showMissingLists}
+          onOpenChange={setShowMissingLists}
+          missing={missingLists}
+          groupId={group.id}
+          groupName={group.name}
+        />
+      )}
 
-      {/* Edit group */}
-      <Dialog open={showEditDialog} onOpenChange={setShowEditDialog}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Editar grupo</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-5 py-2">
-            <div className="grid gap-1.5">
-              <label htmlFor="edit-name" className="text-[15px] font-medium">
-                Nombre del grupo
-              </label>
-              <Input
-                id="edit-name"
-                value={editName}
-                maxLength={100}
-                onChange={(e) => setEditName(e.target.value)}
-              />
-            </div>
-            <div className="grid gap-1.5">
-              <label htmlFor="edit-budget" className="text-[15px] font-medium">
-                Presupuesto por regalo
-              </label>
-              <div className="flex gap-2">
-                <select
-                  aria-label="Moneda"
-                  value={editCurrency}
-                  onChange={(e) => setEditCurrency(e.target.value)}
-                  className="border-input bg-paper text-ink focus-visible:border-ink h-11 rounded-[8px] border px-3 text-base outline-none"
-                >
-                  <option value="CLP">CLP ($)</option>
-                  <option value="USD">USD ($)</option>
-                  <option value="EUR">EUR (€)</option>
-                  <option value="MXN">MXN ($)</option>
-                  <option value="ARS">ARS ($)</option>
-                  <option value="COP">COP ($)</option>
-                  <option value="PEN">PEN (S/)</option>
-                  <option value="BRL">BRL (R$)</option>
-                  <option value="GBP">GBP (£)</option>
-                </select>
-                <Input
-                  id="edit-budget"
-                  type="number"
-                  inputMode="numeric"
-                  min="0"
-                  value={editBudget}
-                  onChange={(e) => setEditBudget(e.target.value)}
-                  className="flex-1"
-                />
-              </div>
-            </div>
-            <div className="grid gap-1.5">
-              <label htmlFor="edit-date" className="text-[15px] font-medium">
-                Día del intercambio
-              </label>
-              <Input
-                id="edit-date"
-                type="date"
-                value={editDate}
-                onChange={(e) => setEditDate(e.target.value)}
-              />
-            </div>
-            <PlaceFields value={editPlace} onChange={setEditPlace} />
-            <ModePicker
-              value={editMode}
-              onChange={setEditMode}
-              disabled={group.status === 'DRAWN'}
-            />
-            {editMode === 'blind' && !group.revealed_at && (
-              <div className="grid gap-1.5">
-                <label htmlFor="edit-reveal" className="text-[15px] font-medium">
-                  Hora de revelación (opcional)
-                </label>
-                <Input
-                  id="edit-reveal"
-                  type="datetime-local"
-                  value={editRevealAt}
-                  onChange={(e) => setEditRevealAt(e.target.value)}
-                />
-                <p className="text-graphite text-sm">
-                  Lo normal es que toques &quot;Revelar ahora&quot; cuando estén todos juntos. Si a
-                  esta hora nadie lo ha hecho, se revela solo.
-                </p>
-              </div>
-            )}
-          </div>
-          <DialogFooter className="flex-col gap-2 sm:flex-row">
-            <Button
-              variant="danger"
-              className="sm:mr-auto"
-              onClick={() => {
-                setShowEditDialog(false)
-                setShowDeleteDialog(true)
-              }}
-            >
-              <Trash2 aria-hidden="true" />
-              Eliminar grupo
-            </Button>
-            <Button variant="outline" onClick={() => setShowEditDialog(false)}>
-              Cancelar
-            </Button>
-            <Button onClick={handleSaveEdit} disabled={isSaving || !editName.trim()}>
-              {isSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Guardar'}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      {editOpened && (
+        <EditGroupDialog
+          key={editKey}
+          open={showEditDialog}
+          onOpenChange={setShowEditDialog}
+          group={group}
+          onSaved={fetchGroupData}
+          onDelete={() => {
+            setShowEditDialog(false)
+            setShowDeleteDialog(true)
+          }}
+        />
+      )}
 
-      {/* Delete group */}
-      <Dialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>¿Eliminar {group?.name}?</DialogTitle>
-            <DialogDescription asChild>
-              <div className="space-y-2">
-                <p>Se borra para siempre, junto con:</p>
-                <ul className="list-inside list-disc space-y-1">
-                  <li>las personas del grupo y sus listas</li>
-                  <li>el historial</li>
-                  <li>el resultado del sorteo, si ya lo hicieron</li>
-                </ul>
-              </div>
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter className="gap-2">
-            <Button variant="outline" onClick={() => setShowDeleteDialog(false)}>
-              Cancelar
-            </Button>
-            <Button variant="destructive" onClick={handleDelete} disabled={isDeleting}>
-              {isDeleting ? <Loader2 className="animate-spin" /> : <Trash2 aria-hidden="true" />}
-              Eliminar
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      {deleteOpened && (
+        <DeleteGroupDialog
+          open={showDeleteDialog}
+          onOpenChange={setShowDeleteDialog}
+          groupName={group.name}
+          busy={isDeleting}
+          onConfirm={handleDelete}
+        />
+      )}
 
-      {/* Leave group */}
-      <Dialog open={showLeaveDialog} onOpenChange={setShowLeaveDialog}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>¿Salir de {group?.name}?</DialogTitle>
-            <DialogDescription>
-              Dejarás de ver el grupo. Para volver, necesitarás el link de nuevo.
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter className="gap-2">
-            <Button variant="outline" onClick={() => setShowLeaveDialog(false)}>
-              Cancelar
-            </Button>
-            <Button variant="destructive" onClick={handleLeave} disabled={isLeaving}>
-              {isLeaving ? <Loader2 className="animate-spin" /> : <LogOut aria-hidden="true" />}
-              Salir
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      {leaveOpened && (
+        <LeaveGroupDialog
+          open={showLeaveDialog}
+          onOpenChange={setShowLeaveDialog}
+          groupName={group.name}
+          busy={isLeaving}
+          onConfirm={handleLeave}
+        />
+      )}
 
-      {/* Remove member */}
-      <Dialog open={showRemoveMemberDialog} onOpenChange={setShowRemoveMemberDialog}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>¿Quitar a {memberToRemove?.name}?</DialogTitle>
-            <DialogDescription>
-              Sale del grupo y se borra su lista. Si quiere volver, tendrá que entrar con el link.
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter className="gap-2">
-            <Button
-              variant="outline"
-              onClick={() => {
-                setShowRemoveMemberDialog(false)
-                setMemberToRemove(null)
-              }}
-            >
-              Cancelar
-            </Button>
-            <Button
-              variant="destructive"
-              onClick={handleRemoveMember}
-              disabled={removingMemberId === memberToRemove?.id}
-            >
-              {removingMemberId === memberToRemove?.id ? (
-                <Loader2 className="animate-spin" />
-              ) : (
-                <UserMinus aria-hidden="true" />
-              )}
-              Quitar
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      {removeOpened && (
+        <RemoveMemberDialog
+          open={showRemoveMemberDialog}
+          onOpenChange={setShowRemoveMemberDialog}
+          name={memberToRemove?.name}
+          busy={removingMemberId === memberToRemove?.id}
+          onConfirm={handleRemoveMember}
+          onCancel={() => {
+            setShowRemoveMemberDialog(false)
+            setMemberToRemove(null)
+          }}
+        />
+      )}
 
-      {/* Hand the group over */}
-      <Dialog open={!!newOrganizer} onOpenChange={(open) => !open && setNewOrganizer(null)}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>¿Pasarle la organización a {newOrganizer?.name}?</DialogTitle>
-            <DialogDescription>
-              Podrá editar el grupo, hacer o reiniciar el sorteo y quitar personas. Tú sigues en el
-              grupo como participante, y para recuperar la organización tendría que devolvértela.
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter className="gap-2">
-            <Button variant="outline" onClick={() => setNewOrganizer(null)}>
-              Cancelar
-            </Button>
-            <Button onClick={handleTransfer} disabled={isTransferring}>
-              {isTransferring ? <Loader2 className="animate-spin" /> : <Crown aria-hidden="true" />}
-              Pasar la organización
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      {transferOpened && (
+        <TransferDialog
+          open={!!newOrganizer}
+          onOpenChange={(open) => !open && setNewOrganizer(null)}
+          name={newOrganizer?.name}
+          busy={isTransferring}
+          onConfirm={handleTransfer}
+        />
+      )}
 
-      {/* Reset draw */}
-      <Dialog open={showResetDialog} onOpenChange={setShowResetDialog}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>¿Reiniciar el sorteo?</DialogTitle>
-            <DialogDescription>
-              Se borra quién le regala a quién y habrá que sortear de nuevo. Lo que cada persona ya
-              vio deja de valer.
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter className="gap-2">
-            <Button variant="outline" onClick={() => setShowResetDialog(false)}>
-              Cancelar
-            </Button>
-            <Button variant="destructive" onClick={handleResetDraw} disabled={isResetting}>
-              {isResetting ? (
-                <Loader2 className="animate-spin" />
-              ) : (
-                <RotateCcw aria-hidden="true" />
-              )}
-              Reiniciar
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      {resetOpened && (
+        <ResetDrawDialog
+          open={showResetDialog}
+          onOpenChange={setShowResetDialog}
+          busy={isResetting}
+          onConfirm={handleResetDraw}
+        />
+      )}
 
-      {/* Activity */}
-      <Dialog open={showActivityDialog} onOpenChange={setShowActivityDialog}>
-        <DialogContent className="max-h-[80vh] max-w-md">
-          <DialogHeader>
-            <DialogTitle>Lo que ha pasado</DialogTitle>
-          </DialogHeader>
-          <div className="-mx-6 max-h-[50vh] overflow-y-auto px-6">
-            {isLoadingActivities ? (
-              <div className="flex justify-center py-8">
-                <Loader2 className="text-faint h-6 w-6 animate-spin" />
-              </div>
-            ) : activities.length === 0 ? (
-              <p className="text-graphite py-8 text-center">Todavía no hay nada.</p>
-            ) : (
-              <ol className="divide-rule divide-y">
-                {activities.map((activity) => (
-                  <li key={activity.id} className="py-3">
-                    <p>{activity.message}</p>
-                    <p className="text-graphite text-[15px]">
-                      {new Date(activity.created_at).toLocaleDateString('es-CL', {
-                        day: 'numeric',
-                        month: 'short',
-                        hour: '2-digit',
-                        minute: '2-digit',
-                      })}
-                    </p>
-                  </li>
-                ))}
-              </ol>
-            )}
-          </div>
-        </DialogContent>
-      </Dialog>
+      {activityOpened && (
+        <ActivityDialog
+          open={showActivityDialog}
+          onOpenChange={setShowActivityDialog}
+          loading={isLoadingActivities}
+          activities={activities}
+        />
+      )}
     </div>
   )
 }

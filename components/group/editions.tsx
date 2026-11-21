@@ -1,19 +1,10 @@
 'use client'
 
 import { useCallback, useEffect, useState } from 'react'
-import { useRouter } from 'next/navigation'
-import { Archive, ArchiveRestore, Gift, Loader2, Repeat, RotateCcw, X } from 'lucide-react'
+import { Archive, ArchiveRestore, Gift, Loader2, RotateCcw, X } from 'lucide-react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog'
+import { LazyConfirmDialog } from '@/components/lazy-confirm-dialog'
 import { GhostAvatar } from '@/components/ghost-avatar'
 import { createClient } from '@/lib/supabase'
 import { getUserFriendlyError } from '@/lib/errors'
@@ -91,27 +82,17 @@ export function ArchiveButton({ groupId, onChange }: { groupId: string; onChange
         <Archive aria-hidden="true" />
         Archivar grupo
       </Button>
-      <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>¿Archivar el grupo?</DialogTitle>
-            <DialogDescription>
-              Pasa a Anteriores para todos y queda de solo lectura, así que ya no se cambian listas
-              ni sorteo y los mensajes anónimos se cierran. Lo puedes restaurar cuando quieras.
-              Igual se archiva solo 7 días después de la fecha del intercambio.
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter className="gap-2">
-            <Button variant="outline" onClick={() => setOpen(false)}>
-              Cancelar
-            </Button>
-            <Button onClick={archive} disabled={busy}>
-              {busy ? <Loader2 className="animate-spin" /> : <Archive aria-hidden="true" />}
-              Archivar
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <LazyConfirmDialog
+        open={open}
+        onOpenChange={setOpen}
+        title="¿Archivar el grupo?"
+        description="Pasa a Anteriores para todos y queda de solo lectura, así que ya no se cambian listas ni sorteo y los mensajes anónimos se cierran. Lo puedes restaurar cuando quieras. Igual se archiva solo 7 días después de la fecha del intercambio."
+        cancelLabel="Cancelar"
+        confirmLabel="Archivar"
+        icon={<Archive aria-hidden="true" />}
+        busy={busy}
+        onConfirm={archive}
+      />
     </>
   )
 }
@@ -142,116 +123,6 @@ export function HideButton({
       {hidden ? <ArchiveRestore aria-hidden="true" /> : <Archive aria-hidden="true" />}
       {hidden ? 'Mostrar en mis grupos' : 'Ocultar de mis grupos'}
     </Button>
-  )
-}
-
-// The new edition's name: the next year if the name has one, otherwise the name plus the year.
-function nextName(name: string) {
-  const year = new Date().getFullYear()
-  const match = name.match(/(19|20)\d{2}/)
-  if (match) {
-    const next = Math.max(Number(match[0]) + 1, year)
-    return name.replace(match[0], String(next))
-  }
-  return `${name} ${year}`
-}
-
-export function RepeatGroupDialog({
-  group,
-  open,
-  onOpenChange,
-}: {
-  group: { id: string; name: string; budget: number | null; currency: string }
-  open: boolean
-  onOpenChange: (open: boolean) => void
-}) {
-  const router = useRouter()
-  const [name, setName] = useState(() => nextName(group.name))
-  const [date, setDate] = useState('')
-  const [budget, setBudget] = useState(group.budget != null ? String(group.budget) : '')
-  const [busy, setBusy] = useState(false)
-  const [error, setError] = useState('')
-
-  const create = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setBusy(true)
-    setError('')
-    const { data, error: rpcError } = await createClient().rpc('repeat_group', {
-      p_group_id: group.id,
-      p_name: name.trim(),
-      p_exchange_date: date || null,
-      p_budget: budget ? Number(budget) : null,
-    })
-    setBusy(false)
-    if (rpcError || !data) return setError(getUserFriendlyError(rpcError ?? { message: '' }))
-    toast.success('Grupo creado. Les avisamos a todos.')
-    onOpenChange(false)
-    router.push(groupPath(data as string))
-  }
-
-  return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>Repetir con las mismas personas</DialogTitle>
-          <DialogDescription>
-            Creamos un grupo nuevo con el mismo presupuesto, moneda y exclusiones, e invitamos a
-            todos los de este. Cada persona decide si participa. Este grupo queda como edición
-            anterior.
-          </DialogDescription>
-        </DialogHeader>
-        <form onSubmit={create} className="space-y-5">
-          {error && <p className="text-destructive text-[15px]">{error}</p>}
-          <div className="grid gap-1.5">
-            <label htmlFor="repeat-name" className="text-[15px] font-medium">
-              Nombre
-            </label>
-            <Input
-              id="repeat-name"
-              required
-              maxLength={100}
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-            />
-          </div>
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div className="grid gap-1.5">
-              <label htmlFor="repeat-date" className="text-[15px] font-medium">
-                Fecha del intercambio
-              </label>
-              <Input
-                id="repeat-date"
-                type="date"
-                value={date}
-                onChange={(e) => setDate(e.target.value)}
-              />
-            </div>
-            <div className="grid gap-1.5">
-              <label htmlFor="repeat-budget" className="text-[15px] font-medium">
-                Presupuesto ({group.currency})
-              </label>
-              <Input
-                id="repeat-budget"
-                type="number"
-                min={0}
-                inputMode="numeric"
-                value={budget}
-                onChange={(e) => setBudget(e.target.value)}
-              />
-            </div>
-          </div>
-          <DialogFooter className="gap-2">
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
-              Cancelar
-            </Button>
-            <Button type="submit" disabled={busy || !name.trim()}>
-              {busy ? <Loader2 className="animate-spin" /> : <Repeat aria-hidden="true" />}
-              Crear e invitar
-            </Button>
-          </DialogFooter>
-        </form>
-      </DialogContent>
-    </Dialog>
   )
 }
 
@@ -446,26 +317,17 @@ export function RevealYourself({
         <Gift aria-hidden="true" />
         Contarle que fui yo
       </Button>
-      <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>¿Le cuentas a {receiverName} que fuiste tú?</DialogTitle>
-            <DialogDescription>
-              Le avisamos en la app y por correo. Nadie más del grupo se entera, y no se puede
-              deshacer.
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter className="gap-2">
-            <Button variant="outline" onClick={() => setOpen(false)}>
-              Mejor no
-            </Button>
-            <Button onClick={reveal} disabled={busy}>
-              {busy ? <Loader2 className="animate-spin" /> : <Gift aria-hidden="true" />}
-              Contarle
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <LazyConfirmDialog
+        open={open}
+        onOpenChange={setOpen}
+        title={`¿Le cuentas a ${receiverName} que fuiste tú?`}
+        description="Le avisamos en la app y por correo. Nadie más del grupo se entera, y no se puede deshacer."
+        cancelLabel="Mejor no"
+        confirmLabel="Contarle"
+        icon={<Gift aria-hidden="true" />}
+        busy={busy}
+        onConfirm={reveal}
+      />
     </div>
   )
 }
