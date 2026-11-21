@@ -52,6 +52,22 @@ const MAX_WISHLIST_ITEMS = 10
 const DEFAULT_VISIBLE_ITEMS = 5
 // The list saves itself this long after the last change, and again when the connection returns.
 const AUTOSAVE_MS = 1500
+// After a failed save, wait longer each time (5 s, 15 s, 45 s, then every minute) until the
+// next change starts over. A save that doesn't answer in time counts as failed.
+const retryDelay = (failures: number) =>
+  failures === 0 ? AUTOSAVE_MS : Math.min(5000 * 3 ** (failures - 1), 60000)
+const SAVE_TIMEOUT_MS = 15000
+const withTimeout = <T,>(promise: PromiseLike<T>, ms: number) =>
+  Promise.race([
+    Promise.resolve(promise),
+    new Promise<never>((_, reject) =>
+      setTimeout(() => reject(new Error('Tiempo de espera agotado')), ms)
+    ),
+  ])
+
+// A row with a link and no description isn't saved until it says what it is.
+const isLoose = (item: { description: string; url: string }) =>
+  !!item.url.trim() && !item.description.trim()
 
 // What's being written is kept as a draft in this browser until it's saved, together with the
 // saved list it started from: if that list changed since (saved from another device), the
@@ -170,6 +186,8 @@ export function WishlistEditor({
   const markDirty = (value: boolean) => {
     dirtyRef.current = value
     setDirty(value)
+    // A new change starts the retries over.
+    if (value) setFailures(0)
   }
   const [restored, setRestored] = useState(false)
   // Autosave reads the rows through refs: it runs from timers and from the 'online' event.
@@ -180,6 +198,10 @@ export function WishlistEditor({
   const savingRef = useRef(false)
   const [retry, setRetry] = useState(0)
   const [offline, setOffline] = useState(false)
+  const [failures, setFailures] = useState(0)
+  // Every list this editor has saved: a refetch that answers late with one of these, once a
+  // newer one was saved, is old and is ignored.
+  const sentRef = useRef(new Set<string>())
   const key = draftKey(groupId, userId)
   // The saved list the current edits started from.
   const baseRef = useRef(contentOf(initialItems))
@@ -189,6 +211,7 @@ export function WishlistEditor({
   useEffect(() => {
     if (dirtyRef.current) return
     const saved = contentOf(initialItems)
+    if (sentRef.current.has(saved) && saved !== baseRef.current) return
     baseRef.current = saved
     const draft = readDraft(key)
     if (draft && draft.base === saved && contentOf(draft.items) !== saved) {
@@ -270,8 +293,9 @@ export function WishlistEditor({
   const save = async (manual: boolean) => {
     if (savingRef.current) return
     const snapshot = itemsRef.current
-    if (snapshot.some((item) => item.url && !item.description.trim())) {
-      if (manual) setError('Si pegas un link, escribe también qué es.')
+    const loose = snapshot.some(isLoose)
+    if (manual && loose) {
+      setError('Si pegas un link, escribe también qué es.')
       return
     }
     if (!manual && typeof navigator !== 'undefined' && !navigator.onLine) {
@@ -282,6 +306,7 @@ export function WishlistEditor({
     setIsSaving(true)
     if (manual) setError('')
     const sent = contentOf(snapshot)
+    let saved = false
 
     try {
       const wishlistData = snapshot
@@ -292,21 +317,29 @@ export function WishlistEditor({
         }))
 
       // Lists live in their own table: only you and, after the draw, your giver can read them.
-      const { error: updateError } = await createClient()
-        .from('wishlists')
-        .upsert({ group_id: groupId, user_id: userId, items: wishlistData })
+      const { error: updateError } = await withTimeout(
+        createClient()
+          .from('wishlists')
+          .upsert({ group_id: groupId, user_id: userId, items: wishlistData }),
+        SAVE_TIMEOUT_MS
+      )
 
       if (updateError) {
+        setFailures((n) => n + 1)
         if (manual) setError(getUserFriendlyError(updateError))
         return
       }
 
+      saved = true
       setLastSaved(new Date())
       setOffline(false)
+      setFailures(0)
       setError('')
+      sentRef.current.add(sent)
       baseRef.current = sent
-      // Only what was sent is saved: anything typed meanwhile stays pending for the next save.
-      if (contentOf(itemsRef.current) === sent) {
+      // Only what was sent is saved: anything typed meanwhile, or a link still without its
+      // description, stays pending.
+      if (contentOf(itemsRef.current) === sent && !loose) {
         markDirty(false)
         setRestored(false)
         clearDraft(key)
@@ -317,13 +350,14 @@ export function WishlistEditor({
       }
       onSave?.()
     } catch {
-      setOffline(true)
+      setFailures((n) => n + 1)
+      if (typeof navigator !== 'undefined' && !navigator.onLine) setOffline(true)
       if (manual) setError('No pudimos guardar. Revisa tu internet e intenta de nuevo.')
     } finally {
       savingRef.current = false
       setIsSaving(false)
-      // Changes made during this save get their own.
-      if (dirtyRef.current) setRetry((n) => n + 1)
+      // Changes typed during this save get their own. A failure waits for the retry timer.
+      if (saved && contentOf(itemsRef.current) !== sent) setRetry((n) => n + 1)
     }
   }
 
@@ -336,13 +370,16 @@ export function WishlistEditor({
 
   useEffect(() => {
     if (!dirty) return
-    const timer = window.setTimeout(() => void saveRef.current(false), AUTOSAVE_MS)
+    // Nothing new to send: only the link without description is pending.
+    if (failures === 0 && contentOf(items) === baseRef.current) return
+    const timer = window.setTimeout(() => void saveRef.current(false), retryDelay(failures))
     return () => window.clearTimeout(timer)
-  }, [items, dirty, retry])
+  }, [items, dirty, retry, failures])
 
   useEffect(() => {
     const back = () => {
       setOffline(false)
+      setFailures(0)
       if (dirtyRef.current) void saveRef.current(false)
     }
     window.addEventListener('online', back)
@@ -476,11 +513,15 @@ export function WishlistEditor({
             <span className="text-graphite text-[15px]" role="status">
               {isSaving
                 ? 'Guardando…'
-                : dirty
-                  ? offline
+                : !dirty
+                  ? 'Guardada'
+                  : offline
                     ? 'Sin conexión: se guarda al volver'
-                    : 'Sin guardar'
-                  : 'Guardada'}
+                    : failures > 0
+                      ? 'No pudimos guardar, lo reintentamos'
+                      : items.some(isLoose)
+                        ? 'Falta describir un link'
+                        : 'Sin guardar'}
             </span>
           )}
           <Button onClick={handleSave} disabled={isSaving}>
