@@ -163,6 +163,8 @@ function GroupPage() {
   const [stale, setStale] = useState(false)
   // The group whose real data has already arrived; the cache is only for the first paint.
   const freshFor = useRef<string | null>(null)
+  // The group's mode as last seen (cache or real data), to ask for blind-only data up front.
+  const knownMode = useRef<{ groupId: string; mode: GroupMode } | null>(null)
   const [error, setError] = useState('')
   const [copied, setCopied] = useState(false)
   const [isDrawing, setIsDrawing] = useState(false)
@@ -218,6 +220,7 @@ function GroupPage() {
   const [isResetting, setIsResetting] = useState(false)
 
   const applySnapshot = useCallback((s: GroupSnapshot, userId: string) => {
+    knownMode.current = { groupId: s.group.id, mode: s.group.mode }
     setGroup(s.group)
     setIsAdmin(s.group.admin_id === userId)
     setMembers(s.members)
@@ -260,21 +263,33 @@ function GroupPage() {
       // The match query simply returns nothing until the group is drawn. Wishlists come back
       // filtered by the database: mine and, after the draw, the one of the person I give to.
       // For everyone else we only learn whether they wrote one (wishlist_status).
-      const [groupRes, membersRes, matchRes, listsRes, statusRes] = await Promise.all([
-        supabase.from('groups').select('*').eq('id', groupId).single(),
-        supabase
-          .from('members')
-          .select('id, user_id, is_admin, hidden_at, profiles:user_id (full_name, avatar_url)')
-          .eq('group_id', groupId),
-        supabase
-          .from('matches')
-          .select('id, receiver_id, revealed_at, receiver:receiver_id (full_name, avatar_url)')
-          .eq('group_id', groupId)
-          .eq('giver_id', user.id)
-          .maybeSingle(),
-        supabase.from('wishlists').select('user_id, items').eq('group_id', groupId),
-        supabase.rpc('wishlist_status', { p_group_id: groupId }),
-      ])
+      // A blind group also needs who's missing a list and how many wrote one. Unless this group
+      // is known to be classic, those go in the same trip and are dropped if it isn't blind
+      // (blind_missing_lists answers empty once the group is drawn).
+      const blindData = () =>
+        Promise.all([
+          supabase.rpc('blind_missing_lists', { p_group_id: groupId }),
+          supabase.rpc('wishlist_count', { p_group_id: groupId }),
+        ])
+      const knownClassic =
+        knownMode.current?.groupId === groupId && knownMode.current.mode !== 'blind'
+      const [groupRes, membersRes, matchRes, listsRes, statusRes, earlyBlindRes] =
+        await Promise.all([
+          supabase.from('groups').select('*').eq('id', groupId).single(),
+          supabase
+            .from('members')
+            .select('id, user_id, is_admin, hidden_at, profiles:user_id (full_name, avatar_url)')
+            .eq('group_id', groupId),
+          supabase
+            .from('matches')
+            .select('id, receiver_id, revealed_at, receiver:receiver_id (full_name, avatar_url)')
+            .eq('group_id', groupId)
+            .eq('giver_id', user.id)
+            .maybeSingle(),
+          supabase.from('wishlists').select('user_id, items').eq('group_id', groupId),
+          supabase.rpc('wishlist_status', { p_group_id: groupId }),
+          knownClassic ? null : blindData(),
+        ])
 
       const groupData = groupRes.data as Group | null
       if (groupRes.error && !NOT_FOUND_CODES.has(groupRes.error.code)) throw groupRes.error
@@ -290,13 +305,9 @@ function GroupPage() {
       let missing: string[] = []
       let listCount: GroupSnapshot['listCount'] = null
       if (groupData.mode === 'blind') {
-        const [missingRes, countRes] = await Promise.all([
-          groupData.status === 'PLANNING'
-            ? supabase.rpc('blind_missing_lists', { p_group_id: groupId })
-            : Promise.resolve({ data: [] }),
-          supabase.rpc('wishlist_count', { p_group_id: groupId }),
-        ])
-        missing = (missingRes.data ?? []) as string[]
+        // Only a group that just turned blind (it was classic last time) needs a second trip.
+        const [missingRes, countRes] = earlyBlindRes ?? (await blindData())
+        missing = groupData.status === 'PLANNING' ? ((missingRes.data ?? []) as string[]) : []
         listCount = countRes.data as { with_list: number; total: number }
         // Confetti for everyone watching when the blind draw is revealed.
         const hidden = !groupData.revealed_at
