@@ -50,6 +50,8 @@ const PLACEHOLDERS = [
 
 const MAX_WISHLIST_ITEMS = 10
 const DEFAULT_VISIBLE_ITEMS = 5
+// The list saves itself this long after the last change, and again when the connection returns.
+const AUTOSAVE_MS = 1500
 
 // What's being written is kept as a draft in this browser until it's saved, together with the
 // saved list it started from: if that list changed since (saved from another device), the
@@ -154,7 +156,7 @@ export function WishlistEditor({
     markDirty(true)
     setVisibleCount(Math.max(DEFAULT_VISIBLE_ITEMS, previousItems.length))
     setPreviousItems([])
-    toast.success('Copiamos tu lista anterior. Revísala y guárdala.')
+    toast.success('Copiamos tu lista anterior.')
   }
   const [items, setItems] = useState<LocalWishlistItem[]>([])
   const [visibleCount, setVisibleCount] = useState(DEFAULT_VISIBLE_ITEMS)
@@ -170,6 +172,14 @@ export function WishlistEditor({
     setDirty(value)
   }
   const [restored, setRestored] = useState(false)
+  // Autosave reads the rows through refs: it runs from timers and from the 'online' event.
+  const itemsRef = useRef(items)
+  useEffect(() => {
+    itemsRef.current = items
+  }, [items])
+  const savingRef = useRef(false)
+  const [retry, setRetry] = useState(0)
+  const [offline, setOffline] = useState(false)
   const key = draftKey(groupId, userId)
   // The saved list the current edits started from.
   const baseRef = useRef(contentOf(initialItems))
@@ -190,6 +200,8 @@ export function WishlistEditor({
       return
     }
     if (draft) clearDraft(key)
+    // Same list as on screen (it was just saved): keep the rows, so nothing jumps while typing.
+    if (itemsRef.current.length > 0 && contentOf(itemsRef.current) === saved) return
     const rows = toRows(initialItems)
     setItems(rows)
     setVisibleCount(visibleFor(rows))
@@ -254,22 +266,25 @@ export function WishlistEditor({
     }
   }
 
-  const handleSave = async () => {
-    setIsSaving(true)
-    setError('')
-
-    // Validate: at least check for empty descriptions on items with URLs
-    const invalidItems = items.filter((item) => item.url && !item.description.trim())
-    if (invalidItems.length > 0) {
-      setError('Si pegas un link, escribe también qué es.')
-      setIsSaving(false)
+  // Saves the rows on screen. Autosave stays quiet; the button shows errors and a toast.
+  const save = async (manual: boolean) => {
+    if (savingRef.current) return
+    const snapshot = itemsRef.current
+    if (snapshot.some((item) => item.url && !item.description.trim())) {
+      if (manual) setError('Si pegas un link, escribe también qué es.')
       return
     }
+    if (!manual && typeof navigator !== 'undefined' && !navigator.onLine) {
+      setOffline(true)
+      return
+    }
+    savingRef.current = true
+    setIsSaving(true)
+    if (manual) setError('')
+    const sent = contentOf(snapshot)
 
     try {
-      const supabase = createClient()
-
-      const wishlistData = items
+      const wishlistData = snapshot
         .filter((item) => item.description.trim())
         .map((item) => ({
           description: item.description.trim(),
@@ -277,35 +292,62 @@ export function WishlistEditor({
         }))
 
       // Lists live in their own table: only you and, after the draw, your giver can read them.
-      const { error: updateError } = await supabase
+      const { error: updateError } = await createClient()
         .from('wishlists')
         .upsert({ group_id: groupId, user_id: userId, items: wishlistData })
 
       if (updateError) {
-        setError(getUserFriendlyError(updateError))
+        if (manual) setError(getUserFriendlyError(updateError))
         return
       }
 
       setLastSaved(new Date())
-      markDirty(false)
-      setRestored(false)
-      clearDraft(key)
-      toast.success('Lista guardada')
-
-      // Adjust visible count to match filled items (minimum 5)
-      const filledCount = items.filter((item) => item.description.trim()).length
-      const newVisibleCount = Math.max(DEFAULT_VISIBLE_ITEMS, filledCount)
-      setVisibleCount(newVisibleCount)
-
-      if (onSave) {
-        onSave()
+      setOffline(false)
+      setError('')
+      baseRef.current = sent
+      // Only what was sent is saved: anything typed meanwhile stays pending for the next save.
+      if (contentOf(itemsRef.current) === sent) {
+        markDirty(false)
+        setRestored(false)
+        clearDraft(key)
       }
+      if (manual) {
+        toast.success('Lista guardada')
+        setVisibleCount(visibleFor(snapshot))
+      }
+      onSave?.()
     } catch {
-      setError('No pudimos guardar. Revisa tu internet e intenta de nuevo.')
+      setOffline(true)
+      if (manual) setError('No pudimos guardar. Revisa tu internet e intenta de nuevo.')
     } finally {
+      savingRef.current = false
       setIsSaving(false)
+      // Changes made during this save get their own.
+      if (dirtyRef.current) setRetry((n) => n + 1)
     }
   }
+
+  const handleSave = () => save(true)
+  // Timers and the 'online' event call the latest save, not the one from when they started.
+  const saveRef = useRef(save)
+  useEffect(() => {
+    saveRef.current = save
+  })
+
+  useEffect(() => {
+    if (!dirty) return
+    const timer = window.setTimeout(() => void saveRef.current(false), AUTOSAVE_MS)
+    return () => window.clearTimeout(timer)
+  }, [items, dirty, retry])
+
+  useEffect(() => {
+    const back = () => {
+      setOffline(false)
+      if (dirtyRef.current) void saveRef.current(false)
+    }
+    window.addEventListener('online', back)
+    return () => window.removeEventListener('online', back)
+  }, [])
 
   const isValidUrl = (url?: string) => {
     if (!url || !url.trim()) return false
@@ -331,7 +373,7 @@ export function WishlistEditor({
         <div>
           <h2 className="text-xl font-bold">Tu lista</h2>
           <p className="text-graphite text-[15px]">
-            Hasta 10 cosas que te gustaría recibir. Solo la ve quien te regala.
+            Hasta 10 cosas que te gustaría recibir. Solo la ve quien te regala, y se guarda sola.
           </p>
         </div>
         <span className="text-graphite shrink-0 pt-1 text-[15px]">
@@ -343,7 +385,7 @@ export function WishlistEditor({
 
       {restored && dirty && (
         <div className="bg-slip rounded-[3px] px-4 py-3 text-[15px]" role="status">
-          Recuperamos lo que habías escrito y todavía no guardabas. Revísalo y guarda la lista.
+          Recuperamos lo que habías escrito y no alcanzó a guardarse.
         </div>
       )}
 
@@ -374,7 +416,6 @@ export function WishlistEditor({
                   value={item.description}
                   maxLength={1000}
                   onChange={(e) => handleItemChange(item.id, 'description', e.target.value)}
-                  disabled={isSaving}
                 />
                 <span className="flex w-11 shrink-0 justify-end sm:w-20">
                   {(item.description || item.url) && (
@@ -399,7 +440,6 @@ export function WishlistEditor({
                     value={item.url}
                     maxLength={2048}
                     onChange={(e) => handleItemChange(item.id, 'url', e.target.value)}
-                    disabled={isSaving}
                     className="h-10 text-[15px]"
                   />
                   <span className="flex shrink-0 justify-end sm:w-20">
@@ -432,9 +472,15 @@ export function WishlistEditor({
           <span />
         )}
         <div className="flex items-center gap-4">
-          {!isSaving && (dirty || lastSaved) && (
+          {(isSaving || dirty || lastSaved) && (
             <span className="text-graphite text-[15px]" role="status">
-              {dirty ? 'Sin guardar' : 'Guardada'}
+              {isSaving
+                ? 'Guardando…'
+                : dirty
+                  ? offline
+                    ? 'Sin conexión: se guarda al volver'
+                    : 'Sin guardar'
+                  : 'Guardada'}
             </span>
           )}
           <Button onClick={handleSave} disabled={isSaving}>

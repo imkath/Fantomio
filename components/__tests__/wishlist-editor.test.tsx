@@ -73,6 +73,32 @@ describe('WishlistEditor', () => {
     expect(window.localStorage.getItem('fantomio:lista:g1:u1')).toBeNull()
   })
 
+  it('saves by itself shortly after typing stops', async () => {
+    render(<WishlistEditor {...props} initialItems={[]} />)
+    fireEvent.change(firstRow(), { target: { value: 'Una taza grande' } })
+
+    expect(await screen.findByText('Guardada', undefined, { timeout: 4000 })).toBeTruthy()
+    expect(upsert).toHaveBeenCalledOnce()
+    expect(window.localStorage.getItem('fantomio:lista:g1:u1')).toBeNull()
+  })
+
+  it('waits for the connection and saves when it comes back', async () => {
+    const onLine = vi.spyOn(window.navigator, 'onLine', 'get').mockReturnValue(false)
+    render(<WishlistEditor {...props} initialItems={[]} />)
+    fireEvent.change(firstRow(), { target: { value: 'Un libro' } })
+
+    expect(await screen.findByText(/Sin conexión/, undefined, { timeout: 4000 })).toBeTruthy()
+    expect(upsert).not.toHaveBeenCalled()
+    expect(window.localStorage.getItem('fantomio:lista:g1:u1')).not.toBeNull()
+
+    onLine.mockReturnValue(true)
+    fireEvent(window, new Event('online'))
+
+    expect(await screen.findByText('Guardada')).toBeTruthy()
+    expect(upsert).toHaveBeenCalledOnce()
+    onLine.mockRestore()
+  })
+
   it('shows the saved list when there is no draft', () => {
     render(<WishlistEditor {...props} initialItems={[{ description: 'Una planta' }]} />)
     expect(firstRow().value).toBe('Una planta')
