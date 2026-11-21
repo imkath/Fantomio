@@ -229,7 +229,8 @@ function GroupPage() {
       if (freshFor.current !== groupId) {
         const cached = readGroupCache<GroupSnapshot>(groupId, user.id)
         if (cached) {
-          applySnapshot(cached, user.id)
+          // The match is never cached: it only shows with the real answer.
+          applySnapshot({ ...cached, match: null }, user.id)
           setStale(true)
           setIsLoading(false)
           showingCache = true
@@ -783,6 +784,19 @@ function GroupPage() {
               )}
               {drawn && blind && !blindHidden && <BlindResults groupId={groupId} />}
 
+              {drawn && stale && !blindHidden && (
+                // Who you give to is never kept in this browser: it waits for the real data.
+                <section
+                  className="border-rule bg-raised rounded-[4px] border p-6 md:p-8"
+                  aria-busy="true"
+                >
+                  <p className="text-graphite mb-3 text-[15px] font-medium">Tu amigo secreto</p>
+                  <div className="flex justify-center py-8">
+                    <Loader2 className="text-faint h-6 w-6 animate-spin" aria-hidden="true" />
+                    <span className="sr-only">Cargando tu sorteo</span>
+                  </div>
+                </section>
+              )}
               {drawn && match && (
                 <section className="border-rule bg-raised relative rounded-[4px] border p-6 md:p-8">
                   <div className="mb-3 flex items-center justify-between">
