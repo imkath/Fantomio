@@ -7,6 +7,7 @@ import { useRouter } from 'next/navigation'
 import { useTheme } from 'next-themes'
 import { useEffect, useState } from 'react'
 import { createClient, getSessionUser } from '@/lib/supabase'
+import { clearAllGroupCaches } from '@/lib/group-cache'
 import { Logo } from '@/components/logo'
 import { formatName } from '@/lib/utils'
 import { ThemeToggle } from '@/components/theme-toggle'
@@ -85,6 +86,7 @@ export function AppHeader() {
 
   const handleSignOut = async () => {
     await createClient().auth.signOut()
+    clearAllGroupCaches()
     router.push('/')
     router.refresh()
   }

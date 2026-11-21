@@ -46,6 +46,7 @@ import {
   RevealYourself,
 } from '@/components/group/editions'
 import { createClient, getSessionUser } from '@/lib/supabase'
+import { clearGroupCache, readGroupCache, writeGroupCache } from '@/lib/group-cache'
 import { drawNames, resetDraw } from '@/lib/actions/draw'
 import {
   updateGroup,
@@ -124,6 +125,21 @@ interface Group {
   place_detail: string | null
 }
 
+type Items = Array<{ description: string; url?: string }>
+
+// Everything the page draws from its main load; also what is kept for the next visit.
+interface GroupSnapshot {
+  group: Group
+  members: Member[]
+  myWishlist: Items
+  match: Match | null
+  missingLists: string[]
+  listCount: { with_list: number; total: number } | null
+}
+
+// Errors that mean "this group isn't there for you" (no row under RLS, or a malformed id).
+const NOT_FOUND_CODES = new Set(['PGRST116', '22P02'])
+
 // "2026-12-24T20:00" for <input type="datetime-local">, in the viewer's time zone.
 const toLocalInput = (iso: string) => {
   const d = new Date(iso)
@@ -142,6 +158,11 @@ function GroupPage() {
   const [myWishlist, setMyWishlist] = useState<Array<{ description: string; url?: string }>>([])
   const [isAdmin, setIsAdmin] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
+  // On screen is last visit's copy (see lib/group-cache.ts): nothing can be changed until the
+  // real data arrives, so no action runs on old data.
+  const [stale, setStale] = useState(false)
+  // The group whose real data has already arrived; the cache is only for the first paint.
+  const freshFor = useRef<string | null>(null)
   const [error, setError] = useState('')
   const [copied, setCopied] = useState(false)
   const [isDrawing, setIsDrawing] = useState(false)
@@ -196,8 +217,24 @@ function GroupPage() {
   const [showResetDialog, setShowResetDialog] = useState(false)
   const [isResetting, setIsResetting] = useState(false)
 
+  const applySnapshot = useCallback((s: GroupSnapshot, userId: string) => {
+    setGroup(s.group)
+    setIsAdmin(s.group.admin_id === userId)
+    setMembers(s.members)
+    setCurrentMember(s.members.find((m) => m.user_id === userId) ?? null)
+    setMyWishlist(s.myWishlist)
+    setMatch(s.match)
+    setMissingLists(s.missingLists)
+    setListCount(s.listCount)
+    // After a blind reveal there's nothing left to uncover: show the person right away.
+    if (s.group.mode === 'blind' && s.group.revealed_at && s.group.status === 'DRAWN') {
+      setShowMatch(true)
+    }
+  }, [])
+
   const fetchGroupData = useCallback(async () => {
     const supabase = createClient()
+    let showingCache = false
 
     try {
       const user = await getSessionUser()
@@ -206,6 +243,18 @@ function GroupPage() {
         return
       }
       setCurrentUserId(user.id)
+
+      // Coming back to a group: draw last visit's copy now, and replace it when the real data
+      // arrives. Only this user's copy, and only until the first real answer for this group.
+      if (freshFor.current !== groupId) {
+        const cached = readGroupCache<GroupSnapshot>(groupId, user.id)
+        if (cached) {
+          applySnapshot(cached, user.id)
+          setStale(true)
+          setIsLoading(false)
+          showingCache = true
+        }
+      }
 
       // One round trip: group, members, lists and (if any) my match load in parallel.
       // The match query simply returns nothing until the group is drawn. Wishlists come back
@@ -227,13 +276,19 @@ function GroupPage() {
         supabase.rpc('wishlist_status', { p_group_id: groupId }),
       ])
 
-      const groupData = groupRes.data
-      if (groupRes.error || !groupData) {
+      const groupData = groupRes.data as Group | null
+      if (groupRes.error && !NOT_FOUND_CODES.has(groupRes.error.code)) throw groupRes.error
+      if (!groupData) {
+        // Gone, or no longer ours: the real answer wins over the copy.
+        clearGroupCache(groupId, user.id)
+        setStale(false)
+        setGroup(null)
         setError('Grupo no encontrado')
-        setIsLoading(false)
         return
       }
-      setGroup(groupData)
+
+      let missing: string[] = []
+      let listCount: GroupSnapshot['listCount'] = null
       if (groupData.mode === 'blind') {
         const [missingRes, countRes] = await Promise.all([
           groupData.status === 'PLANNING'
@@ -241,18 +296,14 @@ function GroupPage() {
             : Promise.resolve({ data: [] }),
           supabase.rpc('wishlist_count', { p_group_id: groupId }),
         ])
-        setMissingLists((missingRes.data ?? []) as string[])
-        setListCount(countRes.data as { with_list: number; total: number })
+        missing = (missingRes.data ?? []) as string[]
+        listCount = countRes.data as { with_list: number; total: number }
         // Confetti for everyone watching when the blind draw is revealed.
         const hidden = !groupData.revealed_at
         if (wasHidden.current === true && !hidden) celebrate()
         wasHidden.current = hidden
-        // After a blind reveal there's nothing left to uncover: show the person right away.
-        if (!hidden && groupData.status === 'DRAWN') setShowMatch(true)
       }
-      setIsAdmin(groupData.admin_id === user.id)
 
-      type Items = Array<{ description: string; url?: string }>
       const lists = new Map<string, Items>(
         (listsRes.data ?? []).map((w) => [w.user_id as string, (w.items ?? []) as Items])
       )
@@ -266,9 +317,8 @@ function GroupPage() {
           .filter((s) => s.has_items)
           .map((s) => s.user_id)
       )
-      setMyWishlist(lists.get(user.id) ?? [])
 
-      const formattedMembers = (membersRes.data ?? []).map((m) => ({
+      const formattedMembers: Member[] = (membersRes.data ?? []).map((m) => ({
         id: m.id,
         user_id: m.user_id,
         hasList: listStatus.get(m.user_id) ?? (withList.has(m.user_id) ? true : null),
@@ -279,33 +329,50 @@ function GroupPage() {
           return { ...p, full_name: formatName(p?.full_name) || null }
         })(),
       }))
-      setMembers(formattedMembers)
-      setCurrentMember(formattedMembers.find((m) => m.user_id === user.id) ?? null)
 
       const matchData = groupData.status === 'DRAWN' ? matchRes.data : null
-      if (matchData) {
-        setMatch({
-          id: matchData.id,
-          receiver_id: matchData.receiver_id,
-          receiver: (() => {
-            const r = matchData.receiver as unknown as {
-              full_name: string | null
-              avatar_url: string | null
+      const snapshot: GroupSnapshot = {
+        group: groupData,
+        members: formattedMembers,
+        myWishlist: lists.get(user.id) ?? [],
+        match: matchData
+          ? {
+              id: matchData.id,
+              receiver_id: matchData.receiver_id,
+              receiver: (() => {
+                const r = matchData.receiver as unknown as {
+                  full_name: string | null
+                  avatar_url: string | null
+                }
+                return { ...r, full_name: formatName(r.full_name) || null }
+              })(),
+              receiver_wishlist: lists.get(matchData.receiver_id) ?? [],
+              revealed: !!matchData.revealed_at,
             }
-            return { ...r, full_name: formatName(r.full_name) || null }
-          })(),
-          receiver_wishlist: lists.get(matchData.receiver_id) ?? [],
-          revealed: !!matchData.revealed_at,
-        })
+          : null,
+        missingLists: missing,
+        listCount,
+      }
+
+      applySnapshot(snapshot, user.id)
+      freshFor.current = groupId
+      setStale(false)
+      if (formattedMembers.some((m) => m.user_id === user.id)) {
+        writeGroupCache(groupId, user.id, snapshot)
       } else {
-        setMatch(null)
+        clearGroupCache(groupId, user.id)
       }
     } catch {
-      setError('Error al cargar el grupo')
+      // With last visit's copy on screen it stays visible but locked, and says why.
+      setError(
+        showingCache
+          ? 'No pudimos actualizar el grupo. Lo que ves es de tu última visita: recarga la página para intentarlo de nuevo.'
+          : 'Error al cargar el grupo'
+      )
     } finally {
       setIsLoading(false)
     }
-  }, [groupId, router])
+  }, [groupId, router, applySnapshot])
 
   useEffect(() => {
     fetchGroupData()
@@ -642,471 +709,484 @@ function GroupPage() {
           </div>
         )}
 
-        {/* Header */}
-        <div className="mt-6 mb-10 flex flex-col justify-between gap-6 min-[1440px]:mt-0 md:flex-row md:items-end">
-          <div className="min-w-0">
-            <p className="text-graphite mb-2 text-[15px]">
-              {blind && 'A ciegas · '}
-              {archived ? 'Archivado' : drawn ? 'Sorteado' : 'Sin sortear'} · {members.length}{' '}
-              {members.length === 1 ? 'persona' : 'personas'}
-            </p>
-            <h1 className="text-[34px] leading-tight font-light break-words md:text-[44px]">
-              {group.name}
-            </h1>
-          </div>
+        {/* Last visit's copy: readable at once, but every button waits for the real data. */}
+        <div inert={stale} aria-busy={stale}>
+          {/* Header */}
+          <div className="mt-6 mb-10 flex flex-col justify-between gap-6 min-[1440px]:mt-0 md:flex-row md:items-end">
+            <div className="min-w-0">
+              <p className="text-graphite mb-2 text-[15px]">
+                {blind && 'A ciegas · '}
+                {archived ? 'Archivado' : drawn ? 'Sorteado' : 'Sin sortear'} · {members.length}{' '}
+                {members.length === 1 ? 'persona' : 'personas'}
+              </p>
+              <h1 className="text-[34px] leading-tight font-light break-words md:text-[44px]">
+                {group.name}
+              </h1>
+            </div>
 
-          <div className={`flex flex-wrap items-center gap-3 ${archived ? 'hidden' : ''}`}>
-            {!drawn && (
-              // The invite is how a whole group meets Fantomio: a ready message, not a bare link.
-              <Button
-                variant="outline"
-                onClick={() =>
-                  window.open(
-                    whatsappUrl(
-                      inviteMessage({
-                        name: group.name,
-                        url: `${window.location.origin}/join?code=${group.invite_code}`,
-                        exchangeDate: group.exchange_date,
-                        budget: group.budget,
-                        currency: group.currency,
-                        blind,
-                      })
-                    ),
-                    '_blank',
-                    'noopener'
-                  )
-                }
-              >
-                <MessageCircle aria-hidden="true" />
-                Invitar por WhatsApp
-              </Button>
-            )}
-            <Button variant="outline" onClick={handleShare}>
-              {copied ? <Check aria-hidden="true" /> : <Link2 aria-hidden="true" />}
-              {copied ? 'Link copiado' : 'Copiar link de invitación'}
-            </Button>
-            {isAdmin && drawn && (
-              <Button
-                variant="outline"
-                onClick={() => {
-                  const groupUrl = `${window.location.origin}${groupPath(group.id)}`
-                  const text = `Ya hicimos el sorteo de *${group.name}*.\n\nEntra para ver a quién le regalas:\n${groupUrl}`
-                  window.open(whatsappUrl(text), '_blank', 'noopener')
-                }}
-              >
-                <MessageCircle aria-hidden="true" />
-                Avisar por WhatsApp
-              </Button>
-            )}
-            {isAdmin && !drawn && members.length >= 3 && (
-              // Never a silently disabled button: if lists are missing, tapping explains why.
-              <Button
-                onClick={() =>
-                  blindBlocked ? setShowMissingLists(true) : setShowDrawConfirm(true)
-                }
-                disabled={isDrawing}
-              >
-                {isDrawing ? (
-                  <Loader2 className="animate-spin" aria-hidden="true" />
-                ) : (
-                  <Shuffle aria-hidden="true" />
-                )}
-                Hacer el sorteo
-              </Button>
-            )}
-          </div>
-        </div>
-
-        {archived && (
-          <ArchivedNotice groupId={group.id} isAdmin={isAdmin} onChange={fetchGroupData} />
-        )}
-
-        <div className="mt-8 grid gap-8 lg:grid-cols-[1.6fr_1fr]">
-          {/* Main column */}
-          <div className="min-w-0 space-y-8">
-            {!drawn && (
-              <section className="border-rule bg-slip rounded-[4px] border p-6 md:p-8">
-                <p className="text-graphite mb-3 text-[15px] font-medium">Tu amigo secreto</p>
-                <div className="flex items-start gap-5">
-                  <GhostMark className="text-ink h-[46px] w-[40px] shrink-0" />
-                  <div>
-                    <h2 className="mb-1 text-xl font-bold">Todavía no hay sorteo</h2>
-                    <p className="text-graphite">
-                      {isAdmin
-                        ? members.length < 3
-                          ? `Hacen falta al menos 3 personas para sortear. Van ${members.length}. Comparte el link para que se sumen.`
-                          : 'Cuando estén todos, aprieta "Hacer el sorteo". A cada quien le aparecerá aquí su persona.'
-                        : 'Cuando estén todos, quien organiza hará el sorteo y aquí verás a quién le regalas.'}
-                    </p>
-                    {blind && (
-                      <div className="mt-3">
-                        <BlindListsNotice missing={missingLists} isAdmin={isAdmin} />
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </section>
-            )}
-
-            {drawn && blindHidden && (
-              <BlindAssignment
-                groupId={groupId}
-                people={members
-                  .filter((m) => m.user_id !== currentUserId)
-                  .map((m) => ({
-                    id: m.user_id,
-                    name: m.profile.full_name || 'Sin nombre',
-                  }))}
-                revealAt={group.reveal_at}
-                isAdmin={isAdmin}
-                onRevealed={fetchGroupData}
-              />
-            )}
-            {drawn && blind && !blindHidden && <BlindResults groupId={groupId} />}
-
-            {drawn && match && (
-              <section className="border-rule bg-raised relative rounded-[4px] border p-6 md:p-8">
-                <div className="mb-3 flex items-center justify-between">
-                  <p className="text-graphite text-[15px] font-medium">Tu amigo secreto</p>
-                  {showMatch && (
-                    <Button variant="outline" size="sm" onClick={() => setShowMatch(false)}>
-                      <EyeOff aria-hidden="true" />
-                      Ocultar
-                    </Button>
-                  )}
-                </div>
-
-                {!showMatch ? (
-                  <div className="grid justify-items-center gap-4 py-6 text-center">
-                    <GhostMark className="text-ink h-[74px] w-[64px]" />
-                    <p className="text-graphite">
-                      El sorteo ya está hecho.
-                      <br />
-                      ¿Vemos a quién te tocó?
-                    </p>
-                    <Button size="lg" onClick={handleRevealMatch}>
-                      <Eye aria-hidden="true" />
-                      Ver a quién me tocó
-                    </Button>
-                  </div>
-                ) : (
-                  <div className="space-y-7">
-                    <div className="reveal-pop flex items-center gap-5">
-                      <GhostAvatar
-                        seed={match.receiver_id}
-                        src={match.receiver.avatar_url}
-                        size={76}
-                      />
-                      <div className="min-w-0">
-                        <p className="text-[28px] leading-tight font-bold break-words">
-                          {match.receiver.full_name || 'Sin nombre'}
-                        </p>
-                        <p className="text-graphite text-[17px]">Le regalas tú</p>
-                      </div>
-                    </div>
-
-                    <div>
-                      <p className="text-graphite mb-3 text-[15px] font-medium">
-                        Lo que le gustaría
-                      </p>
-                      {match.receiver_wishlist.length > 0 ? (
-                        <ul className="grid gap-2">
-                          {match.receiver_wishlist.map((item, index) => (
-                            <li
-                              key={index}
-                              className="bg-slip flex items-baseline justify-between gap-4 rounded-[3px] px-4 py-3"
-                            >
-                              <span className="min-w-0 break-words">
-                                {String(item.description ?? '')}
-                              </span>
-                              {typeof item.url === 'string' && item.url && (
-                                <a
-                                  href={
-                                    item.url.startsWith('http') ? item.url : `https://${item.url}`
-                                  }
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  className="text-hanko inline-flex shrink-0 items-center gap-1.5 text-[15px] underline underline-offset-[3px]"
-                                  title={item.url}
-                                >
-                                  Ver link
-                                  <ExternalLink className="h-4 w-4" aria-hidden="true" />
-                                </a>
-                              )}
-                            </li>
-                          ))}
-                        </ul>
-                      ) : (
-                        <p className="text-graphite bg-slip rounded-[3px] px-4 py-3">
-                          Todavía no anota nada. Puedes preguntarle abajo, sin que sepa que eres tú.
-                        </p>
-                      )}
-                    </div>
-
-                    {exchangeDone && (
-                      <RevealYourself
-                        groupId={groupId}
-                        receiverName={match.receiver.full_name || 'Sin nombre'}
-                        revealed={match.revealed}
-                        onChange={fetchGroupData}
-                      />
-                    )}
-
-                    {!archived && (
-                      <AnonymousChat
-                        matchId={match.id}
-                        groupId={groupId}
-                        role="giver"
-                        receiverName={match.receiver.full_name || undefined}
-                      />
-                    )}
-                  </div>
-                )}
-              </section>
-            )}
-            {drawn && match && showMatch && <RateApp />}
-
-            {/* Anonymous messages received (someone is asking YOU) */}
-            {drawn && !archived && (
-              <AnonymousChat matchId={null} groupId={groupId} role="receiver" />
-            )}
-            {drawn && exchangeDone && <RevealedGiver groupId={groupId} />}
-            {drawn && (exchangeDone || (blind && !!group.revealed_at)) && <OrganizeYourOwn />}
-
-            {currentMember && (
-              <section className="border-rule rounded-[4px] border p-6 md:p-8">
-                {blind && !drawn && !archived && myWishlist.length === 0 && (
-                  <div className="mb-6">
-                    <Notice tone="ok">
-                      Este es un sorteo a ciegas: quien te regale solo va a tener tu lista como
-                      pista. Anota al menos una cosa, porque sin las listas de todos no se puede
-                      sortear.
-                    </Notice>
-                  </div>
-                )}
-                {archived ? (
-                  <div>
-                    <h2 className="text-xl font-bold">Tu lista</h2>
-                    {myWishlist.length ? (
-                      <ul className="mt-4 grid gap-2">
-                        {myWishlist.map((item, i) => (
-                          <li key={i} className="bg-slip rounded-[3px] px-4 py-3 break-words">
-                            {String(item.description ?? '')}
-                          </li>
-                        ))}
-                      </ul>
-                    ) : (
-                      <p className="text-graphite mt-2">No anotaste nada esta vez.</p>
-                    )}
-                  </div>
-                ) : (
-                  <WishlistEditor
-                    // A fresh editor per group and person, so an unsaved list never follows
-                    // someone to another group.
-                    key={`${groupId}:${currentMember.user_id}`}
-                    groupId={groupId}
-                    userId={currentMember.user_id}
-                    initialItems={myWishlist}
-                    previousGroupId={group.previous_group_id}
-                    onSave={fetchGroupData}
-                  />
-                )}
-              </section>
-            )}
-
-            {group.previous_group_id && <EditionHistory groupId={groupId} />}
-          </div>
-
-          {/* Sidebar */}
-          <aside className="min-w-0 space-y-8">
-            <GroupInfoCard
-              budget={group.budget}
-              currency={group.currency}
-              exchangeDate={group.exchange_date}
-              timeZone={group.time_zone}
-              place={
-                group.place_kind
-                  ? { kind: group.place_kind, name: group.place_name, detail: group.place_detail }
-                  : null
-              }
-              inviteCode={archived ? undefined : group.invite_code}
-            />
-
-            {/* The group's actions come before the list, so they don't sink below a long group. */}
-            <div className="grid gap-2">
-              <Button variant="outline" className="justify-start" onClick={handleShowActivity}>
-                <History aria-hidden="true" />
-                Ver lo que ha pasado en el grupo
+            <div className={`flex flex-wrap items-center gap-3 ${archived ? 'hidden' : ''}`}>
+              {!drawn && (
+                // The invite is how a whole group meets Fantomio: a ready message, not a bare link.
+                <Button
+                  variant="outline"
+                  onClick={() =>
+                    window.open(
+                      whatsappUrl(
+                        inviteMessage({
+                          name: group.name,
+                          url: `${window.location.origin}/join?code=${group.invite_code}`,
+                          exchangeDate: group.exchange_date,
+                          budget: group.budget,
+                          currency: group.currency,
+                          blind,
+                        })
+                      ),
+                      '_blank',
+                      'noopener'
+                    )
+                  }
+                >
+                  <MessageCircle aria-hidden="true" />
+                  Invitar por WhatsApp
+                </Button>
+              )}
+              <Button variant="outline" onClick={handleShare}>
+                {copied ? <Check aria-hidden="true" /> : <Link2 aria-hidden="true" />}
+                {copied ? 'Link copiado' : 'Copiar link de invitación'}
               </Button>
               {isAdmin && drawn && (
                 <Button
                   variant="outline"
-                  className="justify-start"
-                  onClick={() => setShowRepeat(true)}
+                  onClick={() => {
+                    const groupUrl = `${window.location.origin}${groupPath(group.id)}`
+                    const text = `Ya hicimos el sorteo de *${group.name}*.\n\nEntra para ver a quién le regalas:\n${groupUrl}`
+                    window.open(whatsappUrl(text), '_blank', 'noopener')
+                  }}
                 >
-                  <Repeat aria-hidden="true" />
-                  Repetir con las mismas personas
+                  <MessageCircle aria-hidden="true" />
+                  Avisar por WhatsApp
                 </Button>
               )}
-              {isAdmin && !archived && (
-                <Button variant="outline" className="justify-start" onClick={handleOpenEdit}>
-                  <Pencil aria-hidden="true" />
-                  Editar grupo
-                </Button>
-              )}
-              {isAdmin && !archived && (
-                <ExclusionsManager
-                  groupId={groupId}
-                  members={members}
-                  isAdmin={isAdmin}
-                  isDrawn={drawn}
-                />
-              )}
-              {isAdmin && drawn && !archived && (
+              {isAdmin && !drawn && members.length >= 3 && (
+                // Never a silently disabled button: if lists are missing, tapping explains why.
                 <Button
-                  variant="danger"
-                  className="justify-start"
-                  onClick={() => setShowResetDialog(true)}
+                  onClick={() =>
+                    blindBlocked ? setShowMissingLists(true) : setShowDrawConfirm(true)
+                  }
+                  disabled={isDrawing}
                 >
-                  <RotateCcw aria-hidden="true" />
-                  Reiniciar el sorteo
+                  {isDrawing ? (
+                    <Loader2 className="animate-spin" aria-hidden="true" />
+                  ) : (
+                    <Shuffle aria-hidden="true" />
+                  )}
+                  Hacer el sorteo
                 </Button>
-              )}
-              {!isAdmin && !drawn && !archived && (
-                <Button
-                  variant="danger"
-                  className="justify-start"
-                  onClick={() => setShowLeaveDialog(true)}
-                >
-                  <LogOut aria-hidden="true" />
-                  Salir del grupo
-                </Button>
-              )}
-              {isAdmin && !archived && drawn && (
-                <ArchiveButton groupId={group.id} onChange={fetchGroupData} />
-              )}
-              {currentMember && (
-                <HideButton
-                  groupId={group.id}
-                  hidden={currentMember.hidden}
-                  onChange={fetchGroupData}
-                />
               )}
             </div>
+          </div>
 
-            <section className="border-rule rounded-[4px] border p-6">
-              <div className="mb-1 flex items-center justify-between">
-                <h2 className="flex items-center gap-2.5 text-lg font-bold">
-                  <GhostMark className="h-[22px] w-[19px]" />
-                  Participantes
-                </h2>
-                <span className="text-graphite text-[15px]">{members.length}</span>
-              </div>
-              <p className="text-graphite mb-4 text-[15px]">
-                {blind && listCount ? (
-                  // Per person would let a giver guess an empty list by elimination.
-                  <>
-                    {listCount.with_list} de {listCount.total} ya anotaron su lista
-                  </>
-                ) : (
-                  <>
-                    <span aria-hidden="true">✓</span> Ya anotó su lista
-                  </>
-                )}
-              </p>
-              {iShareMyName && !archived && (
-                <div className="mb-4">
-                  <Notice tone="ok">
-                    Hay otra persona llamada {myName} en el grupo. Para que no los confundan, agrega
-                    tu apellido o un apodo.{' '}
-                    <Link href="/account#perfil" className="font-bold underline underline-offset-4">
-                      Cambiar mi nombre
-                    </Link>
-                  </Notice>
-                </div>
+          {archived && (
+            <ArchivedNotice groupId={group.id} isAdmin={isAdmin} onChange={fetchGroupData} />
+          )}
+
+          <div className="mt-8 grid gap-8 lg:grid-cols-[1.6fr_1fr]">
+            {/* Main column */}
+            <div className="min-w-0 space-y-8">
+              {!drawn && (
+                <section className="border-rule bg-slip rounded-[4px] border p-6 md:p-8">
+                  <p className="text-graphite mb-3 text-[15px] font-medium">Tu amigo secreto</p>
+                  <div className="flex items-start gap-5">
+                    <GhostMark className="text-ink h-[46px] w-[40px] shrink-0" />
+                    <div>
+                      <h2 className="mb-1 text-xl font-bold">Todavía no hay sorteo</h2>
+                      <p className="text-graphite">
+                        {isAdmin
+                          ? members.length < 3
+                            ? `Hacen falta al menos 3 personas para sortear. Van ${members.length}. Comparte el link para que se sumen.`
+                            : 'Cuando estén todos, aprieta "Hacer el sorteo". A cada quien le aparecerá aquí su persona.'
+                          : 'Cuando estén todos, quien organiza hará el sorteo y aquí verás a quién le regalas.'}
+                      </p>
+                      {blind && (
+                        <div className="mt-3">
+                          <BlindListsNotice missing={missingLists} isAdmin={isAdmin} />
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </section>
               )}
-              <ul className="divide-rule divide-y">
-                {members.map((member) => {
-                  const me = member.user_id === currentUserId
-                  const name = me ? 'Tú' : member.profile.full_name || 'Sin nombre'
-                  return (
-                    <li key={member.id} className="flex items-center justify-between gap-3 py-3">
-                      <span className="flex min-w-0 items-center gap-3">
-                        <GhostAvatar
-                          seed={member.user_id}
-                          src={member.profile.avatar_url}
-                          size={38}
-                        />
-                        <span className="min-w-0">
-                          <span className={`block truncate ${me ? 'font-bold' : ''}`}>{name}</span>
-                          {isAdmin && !me && emailHints.get(member.user_id) && (
-                            <span className="text-faint block truncate text-[14px] leading-tight">
-                              {emailHints.get(member.user_id)}
-                            </span>
-                          )}
-                          {member.is_admin && (
-                            <span className="text-graphite block text-[15px] leading-tight">
-                              Organiza
-                            </span>
-                          )}
-                        </span>
-                      </span>
-                      <span className="flex shrink-0 items-center gap-3">
-                        {member.hasList === null ? null : member.hasList ? (
-                          <span className="text-ink" title="Ya anotó su lista">
-                            <span aria-hidden="true">✓</span>
-                            <span className="sr-only">Ya anotó su lista</span>
-                          </span>
-                        ) : (
-                          <span className="text-graphite text-[15px]">Sin lista</span>
-                        )}
-                        {isAdmin && !me && !archived && (
-                          <Button
-                            variant="outline"
-                            size="icon-sm"
-                            onClick={() =>
-                              setNewOrganizer({
-                                userId: member.user_id,
-                                name: member.profile.full_name || 'Sin nombre',
-                              })
-                            }
-                            aria-label={`Pasarle la organización a ${name}`}
-                            title={`Pasarle la organización a ${name}`}
-                          >
-                            <Crown aria-hidden="true" />
-                          </Button>
-                        )}
-                        {isAdmin && !drawn && !me && !archived && (
-                          <Button
-                            variant="danger"
-                            size="icon-sm"
-                            onClick={() => {
-                              setMemberToRemove({
-                                id: member.id,
-                                name: member.profile.full_name || 'Sin nombre',
-                              })
-                              setShowRemoveMemberDialog(true)
-                            }}
-                            aria-label={`Quitar a ${name} del grupo`}
-                            title={`Quitar a ${name}`}
-                          >
-                            <UserMinus aria-hidden="true" />
-                          </Button>
-                        )}
-                      </span>
-                    </li>
-                  )
-                })}
-              </ul>
-              {!drawn && !archived && (
-                <PendingInvitations
+
+              {drawn && blindHidden && (
+                <BlindAssignment
                   groupId={groupId}
+                  people={members
+                    .filter((m) => m.user_id !== currentUserId)
+                    .map((m) => ({
+                      id: m.user_id,
+                      name: m.profile.full_name || 'Sin nombre',
+                    }))}
+                  revealAt={group.reveal_at}
                   isAdmin={isAdmin}
-                  refreshKey={members.length}
+                  onRevealed={fetchGroupData}
                 />
               )}
-            </section>
-          </aside>
+              {drawn && blind && !blindHidden && <BlindResults groupId={groupId} />}
+
+              {drawn && match && (
+                <section className="border-rule bg-raised relative rounded-[4px] border p-6 md:p-8">
+                  <div className="mb-3 flex items-center justify-between">
+                    <p className="text-graphite text-[15px] font-medium">Tu amigo secreto</p>
+                    {showMatch && (
+                      <Button variant="outline" size="sm" onClick={() => setShowMatch(false)}>
+                        <EyeOff aria-hidden="true" />
+                        Ocultar
+                      </Button>
+                    )}
+                  </div>
+
+                  {!showMatch ? (
+                    <div className="grid justify-items-center gap-4 py-6 text-center">
+                      <GhostMark className="text-ink h-[74px] w-[64px]" />
+                      <p className="text-graphite">
+                        El sorteo ya está hecho.
+                        <br />
+                        ¿Vemos a quién te tocó?
+                      </p>
+                      <Button size="lg" onClick={handleRevealMatch}>
+                        <Eye aria-hidden="true" />
+                        Ver a quién me tocó
+                      </Button>
+                    </div>
+                  ) : (
+                    <div className="space-y-7">
+                      <div className="reveal-pop flex items-center gap-5">
+                        <GhostAvatar
+                          seed={match.receiver_id}
+                          src={match.receiver.avatar_url}
+                          size={76}
+                        />
+                        <div className="min-w-0">
+                          <p className="text-[28px] leading-tight font-bold break-words">
+                            {match.receiver.full_name || 'Sin nombre'}
+                          </p>
+                          <p className="text-graphite text-[17px]">Le regalas tú</p>
+                        </div>
+                      </div>
+
+                      <div>
+                        <p className="text-graphite mb-3 text-[15px] font-medium">
+                          Lo que le gustaría
+                        </p>
+                        {match.receiver_wishlist.length > 0 ? (
+                          <ul className="grid gap-2">
+                            {match.receiver_wishlist.map((item, index) => (
+                              <li
+                                key={index}
+                                className="bg-slip flex items-baseline justify-between gap-4 rounded-[3px] px-4 py-3"
+                              >
+                                <span className="min-w-0 break-words">
+                                  {String(item.description ?? '')}
+                                </span>
+                                {typeof item.url === 'string' && item.url && (
+                                  <a
+                                    href={
+                                      item.url.startsWith('http') ? item.url : `https://${item.url}`
+                                    }
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="text-hanko inline-flex shrink-0 items-center gap-1.5 text-[15px] underline underline-offset-[3px]"
+                                    title={item.url}
+                                  >
+                                    Ver link
+                                    <ExternalLink className="h-4 w-4" aria-hidden="true" />
+                                  </a>
+                                )}
+                              </li>
+                            ))}
+                          </ul>
+                        ) : (
+                          <p className="text-graphite bg-slip rounded-[3px] px-4 py-3">
+                            Todavía no anota nada. Puedes preguntarle abajo, sin que sepa que eres
+                            tú.
+                          </p>
+                        )}
+                      </div>
+
+                      {exchangeDone && (
+                        <RevealYourself
+                          groupId={groupId}
+                          receiverName={match.receiver.full_name || 'Sin nombre'}
+                          revealed={match.revealed}
+                          onChange={fetchGroupData}
+                        />
+                      )}
+
+                      {!archived && (
+                        <AnonymousChat
+                          matchId={match.id}
+                          groupId={groupId}
+                          role="giver"
+                          receiverName={match.receiver.full_name || undefined}
+                        />
+                      )}
+                    </div>
+                  )}
+                </section>
+              )}
+              {drawn && match && showMatch && <RateApp />}
+
+              {/* Anonymous messages received (someone is asking YOU) */}
+              {drawn && !archived && (
+                <AnonymousChat matchId={null} groupId={groupId} role="receiver" />
+              )}
+              {drawn && exchangeDone && <RevealedGiver groupId={groupId} />}
+              {drawn && (exchangeDone || (blind && !!group.revealed_at)) && <OrganizeYourOwn />}
+
+              {currentMember && (
+                <section className="border-rule rounded-[4px] border p-6 md:p-8">
+                  {blind && !drawn && !archived && myWishlist.length === 0 && (
+                    <div className="mb-6">
+                      <Notice tone="ok">
+                        Este es un sorteo a ciegas: quien te regale solo va a tener tu lista como
+                        pista. Anota al menos una cosa, porque sin las listas de todos no se puede
+                        sortear.
+                      </Notice>
+                    </div>
+                  )}
+                  {/* The editor only starts from the real list: a draft kept in this browser is
+                    matched against it, and it saves on its own. */}
+                  {archived || stale ? (
+                    <div>
+                      <h2 className="text-xl font-bold">Tu lista</h2>
+                      {myWishlist.length ? (
+                        <ul className="mt-4 grid gap-2">
+                          {myWishlist.map((item, i) => (
+                            <li key={i} className="bg-slip rounded-[3px] px-4 py-3 break-words">
+                              {String(item.description ?? '')}
+                            </li>
+                          ))}
+                        </ul>
+                      ) : (
+                        <p className="text-graphite mt-2">
+                          {stale ? 'Cargando tu lista…' : 'No anotaste nada esta vez.'}
+                        </p>
+                      )}
+                    </div>
+                  ) : (
+                    <WishlistEditor
+                      // A fresh editor per group and person, so an unsaved list never follows
+                      // someone to another group.
+                      key={`${groupId}:${currentMember.user_id}`}
+                      groupId={groupId}
+                      userId={currentMember.user_id}
+                      initialItems={myWishlist}
+                      previousGroupId={group.previous_group_id}
+                      onSave={fetchGroupData}
+                    />
+                  )}
+                </section>
+              )}
+
+              {group.previous_group_id && <EditionHistory groupId={groupId} />}
+            </div>
+
+            {/* Sidebar */}
+            <aside className="min-w-0 space-y-8">
+              <GroupInfoCard
+                budget={group.budget}
+                currency={group.currency}
+                exchangeDate={group.exchange_date}
+                timeZone={group.time_zone}
+                place={
+                  group.place_kind
+                    ? { kind: group.place_kind, name: group.place_name, detail: group.place_detail }
+                    : null
+                }
+                inviteCode={archived ? undefined : group.invite_code}
+              />
+
+              {/* The group's actions come before the list, so they don't sink below a long group. */}
+              <div className="grid gap-2">
+                <Button variant="outline" className="justify-start" onClick={handleShowActivity}>
+                  <History aria-hidden="true" />
+                  Ver lo que ha pasado en el grupo
+                </Button>
+                {isAdmin && drawn && (
+                  <Button
+                    variant="outline"
+                    className="justify-start"
+                    onClick={() => setShowRepeat(true)}
+                  >
+                    <Repeat aria-hidden="true" />
+                    Repetir con las mismas personas
+                  </Button>
+                )}
+                {isAdmin && !archived && (
+                  <Button variant="outline" className="justify-start" onClick={handleOpenEdit}>
+                    <Pencil aria-hidden="true" />
+                    Editar grupo
+                  </Button>
+                )}
+                {isAdmin && !archived && (
+                  <ExclusionsManager
+                    groupId={groupId}
+                    members={members}
+                    isAdmin={isAdmin}
+                    isDrawn={drawn}
+                  />
+                )}
+                {isAdmin && drawn && !archived && (
+                  <Button
+                    variant="danger"
+                    className="justify-start"
+                    onClick={() => setShowResetDialog(true)}
+                  >
+                    <RotateCcw aria-hidden="true" />
+                    Reiniciar el sorteo
+                  </Button>
+                )}
+                {!isAdmin && !drawn && !archived && (
+                  <Button
+                    variant="danger"
+                    className="justify-start"
+                    onClick={() => setShowLeaveDialog(true)}
+                  >
+                    <LogOut aria-hidden="true" />
+                    Salir del grupo
+                  </Button>
+                )}
+                {isAdmin && !archived && drawn && (
+                  <ArchiveButton groupId={group.id} onChange={fetchGroupData} />
+                )}
+                {currentMember && (
+                  <HideButton
+                    groupId={group.id}
+                    hidden={currentMember.hidden}
+                    onChange={fetchGroupData}
+                  />
+                )}
+              </div>
+
+              <section className="border-rule rounded-[4px] border p-6">
+                <div className="mb-1 flex items-center justify-between">
+                  <h2 className="flex items-center gap-2.5 text-lg font-bold">
+                    <GhostMark className="h-[22px] w-[19px]" />
+                    Participantes
+                  </h2>
+                  <span className="text-graphite text-[15px]">{members.length}</span>
+                </div>
+                <p className="text-graphite mb-4 text-[15px]">
+                  {blind && listCount ? (
+                    // Per person would let a giver guess an empty list by elimination.
+                    <>
+                      {listCount.with_list} de {listCount.total} ya anotaron su lista
+                    </>
+                  ) : (
+                    <>
+                      <span aria-hidden="true">✓</span> Ya anotó su lista
+                    </>
+                  )}
+                </p>
+                {iShareMyName && !archived && (
+                  <div className="mb-4">
+                    <Notice tone="ok">
+                      Hay otra persona llamada {myName} en el grupo. Para que no los confundan,
+                      agrega tu apellido o un apodo.{' '}
+                      <Link
+                        href="/account#perfil"
+                        className="font-bold underline underline-offset-4"
+                      >
+                        Cambiar mi nombre
+                      </Link>
+                    </Notice>
+                  </div>
+                )}
+                <ul className="divide-rule divide-y">
+                  {members.map((member) => {
+                    const me = member.user_id === currentUserId
+                    const name = me ? 'Tú' : member.profile.full_name || 'Sin nombre'
+                    return (
+                      <li key={member.id} className="flex items-center justify-between gap-3 py-3">
+                        <span className="flex min-w-0 items-center gap-3">
+                          <GhostAvatar
+                            seed={member.user_id}
+                            src={member.profile.avatar_url}
+                            size={38}
+                          />
+                          <span className="min-w-0">
+                            <span className={`block truncate ${me ? 'font-bold' : ''}`}>
+                              {name}
+                            </span>
+                            {isAdmin && !me && emailHints.get(member.user_id) && (
+                              <span className="text-faint block truncate text-[14px] leading-tight">
+                                {emailHints.get(member.user_id)}
+                              </span>
+                            )}
+                            {member.is_admin && (
+                              <span className="text-graphite block text-[15px] leading-tight">
+                                Organiza
+                              </span>
+                            )}
+                          </span>
+                        </span>
+                        <span className="flex shrink-0 items-center gap-3">
+                          {member.hasList === null ? null : member.hasList ? (
+                            <span className="text-ink" title="Ya anotó su lista">
+                              <span aria-hidden="true">✓</span>
+                              <span className="sr-only">Ya anotó su lista</span>
+                            </span>
+                          ) : (
+                            <span className="text-graphite text-[15px]">Sin lista</span>
+                          )}
+                          {isAdmin && !me && !archived && (
+                            <Button
+                              variant="outline"
+                              size="icon-sm"
+                              onClick={() =>
+                                setNewOrganizer({
+                                  userId: member.user_id,
+                                  name: member.profile.full_name || 'Sin nombre',
+                                })
+                              }
+                              aria-label={`Pasarle la organización a ${name}`}
+                              title={`Pasarle la organización a ${name}`}
+                            >
+                              <Crown aria-hidden="true" />
+                            </Button>
+                          )}
+                          {isAdmin && !drawn && !me && !archived && (
+                            <Button
+                              variant="danger"
+                              size="icon-sm"
+                              onClick={() => {
+                                setMemberToRemove({
+                                  id: member.id,
+                                  name: member.profile.full_name || 'Sin nombre',
+                                })
+                                setShowRemoveMemberDialog(true)
+                              }}
+                              aria-label={`Quitar a ${name} del grupo`}
+                              title={`Quitar a ${name}`}
+                            >
+                              <UserMinus aria-hidden="true" />
+                            </Button>
+                          )}
+                        </span>
+                      </li>
+                    )
+                  })}
+                </ul>
+                {!drawn && !archived && (
+                  <PendingInvitations
+                    groupId={groupId}
+                    isAdmin={isAdmin}
+                    refreshKey={members.length}
+                  />
+                )}
+              </section>
+            </aside>
+          </div>
         </div>
       </main>
 

@@ -17,6 +17,7 @@ import { AccountSection, Setting } from '@/components/account/section'
 import { useReauth } from '@/components/account/reauth'
 import { clearAvatarFiles } from '@/components/account/profile-section'
 import { createClient } from '@/lib/supabase'
+import { clearAllGroupCaches } from '@/lib/group-cache'
 import { getUserFriendlyError } from '@/lib/errors'
 import { todayIn } from '@/lib/utils'
 
@@ -43,6 +44,7 @@ export function DataSection({
   const signOutEverywhere = async () => {
     setBusy('everywhere')
     await createClient().auth.signOut({ scope: 'global' })
+    clearAllGroupCaches()
     router.push('/login')
   }
 
@@ -85,6 +87,7 @@ export function DataSection({
       return
     }
     await supabase.auth.signOut({ scope: 'local' })
+    clearAllGroupCaches()
     router.push('/login?cuenta=eliminada')
   }
 
