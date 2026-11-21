@@ -664,7 +664,7 @@ function GroupPage() {
 
   // Data still from another group (its answer landed as the id changed): show the loading
   // state rather than one group's people under another's id.
-  if (isLoading || (group && group.id !== groupId)) {
+  if (isLoading || (group && group.id.toLowerCase() !== groupId.toLowerCase())) {
     return (
       <div className="bg-paper min-h-[calc(100vh-69px)]">
         <main className="mx-auto max-w-[1040px] px-4 py-10 md:px-8">
