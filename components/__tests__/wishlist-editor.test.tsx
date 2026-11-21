@@ -13,7 +13,8 @@ vi.mock('@/lib/supabase', () => ({
     }),
   }),
 }))
-vi.mock('sonner', () => ({ toast: { success: vi.fn(), error: vi.fn() } }))
+const toastFn = vi.hoisted(() => vi.fn())
+vi.mock('sonner', () => ({ toast: Object.assign(toastFn, { success: vi.fn(), error: vi.fn() }) }))
 
 const props = { groupId: 'g1', userId: 'u1' }
 const DRAFT = 'fantomio:lista:g1:u1'
@@ -30,6 +31,7 @@ describe('WishlistEditor', () => {
     window.localStorage.clear()
     upsert.mockReset()
     upsert.mockResolvedValue({ error: null })
+    toastFn.mockClear()
   })
   afterEach(() => {
     cleanup()
@@ -189,6 +191,34 @@ describe('WishlistEditor', () => {
     // The refetch started after the first save answers now.
     rerender(<WishlistEditor {...props} initialItems={[{ description: 'Versión 1' }]} />)
     expect(row().value).toBe('Versión 2')
+  })
+
+  it('removes an added empty line without asking', () => {
+    render(<WishlistEditor {...props} initialItems={[]} />)
+    fireEvent.click(screen.getByRole('button', { name: /Agregar otra línea/ }))
+    expect(screen.getByLabelText('Deseo 6')).toBeTruthy()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Quitar línea 6' }))
+    expect(screen.queryByLabelText('Deseo 6')).toBeNull()
+    // The first five keep their example ideas and have nothing to remove.
+    expect(screen.queryByRole('button', { name: /Quitar línea/ })).toBeNull()
+  })
+
+  it('deletes a written wish right away and can bring it back', () => {
+    render(
+      <WishlistEditor
+        {...props}
+        initialItems={[{ description: 'Un libro' }, { description: 'Una planta' }]}
+      />
+    )
+    fireEvent.click(screen.getByRole('button', { name: 'Borrar deseo 1' }))
+    expect(row().value).toBe('Una planta')
+
+    const [message, options] = toastFn.mock.calls[0]
+    expect(message).toBe('Borraste «Un libro»')
+    act(() => options.action.onClick())
+    expect(row(0).value).toBe('Un libro')
+    expect(screen.getByLabelText('Deseo 2')).toHaveProperty('value', 'Una planta')
   })
 
   it('shows the saved list when there is no draft', () => {

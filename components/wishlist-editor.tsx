@@ -1,20 +1,10 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
-import { Button, buttonVariants } from '@/components/ui/button'
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '@/components/ui/alert-dialog'
+import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Notice } from '@/components/auth-shell'
-import { Check, Copy, ExternalLink, Loader2, Plus, Trash2 } from 'lucide-react'
+import { Check, Copy, ExternalLink, Loader2, Plus, Trash2, X } from 'lucide-react'
 import { createClient } from '@/lib/supabase'
 import { getUserFriendlyError } from '@/lib/errors'
 import { toast } from 'sonner'
@@ -179,7 +169,13 @@ export function WishlistEditor({
   const [isSaving, setIsSaving] = useState(false)
   const [lastSaved, setLastSaved] = useState<Date | null>(null)
   const [error, setError] = useState('')
-  const [toDelete, setToDelete] = useState<LocalWishlistItem | null>(null)
+  // Rows added here get ids that never repeat, so removing one doesn't mix up the others.
+  const rowSeq = useRef(0)
+  const newRow = (): LocalWishlistItem => ({
+    id: `row-${++rowSeq.current}`,
+    description: '',
+    url: '',
+  })
   // Changes not saved yet. The ref is read by the effect below without re-running it.
   const [dirty, setDirty] = useState(false)
   const dirtyRef = useRef(false)
@@ -266,9 +262,36 @@ export function WishlistEditor({
     markDirty(true)
   }
 
-  const handleClearItem = (id: string) => {
-    setItems(items.map((item) => (item.id === id ? { ...item, description: '', url: '' } : item)))
+  // Removes the whole row. An empty one just goes; a written one can be brought back from the
+  // toast, which is quicker than confirming first.
+  const handleRemoveItem = (id: string) => {
+    const index = items.findIndex((item) => item.id === id)
+    if (index < 0) return
+    const removed = items[index]
+    const rest = items.filter((item) => item.id !== id)
+    const nextVisible = Math.max(DEFAULT_VISIBLE_ITEMS, visibleCount - 1)
+    while (rest.length < nextVisible) rest.push(newRow())
+    setItems(rest)
+    setVisibleCount(nextVisible)
+    if (!removed.description.trim() && !removed.url.trim()) return
     markDirty(true)
+    toast(`Borraste «${removed.description.trim() || removed.url.trim()}»`, {
+      action: {
+        label: 'Deshacer',
+        onClick: () => {
+          const back = [...itemsRef.current]
+          back.splice(Math.min(index, back.length), 0, removed)
+          // Keep within the limit by dropping an empty row, never a written one.
+          if (back.length > MAX_WISHLIST_ITEMS) {
+            const empty = back.findLastIndex((item) => !item.description.trim() && !item.url.trim())
+            if (empty >= 0) back.splice(empty, 1)
+          }
+          setItems(back.slice(0, MAX_WISHLIST_ITEMS))
+          setVisibleCount((n) => Math.min(n + 1, MAX_WISHLIST_ITEMS))
+          markDirty(true)
+        },
+      },
+    })
   }
 
   const handleAddMoreItems = () => {
@@ -279,11 +302,7 @@ export function WishlistEditor({
     if (items.length < newVisibleCount) {
       const newItems = [...items]
       while (newItems.length < newVisibleCount) {
-        newItems.push({
-          id: `new-${newItems.length}`,
-          description: '',
-          url: '',
-        })
+        newItems.push(newRow())
       }
       setItems(newItems)
     }
@@ -455,17 +474,30 @@ export function WishlistEditor({
                   onChange={(e) => handleItemChange(item.id, 'description', e.target.value)}
                 />
                 <span className="flex w-11 shrink-0 justify-end sm:w-20">
-                  {(item.description || item.url) && (
+                  {item.description || item.url ? (
                     <Button
                       type="button"
                       variant="danger"
                       size="icon"
-                      onClick={() => setToDelete(item)}
+                      onClick={() => handleRemoveItem(item.id)}
                       aria-label={`Borrar deseo ${index + 1}`}
                       title="Borrar"
                     >
                       <Trash2 aria-hidden="true" />
                     </Button>
+                  ) : (
+                    index >= DEFAULT_VISIBLE_ITEMS && (
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => handleRemoveItem(item.id)}
+                        aria-label={`Quitar línea ${index + 1}`}
+                        title="Quitar línea"
+                      >
+                        <X aria-hidden="true" />
+                      </Button>
+                    )
                   )}
                 </span>
               </div>
@@ -530,28 +562,6 @@ export function WishlistEditor({
           </Button>
         </div>
       </div>
-
-      <AlertDialog open={toDelete !== null} onOpenChange={(open) => !open && setToDelete(null)}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>¿Borrar este deseo?</AlertDialogTitle>
-            <AlertDialogDescription>
-              {toDelete?.description ? `"${toDelete.description}" se quitará de tu lista. ` : ''}
-              Recuerda apretar "Guardar lista" para que quede así.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancelar</AlertDialogCancel>
-            <AlertDialogAction
-              className={buttonVariants({ variant: 'destructive' })}
-              onClick={() => toDelete && handleClearItem(toDelete.id)}
-            >
-              <Trash2 aria-hidden="true" />
-              Borrar
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
     </div>
   )
 }
